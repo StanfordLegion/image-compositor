@@ -19,12 +19,6 @@ project(Legion_ImageCompositor)
 
 include_directories(include $ENV{LG_RT_DIR} $ENV{LG_RT_DIR}/legion $ENV{LG_RT_DIR}/realm)
 
-# Only search if were building stand-alone and not as part of Legion
-if(NOT Legion_SOURCE_DIR)
-find_package(Legion REQUIRED)
-endif()
-
-
 #------------------------------------------------------------------------------#
 # Build type and shared vs static library
 #------------------------------------------------------------------------------#

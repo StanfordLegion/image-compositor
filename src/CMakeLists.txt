@@ -17,11 +17,6 @@
 cmake_minimum_required(VERSION 3.9)
 project(Legion)
 
-# Only search if were building stand-alone and not as part of Legion
-if(NOT Legion_SOURCE_DIR)
-  find_package(Legion REQUIRED)
-endif()
-
 # Legion runtime
 list(APPEND LEGION_SRC
   image_reduction.cc
