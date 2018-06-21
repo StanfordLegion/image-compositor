@@ -17,7 +17,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion_ImageCompositor)
 
-include_directories(include $ENV{LG_RT_DIR} $ENV{LG_RT_DIR}/legion $ENV{LG_RT_DIR}/realm)
 
 #------------------------------------------------------------------------------#
 # Build type and shared vs static library

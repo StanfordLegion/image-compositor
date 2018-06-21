@@ -14,8 +14,10 @@
 # limitations under the License.
 #------------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.1)
 project(Legion)
+
+include_directories(../include $ENV{LG_RT_DIR} $ENV{LG_RT_DIR}/legion $ENV{LG_RT_DIR}/realm)
 
 # Legion runtime
 list(APPEND LEGION_SRC
