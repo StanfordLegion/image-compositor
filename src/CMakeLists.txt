@@ -30,6 +30,4 @@ list(APPEND LEGION_SRC
 
 add_library(ImageCompositor ${LEGION_SRC})
 
-target_link_libraries(ImageCompositor)
-set_target_properties(ImageCompositor PROPERTIES OUTPUT_NAME ImageCompositor)
-target_compile_definitions(ImageCompositor PUBLIC LEGION_USE_CMAKE)
+

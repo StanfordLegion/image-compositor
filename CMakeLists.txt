@@ -135,7 +135,5 @@ export(PACKAGE Legion)
 include_directories(${LG_RT_DIR}/legion ${LG_RT_DIR}/realm)
 
 add_subdirectory(src)
-add_subdirectory(examples)
-add_subdirectory(test)
 
 
