@@ -124,7 +124,14 @@ namespace Legion {
        *
        * @param taskID ID of task that has previously been registered with the Legion runtime
        */
-      FutureMap launch_task_by_depth(unsigned taskID, void *args = NULL, int argLen = 0, bool blocking = false);
+      FutureMap launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args = NULL, int argLen = 0, bool blocking = false);
+      /**
+       * Launch a set of tasks for each layer in Z of the image space.
+       * This does not have any region requirements, use this for initialization.
+       *
+       * @param taskID ID of task that has previously been registered with the Legion runtime
+       */
+      FutureMap launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args = NULL, int argLen = 0, bool blocking = false);
       /**
        * Perform a tree reduction using an associative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
@@ -325,7 +332,7 @@ namespace Legion {
       
       
       
-      void initializeNodes();
+      void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
       void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageSize mImageSize);
       FieldSpace imageFields();

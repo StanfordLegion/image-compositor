@@ -71,7 +71,7 @@ namespace Legion {
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
       
-      initializeNodes();
+      initializeNodes(runtime, context);
       assert(mNodeCount > 0);
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
       initializeViewMatrix();
@@ -306,14 +306,19 @@ namespace Legion {
       // get your node ID from the Z coordinate of your region
       int nodeID = imageBounds.lo[2];//TODO abstract the use of [2] throughout this code
       storeMyNodeID(nodeID, numNodes);
-      
-      // projection functors
-      createProjectionFunctors(nodeID, numNodes, runtime, imageSize);
+
+      Processor processor = runtime->get_executing_processor(ctx);
+      Machine::ProcessorQuery query(Machine::get_machine());
+      query.only_kind(processor.kind());
+      if(query.first().id == processor.id) {
+        // projection functors
+        createProjectionFunctors(nodeID, numNodes, runtime, imageSize);
+      }
     }
     
     
-    void ImageReduction::initializeNodes() {
-      launch_task_by_depth(mInitialTaskID, NULL, 0, true);
+    void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
+      launch_epoch_task_by_depth(mInitialTaskID, runtime, context, NULL, 0, true);
     }
     
     
@@ -394,7 +399,7 @@ namespace Legion {
     }
     
     
-    FutureMap ImageReduction::launch_task_by_depth(unsigned taskID, void *args, int argLen, bool blocking){
+    FutureMap ImageReduction::launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
       
       ArgumentMap argMap;
       int totalArgLen = sizeof(mImageSize) + argLen;
@@ -403,11 +408,13 @@ namespace Legion {
       if(argLen > 0) {
         memcpy(argsBuffer + sizeof(mImageSize), args, argLen);
       }
+      
       IndexTaskLauncher depthLauncher(taskID, mDepthDomain, TaskArgument(argsBuffer, totalArgLen), argMap);
       RegionRequirement req(mDepthPartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       depthLauncher.add_region_requirement(req);
       FutureMap futures = mRuntime->execute_index_space(mContext, depthLauncher);
+
       if(blocking) {
         futures.wait_all_results();
       }
@@ -415,7 +422,31 @@ namespace Legion {
       return futures;
     }
     
-    
+    FutureMap ImageReduction::launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
+      
+      ArgumentMap argMap;
+      int totalArgLen = sizeof(mImageSize) + argLen;
+      char *argsBuffer = new char[totalArgLen];
+      memcpy(argsBuffer, &mImageSize, sizeof(mImageSize));
+      if(argLen > 0) {
+        memcpy(argsBuffer + sizeof(mImageSize), args, argLen);
+      }
+      
+      MustEpochLauncher mustEpochLauncher;
+      for(unsigned i = 0; i < mImageSize.numImageLayers; ++i) {
+        TaskLauncher depthTaskLauncher(taskID, TaskArgument(argsBuffer, totalArgLen));
+        DomainPoint point(i);
+        mustEpochLauncher.add_single_task(point, depthTaskLauncher);
+      }
+      FutureMap futures = runtime->execute_must_epoch(context, mustEpochLauncher);
+      
+      if(blocking) {
+        futures.wait_all_results();
+      }
+      delete [] argsBuffer;
+      return futures;
+    }
+
     
 #ifdef DEBUG
     static void dumpImage(ImageReduction::PixelField *rr, ImageReduction::PixelField*gg, ImageReduction::PixelField*bb, ImageReduction::PixelField*aa, ImageReduction::PixelField*zz, ImageReduction::PixelField*uu, ImageReduction::Stride stride, char *text) {
