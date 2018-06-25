@@ -131,7 +131,7 @@ namespace Legion {
        *
        * @param taskID ID of task that has previously been registered with the Legion runtime
        */
-      FutureMap launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args = NULL, int argLen = 0, bool blocking = false);
+      FutureMap launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, bool blocking = false);
       /**
        * Perform a tree reduction using an associative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
@@ -258,7 +258,8 @@ namespace Legion {
                                Context ctx, Runtime *runtime);
       
       static int numTreeLevels(ImageSize imageSize);
-      
+      static int numTreeLevels(int numImageLayers);
+
       static void initial_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
                                Context ctx, Runtime *runtime);
@@ -328,7 +329,7 @@ namespace Legion {
       
       static void storeMyNodeID(int nodeID, int numNodes);
       
-      static void createProjectionFunctors(int nodeID, int numBounds, Runtime* runtime, ImageSize imageSize);
+      static void createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers);
       
       
       

@@ -236,14 +236,18 @@ namespace Legion {
     
     
     
-    int ImageReduction::numTreeLevels(ImageSize imageSize) {
-      int numTreeLevels = log2f(imageSize.numImageLayers);
-      if(powf(2.0f, numTreeLevels) < imageSize.numImageLayers) {
+    int ImageReduction::numTreeLevels(int numImageLayers) {
+      int numTreeLevels = log2f(numImageLayers);
+      if(powf(2.0f, numTreeLevels) < numImageLayers) {
         numTreeLevels++;
       }
       return numTreeLevels;
     }
     
+    int ImageReduction::numTreeLevels(ImageSize imageSize) {
+      return numTreeLevels(imageSize.numImageLayers);
+    }
+
     int ImageReduction::subtreeHeight(ImageSize imageSize) {
       const int totalLevels = numTreeLevels(imageSize);
       const int MAX_LEVELS_PER_SUBTREE = 7; // 128 tasks per subtree
@@ -256,26 +260,28 @@ namespace Legion {
     }
     
     
-    void ImageReduction::createProjectionFunctors(int nodeID, int numBounds, Runtime* runtime, ImageSize imageSize) {
+    void ImageReduction::createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers) {
+      
+      std::cout << __FUNCTION__ << std::endl;
       
       // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
       // not a problem for multinode runs
       if(mCompositeProjectionFunctor == NULL) {
         mCompositeProjectionFunctor = new std::vector<CompositeProjectionFunctor*>();
         
-        int numLevels = numTreeLevels(imageSize);
-        int multiplier = imageSize.numImageLayers;
+        int numLevels = numTreeLevels(numImageLayers);
+        int multiplier = numImageLayers;
         for(int level = 0; level < numLevels; ++level) {
           
           ProjectionID id0 = level2FunctorID(level, 0);
           int offset = 0;
-          CompositeProjectionFunctor* functor0 = new CompositeProjectionFunctor(offset, multiplier, numBounds, id0);
+          CompositeProjectionFunctor* functor0 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id0);
           runtime->register_projection_functor(id0, functor0);
           mCompositeProjectionFunctor->push_back(functor0);
 
           ProjectionID id1 = level2FunctorID(level, 1);
           offset = multiplier / 2;
-          CompositeProjectionFunctor* functor1 = new CompositeProjectionFunctor(offset, multiplier, numBounds, id1);
+          CompositeProjectionFunctor* functor1 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id1);
           runtime->register_projection_functor(id1, functor1);
           mCompositeProjectionFunctor->push_back(functor1);
           
@@ -296,29 +302,24 @@ namespace Legion {
       std::cout << describe_task(task) << std::endl;
 #endif
       
-      ImageSize imageSize = ((ImageSize*)task->args)[0];
-      int numNodes = imageSize.numImageLayers;
-      
-      // set the node ID
-      Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
-      Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
-      
-      // get your node ID from the Z coordinate of your region
-      int nodeID = imageBounds.lo[2];//TODO abstract the use of [2] throughout this code
-      storeMyNodeID(nodeID, numNodes);
+      int *args = (int*)task->args;
+      int numImageLayers = args[0];
+      int myNodeID = args[1];
+      storeMyNodeID(myNodeID, numImageLayers);
 
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
+      std::cout << "query.first.id " << query.first().id << " processor.id " << processor.id << std::endl;
       if(query.first().id == processor.id) {
         // projection functors
-        createProjectionFunctors(nodeID, numNodes, runtime, imageSize);
+        createProjectionFunctors(myNodeID, runtime, numImageLayers);
       }
     }
     
     
     void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
-      launch_epoch_task_by_depth(mInitialTaskID, runtime, context, NULL, 0, true);
+      launch_epoch_task_by_depth(mInitialTaskID, runtime, context, true);
     }
     
     
@@ -422,19 +423,13 @@ namespace Legion {
       return futures;
     }
     
-    FutureMap ImageReduction::launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
-      
-      ArgumentMap argMap;
-      int totalArgLen = sizeof(mImageSize) + argLen;
-      char *argsBuffer = new char[totalArgLen];
-      memcpy(argsBuffer, &mImageSize, sizeof(mImageSize));
-      if(argLen > 0) {
-        memcpy(argsBuffer + sizeof(mImageSize), args, argLen);
-      }
+    FutureMap ImageReduction::launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, bool blocking){
       
       MustEpochLauncher mustEpochLauncher;
       for(unsigned i = 0; i < mImageSize.numImageLayers; ++i) {
-        TaskLauncher depthTaskLauncher(taskID, TaskArgument(argsBuffer, totalArgLen));
+        int args[] = { mImageSize.numImageLayers, i };
+        int argLen = 2 * sizeof(args[0]);
+        TaskLauncher depthTaskLauncher(taskID, TaskArgument(args, argLen));
         DomainPoint point(i);
         mustEpochLauncher.add_single_task(point, depthTaskLauncher);
       }
@@ -443,7 +438,6 @@ namespace Legion {
       if(blocking) {
         futures.wait_all_results();
       }
-      delete [] argsBuffer;
       return futures;
     }
 
