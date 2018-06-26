@@ -20,6 +20,7 @@
 #include <fstream>
 #include <math.h>
 
+#define TRACE_TASKS 1
 
 using namespace LegionRuntime::HighLevel;
 using namespace LegionRuntime::Accessor;
@@ -262,7 +263,7 @@ namespace Legion {
     
     void ImageReduction::createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers) {
       
-      std::cout << __FUNCTION__ << std::endl;
+      std::cout << __FUNCTION__ << " " << std::getenv("HOSTNAME") << std::endl;
       
       // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
       // not a problem for multinode runs
@@ -310,7 +311,7 @@ namespace Legion {
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
-      std::cout << "query.first.id " << query.first().id << " processor.id " << processor.id << std::endl;
+      std::cout << "query.first.id " << query.first().id << " processor " <<  processor.id << " hostname " << std::getenv("HOSTNAME") << std::endl;
       if(query.first().id == processor.id) {
         // projection functors
         createProjectionFunctors(myNodeID, runtime, numImageLayers);

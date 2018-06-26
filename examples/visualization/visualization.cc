@@ -127,7 +127,7 @@ void top_level_task(const Task *task,
       
       frame.start();
       simulateTimeStep(t);
-      FutureMap renderFutures = imageReduction.launch_index_task_by_depth(RENDER_TASK_ID, runtime, ctx);
+      FutureMap renderFutures = imageReduction.launch_epoch_task_by_depth(RENDER_TASK_ID, runtime, ctx, false);
       renderFutures.wait_all_results();
       
       reduce.start();
