@@ -267,9 +267,9 @@ namespace Legion {
       return 0;
     }
     
-    static int verifyAccumulatorMatchesResult(ImageReduction &imageReduction, Image expected, ImageSize imageSize) {
+    static int verifyAccumulatorMatchesResult(ImageReduction &imageReduction, Image expected, ImageSize imageSize, HighLevelRuntime* runtime, Context context) {
       int totalSize = imageSize.pixelsPerLayer() * ImageReduction::numPixelFields * sizeof(ImageReduction::PixelField);
-      FutureMap futures = imageReduction.launch_task_by_depth(VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, expected, totalSize, true);
+      FutureMap futures = imageReduction.launch_task_everywhere(VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, runtime, context, expected, totalSize, true);
       DomainPoint origin = Point<image_region_dimensions>::ZEROES();
       int failures = futures[origin].get<int>();
       return failures;
@@ -327,9 +327,10 @@ namespace Legion {
     
     
     static void verifyTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
-                                 GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation, Image expected) {
+                                 GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation, Image expected,
+                                 HighLevelRuntime* runtime, Context context) {
       
-      int numFailures = verifyAccumulatorMatchesResult(imageReduction, expected, imageSize);
+      int numFailures = verifyAccumulatorMatchesResult(imageReduction, expected, imageSize, runtime, context);
       std::string description = testDescription(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource,
                                                 blendFuncDestination, blendEquation);
       if(numFailures == 0) {
@@ -376,13 +377,14 @@ namespace Legion {
     }
     
     static void verifyAssociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
-                                            GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+                                            GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                                            HighLevelRuntime* runtime, Context context) {
       savePaintedImages(imageSize);
       int maxTreeLevel = ImageReduction::numTreeLevels(imageSize);
       Image expected = treeReduction(0, maxTreeLevel, 0, imageReduction, imageSize,
                                      depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       verifyTestResult(testLabel, imageReduction, imageSize,
-                       depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected);
+                       depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
     }
     
@@ -398,18 +400,19 @@ namespace Legion {
     }
     
     static void verifyNonassociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
-                                               GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+                                               GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                                               HighLevelRuntime* runtime, Context context) {
       savePaintedImages(imageSize);
       Image expected = pipelineReduction(imageReduction, imageSize,
                                          depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       verifyTestResult(testLabel, imageReduction, imageSize,
-                       depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected);
+                       depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
     }
     
     
     static void paintImages(ImageSize imageSize, Context context, Runtime *runtime, ImageReduction &imageReduction) {
-      imageReduction.launch_task_by_depth(GENERATE_IMAGE_DATA_TASK_ID, NULL, 0, /*blocking*/true);
+      imageReduction.launch_task_everywhere(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, NULL, 0, /*blocking*/true);
     }
     
     
@@ -444,14 +447,14 @@ namespace Legion {
       futureMap.wait_all_results();
       reduceCommutative.stop();
       std::cout << reduceCommutative.to_string() << std::endl;
-      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       
       return;//stop here
       
       testLabel = "associative,noncommutative";
       futureMap = imageReduction.reduce_associative_noncommutative();
       futureMap.wait_all_results();
-      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
     
     
@@ -467,12 +470,12 @@ namespace Legion {
       FutureMap futureMap;
       futureMap = imageReduction.reduce_nonassociative_commutative();
       futureMap.wait_all_results();
-      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       
       testLabel = "nonassociative,noncommutative";
       futureMap = imageReduction.reduce_nonassociative_noncommutative();
       futureMap.wait_all_results();
-      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
     
     const int numDomainNodesX = 2;
