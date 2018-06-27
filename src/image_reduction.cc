@@ -16,11 +16,11 @@
 #include "image_reduction.h"
 #include "image_reduction_composite.h"
 
+#include "mappers/default_mapper.h"
+
 #include <iostream>
 #include <fstream>
 #include <math.h>
-
-#define TRACE_TASKS 1
 
 using namespace LegionRuntime::HighLevel;
 using namespace LegionRuntime::Accessor;
@@ -70,9 +70,11 @@ namespace Legion {
       
       createImage(mSourceImage, mSourceImageDomain);
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
+      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageSize);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
       
       initializeNodes(runtime, context);
+      
       assert(mNodeCount > 0);
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
       initializeViewMatrix();
@@ -210,6 +212,32 @@ namespace Legion {
     }
     
     
+    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageSize imageSize) {
+
+      Future nodeCountFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT);
+      Future globalCPUsFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS);
+      int nodeCount = nodeCountFuture.get_result<int>();
+      int cpuCount = globalCPUsFuture.get_result<int>();
+      int cpusPerNode = cpuCount / nodeCount;
+      
+      Point<image_region_dimensions> p0;
+      p0 = mImageSize.origin();
+      Point <image_region_dimensions> p1;
+      p1[0] = 0;
+      p1[1] = 0;
+      p1[2] = mImageSize.numImageLayers - 1;
+      Rect<image_region_dimensions> color_bounds(p0, p1);
+      IndexSpace color_is = runtime->create_index_space(ctx, color_bounds);
+      IndexSpace is = image.get_index_space();
+      IndexPartition ip = runtime->create_equal_partition(ctx, is, color_is);
+      runtime->attach_name(ip, "ip");
+      partition = runtime->get_logical_partition(ctx, image, ip);
+      mRuntime->attach_name(partition, "image everywhere partition");
+      Rect<image_region_dimensions> everywhereBounds(mImageSize.origin(), mImageSize.numLayers() - Point<image_region_dimensions>(1));
+      domain = Domain(everywhereBounds);
+    }
+    
+    
     void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition) {
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
       Point<image_region_dimensions> blockingFactor = mImageSize.fragmentSize();
@@ -263,8 +291,6 @@ namespace Legion {
     
     void ImageReduction::createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers) {
       
-      std::cout << __FUNCTION__ << " " << std::getenv("HOSTNAME") << std::endl;
-      
       // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
       // not a problem for multinode runs
       if(mCompositeProjectionFunctor == NULL) {
@@ -293,8 +319,7 @@ namespace Legion {
     
     
     
-    // this task and everything it calls is invoked on every node during initialization
-    
+   
     void ImageReduction::initial_task(const Task *task,
                                       const std::vector<PhysicalRegion> &regions,
                                       Context ctx, HighLevelRuntime *runtime) {
@@ -303,24 +328,24 @@ namespace Legion {
       std::cout << describe_task(task) << std::endl;
 #endif
       
-      int *args = (int*)task->args;
-      int numImageLayers = args[0];
-      int myNodeID = args[1];
-      storeMyNodeID(myNodeID, numImageLayers);
-
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
-      std::cout << "query.first.id " << query.first().id << " processor " <<  processor.id << " hostname " << std::getenv("HOSTNAME") << std::endl;
-      if(query.first().id == processor.id) {
-        // projection functors
-        createProjectionFunctors(myNodeID, runtime, numImageLayers);
+      if(processor.id == query.first().id) {
+        // set the node ID
+        Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
+        Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
+        int myNodeID = imageBounds.lo[2];
+
+        ImageSize imageSize = ((ImageSize*)task->args)[0];
+        storeMyNodeID(myNodeID, imageSize.numImageLayers);
+        createProjectionFunctors(myNodeID, runtime, imageSize.numImageLayers);
       }
     }
     
     
     void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
-      launch_epoch_task_by_depth(mInitialTaskID, runtime, context, true);
+      launch_task_everywhere(mInitialTaskID, runtime, context, NULL, 0, true);
     }
     
     
@@ -424,24 +449,34 @@ namespace Legion {
       return futures;
     }
     
-    FutureMap ImageReduction::launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, bool blocking){
+    
+    FutureMap ImageReduction::launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
       
       MustEpochLauncher mustEpochLauncher;
-      for(unsigned i = 0; i < mImageSize.numImageLayers; ++i) {
-        int args[] = { mImageSize.numImageLayers, i };
-        int argLen = 2 * sizeof(args[0]);
-        TaskLauncher depthTaskLauncher(taskID, TaskArgument(args, argLen));
-        DomainPoint point(i);
-        mustEpochLauncher.add_single_task(point, depthTaskLauncher);
+      ArgumentMap argMap;
+      
+      int totalArgLen = sizeof(mImageSize) + argLen;
+      char *argsBuffer = new char[totalArgLen];
+      memcpy(argsBuffer, &mImageSize, sizeof(mImageSize));
+      if(argLen > 0) {
+        memcpy(argsBuffer + sizeof(mImageSize), args, argLen);
       }
+      
+      IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap);
+      RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
+      addImageFieldsToRequirement(req);
+      everywhereLauncher.add_region_requirement(req);
+      mustEpochLauncher.add_index_task(everywhereLauncher);
+      
       FutureMap futures = runtime->execute_must_epoch(context, mustEpochLauncher);
       
       if(blocking) {
         futures.wait_all_results();
       }
+      delete [] argsBuffer;
       return futures;
     }
-
+    
     
 #ifdef DEBUG
     static void dumpImage(ImageReduction::PixelField *rr, ImageReduction::PixelField*gg, ImageReduction::PixelField*bb, ImageReduction::PixelField*aa, ImageReduction::PixelField*zz, ImageReduction::PixelField*uu, ImageReduction::Stride stride, char *text) {

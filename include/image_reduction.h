@@ -126,12 +126,18 @@ namespace Legion {
        */
       FutureMap launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args = NULL, int argLen = 0, bool blocking = false);
       /**
-       * Launch a set of tasks for each layer in Z of the image space.
-       * This does not have any region requirements, use this for initialization.
+       * Launch a set of tasks on all processors.  This is useful for launching
+       * render tasks, which should run once per node.  To enforce once-per-node
+       * use this idiom within a task:
+       *
+       * Processor processor = runtime->get_executing_processor(ctx);
+       * Machine::ProcessorQuery query(Machine::get_machine());
+       * query.only_kind(processor.kind());
+       * if(processor.id == query.first().id) { ...
        *
        * @param taskID ID of task that has previously been registered with the Legion runtime
        */
-      FutureMap launch_epoch_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, bool blocking = false);
+      FutureMap launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void* args = NULL, int argLen = 0, bool blocking = false);
       /**
        * Perform a tree reduction using an associative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
@@ -339,6 +345,7 @@ namespace Legion {
       FieldSpace imageFields();
       void createImage(LogicalRegion &region, Domain &domain);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition);
+      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageSize imageSize);
       void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition);
       
       FutureMap reduceAssociative();
@@ -379,10 +386,12 @@ namespace Legion {
       LogicalRegion mSourceImage;
       Domain mSourceImageDomain;
       Domain mDepthDomain;
+      Domain mEverywhereDomain;
       Domain mCompositePipelineDomain;
       Domain mDisplayDomain;
       Domain mSourceFragmentDomain;
       LogicalPartition mDepthPartition;
+      LogicalPartition mEverywherePartition;
       LogicalPartition mSourceFragmentPartition;
       GLenum mDepthFunction;
       int mAccessorFunctorID;

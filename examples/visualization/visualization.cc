@@ -74,18 +74,24 @@ void render_task(const Task *task,
                  const std::vector<PhysicalRegion> &regions,
                  Context ctx, HighLevelRuntime *runtime) {
   
-  UsecTimer render(Legion::Visualization::ImageReduction::describe_task(task) + ":");
-  render.start();
-  PhysicalRegion image = regions[0];
-  ImageSize imageSize = ((ImageSize *)task->args)[0];
-  
-  ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
-  ImageReduction::Stride stride;
-  int layer = task->get_unique_id() % imageSize.numImageLayers;
-  ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx);
-  paintRegion(imageSize, r, g, b, a, z, userdata, stride, layer);
-  render.stop();
-  cout << render.to_string() << endl;
+  Processor processor = runtime->get_executing_processor(ctx);
+  Machine::ProcessorQuery query(Machine::get_machine());
+  query.only_kind(processor.kind());
+  if(processor.id == query.first().id) {
+    
+    UsecTimer render(Legion::Visualization::ImageReduction::describe_task(task) + ":");
+    render.start();
+    PhysicalRegion image = regions[0];
+    ImageSize imageSize = ((ImageSize *)task->args)[0];
+    
+    ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
+    ImageReduction::Stride stride;
+    int layer = task->get_unique_id() % imageSize.numImageLayers;
+    ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx);
+    paintRegion(imageSize, r, g, b, a, z, userdata, stride, layer);
+    render.stop();
+    cout << render.to_string() << endl;
+  }
 }
 
 
@@ -127,7 +133,7 @@ void top_level_task(const Task *task,
       
       frame.start();
       simulateTimeStep(t);
-      FutureMap renderFutures = imageReduction.launch_epoch_task_by_depth(RENDER_TASK_ID, runtime, ctx, false);
+      FutureMap renderFutures = imageReduction.launch_task_everywhere(RENDER_TASK_ID, runtime, ctx);
       renderFutures.wait_all_results();
       
       reduce.start();
