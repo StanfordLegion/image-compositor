@@ -56,7 +56,7 @@ namespace Legion {
       ImageReduction::PixelField*,
       ImageReduction::PixelField*,
       int,
-      Legion::ByteOffset[ImageReduction::numPixelFields][image_region_dimensions]);
+      ImageReduction::Stride);
       
       static CompositeFunction* compositeFunctionPointer(GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation);
       
@@ -78,12 +78,33 @@ namespace Legion {
                                    ImageReduction::PixelField *&z,
                                    ImageReduction::PixelField *&userdata,
                                    Legion::Visualization::ImageReduction::Stride stride) {
+        
+        ////DEBUG
+//        ImageReduction::PixelField* rr = r;
+//        ImageReduction::PixelField* gg = g;
+//        ImageReduction::PixelField* bb = b;
+//        ImageReduction::PixelField* aa = a;
+//        ImageReduction::PixelField* zz = z;
+//        ImageReduction::PixelField* uu = userdata;
+        ////DEBUG
+        
         r += stride[ImageReduction::FID_FIELD_R][0];
         g += stride[ImageReduction::FID_FIELD_G][0];
         b += stride[ImageReduction::FID_FIELD_B][0];
         a += stride[ImageReduction::FID_FIELD_A][0];
         z += stride[ImageReduction::FID_FIELD_Z][0];
         userdata += stride[ImageReduction::FID_FIELD_USERDATA][0];
+        
+        
+        ////DEBUG
+//        std::cout << "increment" << std::endl;
+//        std::cout << "r " << rr << " + " << (r - rr) << " = " << r << std::endl;
+//        std::cout << "g " << gg << " + " << (g - gg) << " = " << g << std::endl;
+//        std::cout << "b " << bb << " + " << (b - bb) << " = " << b << std::endl;
+//        std::cout << "a " << aa << " + " << (a - aa) << " = " << a << std::endl;
+//        std::cout << "z " << zz << " + " << (z - zz) << " = " << z << std::endl;
+//        std::cout << "u " << uu << " + " << (userdata - uu) << " = " << userdata << std::endl;
+        ////DEBUG
       }
       
       

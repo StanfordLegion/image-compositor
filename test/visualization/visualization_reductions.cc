@@ -113,7 +113,7 @@ namespace Legion {
       return buffer;
     }
     
-    static Image loadImage(int taskID, ImageSize imageSize) {
+    static Image loadReferenceImageFromFile(int taskID, ImageSize imageSize) {
       char fileName[256];
       FILE *inputFile = fopen(paintFileName(fileName, taskID), "rb");
       Image result = new ImageReduction::PixelField[imageSize.pixelsPerLayer() * ImageReduction::numPixelFields];
@@ -196,10 +196,11 @@ namespace Legion {
       
       ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
       ImageReduction::Stride stride;
-      ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx);
+      ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
       
       Domain indexSpaceDomain = runtime->get_index_space_domain(ctx, image.get_logical_region().get_index_space());
       LegionRuntime::Arrays::Rect<image_region_dimensions> imageBounds = indexSpaceDomain.get_rect<image_region_dimensions>();
+      
       int taskID = imageBounds.lo[2];
       paintRegion(imageSize, r, g, b, a, z, userdata, stride, taskID);
       render.stop();
@@ -261,7 +262,7 @@ namespace Legion {
         Image expected = (Image)((char*)task->args + sizeof(imageSize));
         ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
         ImageReduction::Stride stride;
-        ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx);
+        ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
         return verifyImage(imageSize, expected, r, g, b, a, z, userdata, stride);
       }
       return 0;
@@ -307,7 +308,7 @@ namespace Legion {
       
       ImageReduction::Stride stride;
       for(int i = 0; i < ImageReduction::numPixelFields; ++i) {
-        stride[i][0] = Legion::ByteOffset((int)sizeof(ImageReduction::PixelField) * ImageReduction::numPixelFields);
+        stride[i][0] = 1 * ImageReduction::numPixelFields;
       }
       
       compositeFunction(r0In, g0In, b0In, a0In, z0In, userdata0In, r1In, g1In, b1In, a1In, z1In, userdata1In,
@@ -344,6 +345,7 @@ namespace Legion {
     static Image treeReduction(int treeLevel, int maxTreeLevel, int leftLayer,
                                ImageReduction &imageReduction, ImageSize imageSize,
                                GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+      
       Image image0 = NULL;
       Image image1 = NULL;
       int layer0 = leftLayer;
@@ -351,8 +353,8 @@ namespace Legion {
       int layer1 = layer0 + layerOffset;
       
       if(treeLevel == maxTreeLevel - 1) {
-        image0 = loadImage(layer0, imageSize);
-        image1 = loadImage(layer1, imageSize);
+        image0 = loadReferenceImageFromFile(layer0, imageSize);
+        image1 = loadReferenceImageFromFile(layer1, imageSize);
       } else {
         image0 = treeReduction(treeLevel + 1, maxTreeLevel, layer0, imageReduction, imageSize,
                                depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
@@ -369,6 +371,7 @@ namespace Legion {
     
     static void savePaintedImages(ImageSize imageSize) {
       for(int taskID = 0; taskID < imageSize.numImageLayers; ++taskID) {
+        
         Image image;
         paintImage(imageSize, taskID, image);
         saveImage(taskID, imageSize, image);
@@ -391,9 +394,9 @@ namespace Legion {
     
     static Image pipelineReduction(ImageReduction &imageReduction, ImageSize imageSize,
                                    GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
-      Image expected = loadImage(0, imageSize);
+      Image expected = loadReferenceImageFromFile(0, imageSize);
       for(int layer = 1; layer < imageSize.numImageLayers; ++layer) {
-        Image nextImage = loadImage(layer, imageSize);
+        Image nextImage = loadReferenceImageFromFile(layer, imageSize);
         compositeTwoImages(expected, nextImage, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       }
       return expected;
@@ -412,7 +415,7 @@ namespace Legion {
     
     
     static void paintImages(ImageSize imageSize, Context context, Runtime *runtime, ImageReduction &imageReduction) {
-      imageReduction.launch_task_everywhere(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, NULL, 0, /*blocking*/true);
+      imageReduction.launch_index_task_by_depth(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, NULL, 0, /*blocking*/true);
     }
     
     
@@ -575,15 +578,25 @@ int main(int argc, char *argv[]) {
   
   Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);
   
-  Legion::HighLevelRuntime::register_legion_task<Legion::Visualization::top_level_task>(Legion::Visualization::TOP_LEVEL_TASK_ID,
-                                                                                        Legion::Processor::LOC_PROC, true/*single*/, false/*index*/,
-                                                                                        AUTO_GENERATE_ID, Legion::TaskConfigOptions(false/*leaf*/), "top_level_task");
-  
-  Legion::HighLevelRuntime::register_legion_task<Legion::Visualization::generate_image_data_task>(Legion::Visualization::GENERATE_IMAGE_DATA_TASK_ID,
-                                                                                                  Legion::Processor::LOC_PROC, false/*single*/, true/*index*/,                                                                                                  AUTO_GENERATE_ID, Legion::TaskConfigOptions(true/*leaf*/), "generate_image_data_task");
-  
-  Legion::HighLevelRuntime::register_legion_task<int, Legion::Visualization::verify_composited_image_data_task>(Legion::Visualization::VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID,
-                                                                                                                Legion::Processor::LOC_PROC, false/*single*/, true/*index*/,                                                                                                                AUTO_GENERATE_ID, Legion::TaskConfigOptions(true/*leaf*/), "verify_composited_image_data_task");
+  {
+    Legion::TaskVariantRegistrar registrar(Legion::Visualization::TOP_LEVEL_TASK_ID, "top_level_task");
+    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
+    Legion::Runtime::preregister_task_variant<Legion::Visualization::top_level_task>(registrar, "top_level_task");
+  }
+
+  {
+    Legion::TaskVariantRegistrar registrar(Legion::Visualization::GENERATE_IMAGE_DATA_TASK_ID, "generate_image_data_task");
+    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
+    registrar.set_leaf();
+    Legion::Runtime::preregister_task_variant<Legion::Visualization::generate_image_data_task>(registrar, "generate_image_data_task");
+  }
+
+  {
+    Legion::TaskVariantRegistrar registrar(Legion::Visualization::VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, "verify_composited_image_data_task");
+    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
+    registrar.set_leaf();
+   Legion::Runtime::preregister_task_variant<int, Legion::Visualization::verify_composited_image_data_task>(registrar, "verify_composited_image_data_task");
+  }
   
   return Legion::HighLevelRuntime::start(argc, argv);
 }

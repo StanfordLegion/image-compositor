@@ -21,10 +21,7 @@
 //tracing -- remove this
 //#define _T {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
 
-#include "legion_visualization.h"
-
 #include "usec_timer.h"
-#include "accessor.h"
 
 #ifdef __APPLE__
 #include <OpenGL/OpenGL.h>
@@ -86,7 +83,7 @@ namespace Legion {
       static const int numPixelFields = 6;//rgbazu
       static const int num_fragments_per_composite = 2;
       typedef float SimulationBoundsCoordinate;
-      typedef ByteOffset Stride[ImageReduction::numPixelFields][image_region_dimensions];
+      typedef size_t Stride[ImageReduction::numPixelFields][image_region_dimensions];
       
       /**
        * Initialize the image reduction framework.
@@ -230,6 +227,7 @@ namespace Legion {
        * @param z return raw pointer to pixel fields
        * @param userdata return raw pointer to pixel fields
        * @param stride returns stride between successive pixels
+       * @param readWrite true if read/write access 
        */
       static void create_image_field_pointers(ImageSize imageSize,
                                               PhysicalRegion region,
@@ -241,7 +239,8 @@ namespace Legion {
                                               PixelField *&userdata,
                                               Stride stride,
                                               Runtime *runtime,
-                                              Context context);
+                                              Context context,
+                                              bool readWrite);
       
       /**
        * Utility function to provide descriptive output for messages.
@@ -297,12 +296,7 @@ namespace Legion {
           if(mNumBounds == 0 || remappedLayer < mNumBounds) {
             remappedPoint[2] = remappedLayer;
           }
-          
-#if 0
-          {std::cout<< to_string() << " for task " << mappable->as_task()->get_unique_id()
-            << " remaps launch point "<<point<<" to "<<remappedPoint<<std::endl;}
-#endif
-          
+                    
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
           return result;
         }
