@@ -13,20 +13,10 @@
  * limitations under the License.
  */
 
-#include "legion.h"
-#include "legion_visualization.h"
-#include "image_reduction_composite.h"
-
-#include <math.h>
+#include "visualization_reductions.h"
 
 namespace Legion {
   namespace Visualization {
-    
-    enum TaskIDs {
-      TOP_LEVEL_TASK_ID,
-      GENERATE_IMAGE_DATA_TASK_ID,
-      VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID,
-    };
     
     const GLenum depthFuncs[] = {
       GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL, GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, GL_ALWAYS
@@ -43,7 +33,6 @@ namespace Legion {
     const int numDepthFuncs = sizeof(depthFuncs) / sizeof(depthFuncs[0]);
     const int numBlendFuncs = sizeof(blendFuncs) / sizeof(blendFuncs[0]);
     const int numBlendEquations = sizeof(blendEquations) / sizeof(blendEquations[0]);
-    
     
     static std::string depthFuncToString(GLenum depthFunc) {
       switch(depthFunc) {
@@ -436,9 +425,9 @@ namespace Legion {
     
     
     
-    static void testAssociative(ImageReduction &imageReduction,
-                                ImageSize imageSize, Context context, Runtime *runtime,
-                                GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+    void testAssociative(ImageReduction &imageReduction,
+                         ImageSize imageSize, Context context, Runtime *runtime,
+                         GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       std::string testLabel = "associative,commutative";
       
       std::cout << testDescription(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation) << std::endl;
@@ -462,9 +451,9 @@ namespace Legion {
     
     
     
-    static void testNonassociative(ImageReduction &imageReduction,
-                                   ImageSize imageSize, Context context, Runtime *runtime,
-                                   GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+    void testNonassociative(ImageReduction &imageReduction,
+                            ImageSize imageSize, Context context, Runtime *runtime,
+                            GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       
       return;//not working
       
@@ -486,62 +475,7 @@ namespace Legion {
     const int numDomainNodesZ = 1;
     const int numDomainNodes = numDomainNodesX * numDomainNodesY * numDomainNodesZ;
     
-    
-    void top_level_task(const Task *task,
-                        const std::vector<PhysicalRegion> &regions,
-                        Context ctx, Runtime *runtime) {
-      
-      {
-        // test with multiple fragments per scanline and all reduction operators
-        const int width = 16;
-        const int rows = 4;
-        const int fragmentsPerLayer = rows * 2;
-        
-        assert(fragmentsPerLayer > rows && width % (fragmentsPerLayer / rows) == 0);
-        ImageSize imageSize = { width, rows, numDomainNodes, fragmentsPerLayer };
-        ImageReduction imageReduction(imageSize, ctx, runtime);
-        
-        for(int i = 0; i < numDepthFuncs; ++i) {
-          GLenum depthFunc = depthFuncs[i];
-          testAssociative(imageReduction, imageSize, ctx, runtime, depthFunc, 0, 0, blendEquations[0]);
-          testNonassociative(imageReduction, imageSize, ctx, runtime, depthFunc, 0, 0, blendEquations[0]);
-        }
-        
-        for(int i = 0; i < numBlendFuncs; ++i) {
-          GLenum sourceFunc = blendFuncs[i];
-          for(int j = 0; j < numBlendFuncs; ++j) {
-            GLenum destinationFunc = blendFuncs[j];
-            for(int k = 0; k < numBlendEquations; ++k) {
-              GLenum blendEquation = blendEquations[k];
-              testAssociative(imageReduction, imageSize, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
-              testNonassociative(imageReduction, imageSize, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
-            }
-          }
-        }
-      }
-      
-      const int fewFragmentsPerLayer = 4;
-      
-      {
-        // test with small images
-        ImageSize imageSize = { 320, 200, numDomainNodes, fewFragmentsPerLayer };
-        ImageReduction imageReduction(imageSize, ctx, runtime);
-        testAssociative(imageReduction, imageSize, ctx, runtime, depthFuncs[0], 0, 0, blendEquations[0]);
-        testNonassociative(imageReduction, imageSize, ctx, runtime, depthFuncs[0], 0, 0, blendEquations[0]);
-      }
-      
-      {
-        // test with large images
-        ImageSize imageSize = { 3840, 2160, numDomainNodes, fewFragmentsPerLayer };
-        ImageReduction imageReduction(imageSize, ctx, runtime);
-        testAssociative(imageReduction, imageSize, ctx, runtime, depthFuncs[0], 0, 0, blendEquations[0]);
-        testNonassociative(imageReduction, imageSize, ctx, runtime, depthFuncs[0], 0, 0, blendEquations[0]);
-      }
-      
-    }
-    
-    
-    static void preregisterSimulationBounds(int numSimulationBoundsX, int numSimulationBoundsY, int numSimulationBoundsZ) {
+    void preregisterSimulationBounds(int numSimulationBoundsX, int numSimulationBoundsY, int numSimulationBoundsZ) {
       
       // call this before starting the Legion runtime
       
@@ -567,38 +501,11 @@ namespace Legion {
       delete [] bounds;
     }
     
+    void top_level_task(const Task *task,
+                        const std::vector<PhysicalRegion> &regions,
+                        Context ctx, Runtime *runtime);
+    
   }
-}
-
-
-int main(int argc, char *argv[]) {
-  
-  Legion::Visualization::ImageReduction::initialize();
-  Legion::Visualization::preregisterSimulationBounds(Legion::Visualization::numDomainNodesX, Legion::Visualization::numDomainNodesY, Legion::Visualization::numDomainNodesZ);
-  
-  Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);
-  
-  {
-    Legion::TaskVariantRegistrar registrar(Legion::Visualization::TOP_LEVEL_TASK_ID, "top_level_task");
-    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
-    Legion::Runtime::preregister_task_variant<Legion::Visualization::top_level_task>(registrar, "top_level_task");
-  }
-
-  {
-    Legion::TaskVariantRegistrar registrar(Legion::Visualization::GENERATE_IMAGE_DATA_TASK_ID, "generate_image_data_task");
-    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
-    registrar.set_leaf();
-    Legion::Runtime::preregister_task_variant<Legion::Visualization::generate_image_data_task>(registrar, "generate_image_data_task");
-  }
-
-  {
-    Legion::TaskVariantRegistrar registrar(Legion::Visualization::VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, "verify_composited_image_data_task");
-    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
-    registrar.set_leaf();
-   Legion::Runtime::preregister_task_variant<int, Legion::Visualization::verify_composited_image_data_task>(registrar, "verify_composited_image_data_task");
-  }
-  
-  return Legion::HighLevelRuntime::start(argc, argv);
 }
 
 
