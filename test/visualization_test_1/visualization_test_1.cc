@@ -54,24 +54,6 @@ void top_level_task(const Legion::Task *task,
     }
   }
   
-  const int fewFragmentsPerLayer = 4;
-  
-  {
-    // test with small images
-    Legion::Visualization::ImageSize imageSize = { 320, 200, numDomainNodes, fewFragmentsPerLayer };
-    Legion::Visualization::ImageReduction imageReduction(imageSize, ctx, runtime);
-    Legion::Visualization::testAssociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
-    Legion::Visualization::testNonassociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
-  }
-  
-  {
-    // test with large images
-    Legion::Visualization::ImageSize imageSize = { 3840, 2160, numDomainNodes, fewFragmentsPerLayer };
-    Legion::Visualization::ImageReduction imageReduction(imageSize, ctx, runtime);
-    Legion::Visualization::testAssociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
-    Legion::Visualization::testNonassociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
-  }
-  
 }
 
 

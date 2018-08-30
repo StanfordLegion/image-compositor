@@ -12,17 +12,17 @@ USE_GASNET	?= 0
 ALT_MAPPERS	?= 0		  # Compile the alternative mappers
 
 # Put the binary file name here
-OUTFILE		:= visualization_test_2
+OUTFILE		:= visualization_test_3
 # List all the application source files here
-GEN_SRC		:= ../visualization_reductions.cc visualization_test_2.cc        # .cc files
+GEN_SRC		:= ../visualization_reductions.cc visualization_test_3.cc        # .cc files
 #GEN_GPU_SRC	:=		    # .cu files
 
 # You can modify these variables, some will be appended to by the runtime makefile
-INC_FLAGS	?= -I../../../include -I${LG_RT_DIR} -I${LG_RT_DIR}/legion -I${LG_RT_DIR}/realm -I..
+INC_FLAGS	?= -I../../include -I${LG_RT_DIR} -I${LG_RT_DIR}/legion -I${LG_RT_DIR}/realm -I..
 CC_FLAGS	:=
 NVCC_FLAGS	:=
 GASNET_FLAGS	:=
-LD_FLAGS	:= -L../../../src -lImageCompositor
+LD_FLAGS	:= -L../../src -lImageCompositor
 
 ###########################################################################
 #
