@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#define _T {std::cout<<__FUNCTION__<<" "<<__LINE__<<std::endl;}
 
 #include "legion_visualization.h"
 #include "image_reduction_composite.h"
@@ -70,27 +69,17 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       
-_T
       createImage(mSourceImage, mSourceImageDomain);
-_T
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
-_T
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageSize);
-_T
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
-_T
       
       initializeNodes(runtime, context);
-_T
       
       assert(mNodeCount > 0);
-_T
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
-_T
       initializeViewMatrix();
-_T
       createTreeDomains(mLocalCopyOfNodeID, numTreeLevels(imageSize), runtime, imageSize);
-_T
       
     }
     
@@ -221,21 +210,13 @@ _T
     
     
     void ImageReduction::partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition) {
-_T
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
-_T
       Point<image_region_dimensions> blockingFactor = mImageSize.layerSize();
-_T
       IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(mContext, parent, blockingFactor);
-_T
       partition = mRuntime->get_logical_partition(mContext, image, imageDepthIndexPartition);
-_T
       mRuntime->attach_name(partition, "image depth partition");
-_T
       Rect<image_region_dimensions> depthBounds(mImageSize.origin(), mImageSize.numLayers() - Point<image_region_dimensions>(1));
-_T
       domain = Domain(depthBounds);
-_T
     }
     
     
