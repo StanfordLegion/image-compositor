@@ -279,6 +279,12 @@ namespace Legion {
       Domain everywhereDomain() const {
         return mEverywhereDomain;
       }
+      /**
+       * obtain the source image logical regiob
+       */
+      LogicalRegion sourceImage() const {
+        return mSourceImage;
+      }
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,

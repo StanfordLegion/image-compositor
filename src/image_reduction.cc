@@ -272,8 +272,8 @@ namespace Legion {
     
     void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       
-      Future nodeCountFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT);
-      Future globalCPUsFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS);
+      Future nodeCountFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT, mMapperID);
+      Future globalCPUsFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS, mMapperID);
       int nodeCount = nodeCountFuture.get_result<int>();
       int cpuCount = globalCPUsFuture.get_result<int>();
       int cpusPerNode = cpuCount / nodeCount;
