@@ -32,13 +32,13 @@ void top_level_task(const Legion::Task *task,
     const int fragmentsPerLayer = rows * 2;
     
     assert(fragmentsPerLayer > rows && width % (fragmentsPerLayer / rows) == 0);
-    Legion::Visualization::ImageSize imageSize = { width, rows, numDomainNodes, fragmentsPerLayer };
-    Legion::Visualization::ImageReduction imageReduction(imageSize, ctx, runtime);
+    Legion::Visualization::ImageDescriptor imageDescriptor = { width, rows, numDomainNodes, fragmentsPerLayer };
+    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
     
     for(int i = 0; i < Legion::Visualization::numDepthFuncs; ++i) {
       GLenum depthFunc = Legion::Visualization::depthFuncs[i];
-      Legion::Visualization::testAssociative(imageReduction, imageSize, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
-      Legion::Visualization::testNonassociative(imageReduction, imageSize, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
+      Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
+      Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
     }
     
     for(int i = 0; i < Legion::Visualization::numBlendFuncs; ++i) {
@@ -47,8 +47,8 @@ void top_level_task(const Legion::Task *task,
         GLenum destinationFunc = Legion::Visualization::blendFuncs[j];
         for(int k = 0; k < Legion::Visualization::numBlendEquations; ++k) {
           GLenum blendEquation = Legion::Visualization::blendEquations[k];
-          Legion::Visualization::testAssociative(imageReduction, imageSize, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
-          Legion::Visualization::testNonassociative(imageReduction, imageSize, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
+          Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
+          Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, 0, sourceFunc, destinationFunc, blendEquation);
         }
       }
     }
@@ -61,7 +61,7 @@ void top_level_task(const Legion::Task *task,
 
 int main(int argc, char *argv[]) {
   
-  Legion::Visualization::ImageReduction::initialize();
+  Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
   Legion::Visualization::preregisterSimulationBounds(numDomainNodesX, numDomainNodesY, numDomainNodesZ);
   
   Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);

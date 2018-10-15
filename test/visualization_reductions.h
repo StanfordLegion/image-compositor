@@ -34,11 +34,11 @@ namespace Legion {
     extern const int numBlendEquations;
     
     void testAssociative(ImageReduction &imageReduction,
-                         ImageSize imageSize, Context context, Runtime *runtime,
+                         ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                          GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation);
     
     void testNonassociative(ImageReduction &imageReduction,
-                            ImageSize imageSize, Context context, Runtime *runtime,
+                            ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                             GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation);
     
     void preregisterSimulationBounds(int numSimulationBoundsX, int numSimulationBoundsY, int numSimulationBoundsZ);

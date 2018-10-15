@@ -29,10 +29,10 @@ void top_level_task(const Legion::Task *task,
   
   {
     // test with large images
-    Legion::Visualization::ImageSize imageSize = { 3840, 2160, numDomainNodes, fewFragmentsPerLayer };
-    Legion::Visualization::ImageReduction imageReduction(imageSize, ctx, runtime);
-    Legion::Visualization::testAssociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
-    Legion::Visualization::testNonassociative(imageReduction, imageSize, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
+    Legion::Visualization::ImageDescriptor imageDescriptor = { 3840, 2160, numDomainNodes, fewFragmentsPerLayer };
+    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
+    Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
+    Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
   }
   
 }
@@ -42,7 +42,7 @@ void top_level_task(const Legion::Task *task,
 
 int main(int argc, char *argv[]) {
   
-  Legion::Visualization::ImageReduction::initialize();
+  Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
   Legion::Visualization::preregisterSimulationBounds(numDomainNodesX, numDomainNodesY, numDomainNodesZ);
   
   Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);

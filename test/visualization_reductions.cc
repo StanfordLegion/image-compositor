@@ -102,19 +102,19 @@ namespace Legion {
       return buffer;
     }
     
-    static Image loadReferenceImageFromFile(int taskID, ImageSize imageSize) {
+    static Image loadReferenceImageFromFile(int taskID, ImageDescriptor imageDescriptor) {
       char fileName[256];
       FILE *inputFile = fopen(paintFileName(fileName, taskID), "rb");
-      Image result = new ImageReduction::PixelField[imageSize.pixelsPerLayer() * ImageReduction::numPixelFields];
-      fread(result, sizeof(ImageReduction::PixelField), imageSize.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
+      Image result = new ImageReduction::PixelField[imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields];
+      fread(result, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
       fclose(inputFile);
       return result;
     }
     
-    static void saveImage(int taskID, ImageSize imageSize, Image image) {
+    static void saveImage(int taskID, ImageDescriptor imageDescriptor, Image image) {
       char fileName[256];
       FILE *outputFile = fopen(paintFileName(fileName, taskID), "wb");
-      fwrite(image, sizeof(ImageReduction::PixelField), imageSize.pixelsPerLayer() * ImageReduction::numPixelFields, outputFile);
+      fwrite(image, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, outputFile);
       fclose(outputFile);
     }
     
@@ -122,13 +122,13 @@ namespace Legion {
     // generate Image contents
     //
     
-    static void paintImage(ImageSize imageSize, int taskID, Image &image) {
-      image = new ImageReduction::PixelField[imageSize.pixelsPerLayer() * ImageReduction::numPixelFields];
+    static void paintImage(ImageDescriptor imageDescriptor, int taskID, Image &image) {
+      image = new ImageReduction::PixelField[imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields];
       Image imagePtr = image;
-      ImageReduction::PixelField zValue = taskID % imageSize.numImageLayers;
+      ImageReduction::PixelField zValue = taskID % imageDescriptor.numImageLayers;
       
-      for(int row = 0; row < imageSize.height; ++row) {
-        for(int column = 0; column < imageSize.width; ++column) {
+      for(int row = 0; row < imageDescriptor.height; ++row) {
+        for(int column = 0; column < imageDescriptor.width; ++column) {
           *imagePtr++ = row;
           *imagePtr++ = column;
           *imagePtr++ = taskID;
@@ -136,13 +136,13 @@ namespace Legion {
           *imagePtr++ = zValue;
           *imagePtr++ = taskID;
           zValue = (zValue + 1);
-          zValue = (zValue >= imageSize.numImageLayers) ? 0 : zValue;
+          zValue = (zValue >= imageDescriptor.numImageLayers) ? 0 : zValue;
         }
       }
     }
     
     
-    static void paintRegion(ImageSize imageSize,
+    static void paintRegion(ImageDescriptor imageDescriptor,
                             ImageReduction::PixelField *r,
                             ImageReduction::PixelField *g,
                             ImageReduction::PixelField *b,
@@ -153,11 +153,11 @@ namespace Legion {
                             int taskID) {
       
       Image image;
-      paintImage(imageSize, taskID, image);
+      paintImage(imageDescriptor, taskID, image);
       Image imagePtr = image;
       
-      for(int row = 0; row < imageSize.height; ++row) {
-        for(int column = 0; column < imageSize.width; ++column) {
+      for(int row = 0; row < imageDescriptor.height; ++row) {
+        for(int column = 0; column < imageDescriptor.width; ++column) {
           *r = *imagePtr++;
           *g = *imagePtr++;
           *b = *imagePtr++;
@@ -181,17 +181,17 @@ namespace Legion {
       UsecTimer render(ImageReduction::describe_task(task) + ":");
       render.start();
       PhysicalRegion image = regions[0];
-      ImageSize imageSize = ((ImageSize *)task->args)[0];
+      ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
       
       ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
       ImageReduction::Stride stride;
-      ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
+      ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
       
       Domain indexSpaceDomain = runtime->get_index_space_domain(ctx, image.get_logical_region().get_index_space());
       LegionRuntime::Arrays::Rect<image_region_dimensions> imageBounds = indexSpaceDomain.get_rect<image_region_dimensions>();
       
       int taskID = imageBounds.lo[2];
-      paintRegion(imageSize, r, g, b, a, z, userdata, stride, taskID);
+      paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, taskID);
       render.stop();
       cout << render.to_string() << endl;
     }
@@ -205,13 +205,13 @@ namespace Legion {
       return true;
     }
     
-    static int verifyImage(ImageSize imageSize, Image expected, ImageReduction::PixelField *r, ImageReduction::PixelField *g, ImageReduction::PixelField *b, ImageReduction::PixelField *a, ImageReduction::PixelField *z, ImageReduction::PixelField *userdata, ImageReduction::Stride stride) {
+    static int verifyImage(ImageDescriptor imageDescriptor, Image expected, ImageReduction::PixelField *r, ImageReduction::PixelField *g, ImageReduction::PixelField *b, ImageReduction::PixelField *a, ImageReduction::PixelField *z, ImageReduction::PixelField *userdata, ImageReduction::Stride stride) {
       // expected comes from a file and has contiguous data
       // the other pointers are from a logical region and are separated by stride[0]
       
       const int maxFailuresBeforeAbort = 10;
       int failures = 0;
-      for(int i = 0; i < imageSize.pixelsPerLayer(); ++i) {
+      for(int i = 0; i < imageDescriptor.pixelsPerLayer(); ++i) {
         if(!verifyImageReduction(i, (char*)"r", *expected++, *r)) {
           failures++;
         }
@@ -247,18 +247,18 @@ namespace Legion {
       coord_t layer = task->index_point[2];
       if(layer == 0) {
         PhysicalRegion image = regions[0];
-        ImageSize imageSize = ((ImageSize *)task->args)[0];
-        Image expected = (Image)((char*)task->args + sizeof(imageSize));
+        ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
+        Image expected = (Image)((char*)task->args + sizeof(imageDescriptor));
         ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
         ImageReduction::Stride stride;
-        ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
-        return verifyImage(imageSize, expected, r, g, b, a, z, userdata, stride);
+        ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
+        return verifyImage(imageDescriptor, expected, r, g, b, a, z, userdata, stride);
       }
       return 0;
     }
     
-    static int verifyAccumulatorMatchesResult(ImageReduction &imageReduction, Image expected, ImageSize imageSize, HighLevelRuntime* runtime, Context context) {
-      int totalSize = imageSize.pixelsPerLayer() * ImageReduction::numPixelFields * sizeof(ImageReduction::PixelField);
+    static int verifyAccumulatorMatchesResult(ImageReduction &imageReduction, Image expected, ImageDescriptor imageDescriptor, HighLevelRuntime* runtime, Context context) {
+      int totalSize = imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields * sizeof(ImageReduction::PixelField);
       FutureMap futures = imageReduction.launch_task_everywhere(VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, runtime, context, expected, totalSize, true);
       DomainPoint origin = Point<image_region_dimensions>::ZEROES();
       int failures = futures[origin].get<int>();
@@ -269,7 +269,7 @@ namespace Legion {
     
     
     
-    static void compositeTwoImages(Image image0, Image image1, ImageSize imageSize,
+    static void compositeTwoImages(Image image0, Image image1, ImageDescriptor imageDescriptor,
                                    GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       
       // Reuse the composite functions from the ImageReductionComposite class.
@@ -301,14 +301,14 @@ namespace Legion {
       }
       
       compositeFunction(r0In, g0In, b0In, a0In, z0In, userdata0In, r1In, g1In, b1In, a1In, z1In, userdata1In,
-                        r0In, g0In, b0In, a0In, z0In, userdata0In, imageSize.pixelsPerLayer(), stride);
+                        r0In, g0In, b0In, a0In, z0In, userdata0In, imageDescriptor.pixelsPerLayer(), stride);
     }
     
     
-    static std::string testDescription(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
+    static std::string testDescription(std::string testLabel, ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                        GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination,
                                        GLenum blendEquation) {
-      return testLabel + " " + imageSize.toString() + "\n"
+      return testLabel + " " + imageDescriptor.toString() + "\n"
       + "depth " + depthFuncToString(depthFunc)
       + " blendSource " + blendFuncToString(blendFuncSource)
       + " blendDestination " + blendFuncToString(blendFuncDestination)
@@ -316,12 +316,12 @@ namespace Legion {
     }
     
     
-    static void verifyTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
+    static void verifyTestResult(std::string testLabel, ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                  GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation, Image expected,
                                  HighLevelRuntime* runtime, Context context) {
       
-      int numFailures = verifyAccumulatorMatchesResult(imageReduction, expected, imageSize, runtime, context);
-      std::string description = testDescription(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource,
+      int numFailures = verifyAccumulatorMatchesResult(imageReduction, expected, imageDescriptor, runtime, context);
+      std::string description = testDescription(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource,
                                                 blendFuncDestination, blendEquation);
       if(numFailures == 0) {
         std::cout << "SUCCESS: " << description << std::endl;
@@ -332,7 +332,7 @@ namespace Legion {
     
     
     static Image treeReduction(int treeLevel, int maxTreeLevel, int leftLayer,
-                               ImageReduction &imageReduction, ImageSize imageSize,
+                               ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       
       Image image0 = NULL;
@@ -342,81 +342,81 @@ namespace Legion {
       int layer1 = layer0 + layerOffset;
       
       if(treeLevel == maxTreeLevel - 1) {
-        image0 = loadReferenceImageFromFile(layer0, imageSize);
-        image1 = loadReferenceImageFromFile(layer1, imageSize);
+        image0 = loadReferenceImageFromFile(layer0, imageDescriptor);
+        image1 = loadReferenceImageFromFile(layer1, imageDescriptor);
       } else {
-        image0 = treeReduction(treeLevel + 1, maxTreeLevel, layer0, imageReduction, imageSize,
+        image0 = treeReduction(treeLevel + 1, maxTreeLevel, layer0, imageReduction, imageDescriptor,
                                depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
-        image1 = treeReduction(treeLevel + 1, maxTreeLevel, layer1, imageReduction, imageSize,
+        image1 = treeReduction(treeLevel + 1, maxTreeLevel, layer1, imageReduction, imageDescriptor,
                                depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       }
       
-      compositeTwoImages(image0, image1, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      compositeTwoImages(image0, image1, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       
       delete [] image1;
       return image0;
     }
     
     
-    static void savePaintedImages(ImageSize imageSize) {
-      for(int taskID = 0; taskID < imageSize.numImageLayers; ++taskID) {
+    static void savePaintedImages(ImageDescriptor imageDescriptor) {
+      for(int taskID = 0; taskID < imageDescriptor.numImageLayers; ++taskID) {
         
         Image image;
-        paintImage(imageSize, taskID, image);
-        saveImage(taskID, imageSize, image);
+        paintImage(imageDescriptor, taskID, image);
+        saveImage(taskID, imageDescriptor, image);
         delete [] image;
       }
     }
     
-    static void verifyAssociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
+    static void verifyAssociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                             GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
                                             HighLevelRuntime* runtime, Context context) {
-      savePaintedImages(imageSize);
-      int maxTreeLevel = ImageReduction::numTreeLevels(imageSize);
-      Image expected = treeReduction(0, maxTreeLevel, 0, imageReduction, imageSize,
+      savePaintedImages(imageDescriptor);
+      int maxTreeLevel = ImageReduction::numTreeLevels(imageDescriptor);
+      Image expected = treeReduction(0, maxTreeLevel, 0, imageReduction, imageDescriptor,
                                      depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
-      verifyTestResult(testLabel, imageReduction, imageSize,
+      verifyTestResult(testLabel, imageReduction, imageDescriptor,
                        depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
     }
     
     
-    static Image pipelineReduction(ImageReduction &imageReduction, ImageSize imageSize,
+    static Image pipelineReduction(ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                    GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
-      Image expected = loadReferenceImageFromFile(0, imageSize);
-      for(int layer = 1; layer < imageSize.numImageLayers; ++layer) {
-        Image nextImage = loadReferenceImageFromFile(layer, imageSize);
-        compositeTwoImages(expected, nextImage, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      Image expected = loadReferenceImageFromFile(0, imageDescriptor);
+      for(int layer = 1; layer < imageDescriptor.numImageLayers; ++layer) {
+        Image nextImage = loadReferenceImageFromFile(layer, imageDescriptor);
+        compositeTwoImages(expected, nextImage, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       }
       return expected;
     }
     
-    static void verifyNonassociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageSize imageSize,
+    static void verifyNonassociativeTestResult(std::string testLabel, ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
                                                GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
                                                HighLevelRuntime* runtime, Context context) {
-      savePaintedImages(imageSize);
-      Image expected = pipelineReduction(imageReduction, imageSize,
+      savePaintedImages(imageDescriptor);
+      Image expected = pipelineReduction(imageReduction, imageDescriptor,
                                          depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
-      verifyTestResult(testLabel, imageReduction, imageSize,
+      verifyTestResult(testLabel, imageReduction, imageDescriptor,
                        depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
     }
     
     
-    static void paintImages(ImageSize imageSize, Context context, Runtime *runtime, ImageReduction &imageReduction) {
+    static void paintImages(ImageDescriptor imageDescriptor, Context context, Runtime *runtime, ImageReduction &imageReduction) {
       imageReduction.launch_index_task_by_depth(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, NULL, 0, /*blocking*/true);
     }
     
     
-    static void prepareTest(ImageReduction &imageReduction, ImageSize imageSize, Context context, Runtime *runtime, GLenum depthFunc,
+    static void prepareTest(ImageReduction &imageReduction, ImageDescriptor imageDescriptor, Context context, Runtime *runtime, GLenum depthFunc,
                             GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation, std::string testLabel) {
       std::string marker = "=====";
       std::cout << marker << std::endl;
       std::cout << marker << std::endl;
       std::cout << marker << std::endl;
-      std::cout << testDescription(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation) << std::endl;
+      std::cout << testDescription(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation) << std::endl;
       
-      paintImages(imageSize, context, runtime, imageReduction);
+      paintImages(imageDescriptor, context, runtime, imageReduction);
       imageReduction.set_depth_func(depthFunc);
       imageReduction.set_blend_func(blendFuncSource, blendFuncDestination);
       imageReduction.set_blend_equation(blendEquation);
@@ -426,48 +426,48 @@ namespace Legion {
     
     
     void testAssociative(ImageReduction &imageReduction,
-                         ImageSize imageSize, Context context, Runtime *runtime,
+                         ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                          GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       std::string testLabel = "associative,commutative";
       
-      std::cout << testDescription(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation) << std::endl;
+      std::cout << testDescription(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation) << std::endl;
       
-      prepareTest(imageReduction, imageSize, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
+      prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
       UsecTimer reduceCommutative("image reduction " + testLabel);
       reduceCommutative.start();
       FutureMap futureMap = imageReduction.reduce_associative_commutative();
       futureMap.wait_all_results();
       reduceCommutative.stop();
       std::cout << reduceCommutative.to_string() << std::endl;
-      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
+      verifyAssociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       
       return;//stop here
       
       testLabel = "associative,noncommutative";
       futureMap = imageReduction.reduce_associative_noncommutative();
       futureMap.wait_all_results();
-      verifyAssociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
+      verifyAssociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
     
     
     
     void testNonassociative(ImageReduction &imageReduction,
-                            ImageSize imageSize, Context context, Runtime *runtime,
+                            ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                             GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
       
       return;//not working
       
       std::string testLabel = "nonassociative,commutative";
-      prepareTest(imageReduction, imageSize, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
+      prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
       FutureMap futureMap;
       futureMap = imageReduction.reduce_nonassociative_commutative();
       futureMap.wait_all_results();
-      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
+      verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       
       testLabel = "nonassociative,noncommutative";
       futureMap = imageReduction.reduce_nonassociative_noncommutative();
       futureMap.wait_all_results();
-      verifyNonassociativeTestResult(testLabel, imageReduction, imageSize, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
+      verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
     
     const int numDomainNodesX = 2;

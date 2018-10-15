@@ -23,6 +23,7 @@ include_directories(../include $ENV{LG_RT_DIR} $ENV{LG_RT_DIR}/legion $ENV{LG_RT
 list(APPEND LEGION_SRC
   image_reduction.cc
   image_reduction_composite.cc
+  image_reduction_mapper.cc
 )
 
 add_library(ImageCompositor ${LEGION_SRC})

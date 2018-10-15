@@ -18,8 +18,12 @@
 #ifndef image_reduction_h
 #define image_reduction_h
 
-//tracing -- remove this
-//#define _T {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
+//tracing for debug
+#if 1
+#define __TRACE {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
+#else
+#define __TRACE
+#endif
 
 #include "usec_timer.h"
 
@@ -34,7 +38,7 @@
 #include <sstream>
 
 
-//#define TRACE_TASKS
+#define TRACE_TASKS
 
 
 namespace Legion {
@@ -46,7 +50,7 @@ namespace Legion {
     private:
       
       typedef struct {
-        ImageSize imageSize;
+        ImageDescriptor imageDescriptor;
         bool isAssociative;
         int compositeTaskID;
         GLenum depthFunction;
@@ -56,7 +60,7 @@ namespace Legion {
       } ScreenSpaceArguments;
       
       typedef struct {
-        ImageSize imageSize;
+        ImageDescriptor imageDescriptor;
         GLenum depthFunction;
         GLenum blendFunctionSource;
         GLenum blendFunctionDestination;
@@ -64,12 +68,12 @@ namespace Legion {
       } CompositeArguments;
       
       typedef struct {
-        ImageSize imageSize;
+        ImageDescriptor imageDescriptor;
         int t;
       } DisplayArguments;
-
+      
     public:
-
+      
       enum FieldIDs {
         FID_FIELD_R = 0,
         FID_FIELD_G,
@@ -88,9 +92,11 @@ namespace Legion {
       /**
        * Initialize the image reduction framework.
        * Be sure to call this before starting the Legion runtime.
+       *
+       * @param mapperID dynamically generated mapper ID (see runtime->generate_dynamic_mapper_id)
        */
-      static void initialize();
-
+      static void preinitializeBeforeRuntimeStarts();
+      
       /**
        * Preregister an array of simulation bounds in 3D.
        * This is optional, required if you plan to use noncommutative reductions.
@@ -103,13 +109,23 @@ namespace Legion {
       
       ImageReduction(){}
       /**
-       * Construct an image reduction framework.
+       * Construct an image reduction framework based on ImageDescriptor.
        *
-       * @param imageSize defines dimensions of current image
+       * @param imageDescriptor defines dimensions of current image
        * @param ctx Legion context
        * @param runtime  Legion runtime
        */
-      ImageReduction(ImageSize imageSize, Context ctx, HighLevelRuntime *runtime);
+      ImageReduction(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime, MapperID mapperID=0);
+      /**
+       * Construct an image reduction framework based on an existing partition.
+       *
+       * @param partition defines an existing partition with one node per subregion
+       * @param imageDescriptor defines dimensions of current image
+       * @param ctx Legion context
+       * @param runtime  Legion runtime
+       */
+      ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime, MapperID mapperID=0);
+      
       /**
        * Destroy an instance of an image reduction framework.
        */
@@ -218,7 +234,7 @@ namespace Legion {
       /**
        * obtain raw pointers to image data
        *
-       * @param imageSize see legion_visualization.h
+       * @param imageDescriptor see legion_visualization.h
        * @param region physical region of image fragment
        * @param r return raw pointer to pixel fields
        * @param g return raw pointer to pixel fields
@@ -227,9 +243,9 @@ namespace Legion {
        * @param z return raw pointer to pixel fields
        * @param userdata return raw pointer to pixel fields
        * @param stride returns stride between successive pixels
-       * @param readWrite true if read/write access 
+       * @param readWrite true if read/write access
        */
-      static void create_image_field_pointers(ImageSize imageSize,
+      static void create_image_field_pointers(ImageDescriptor imageDescriptor,
                                               PhysicalRegion region,
                                               PixelField *&r,
                                               PixelField *&g,
@@ -257,14 +273,20 @@ namespace Legion {
         ;
         return output.str();
       }
+      /**
+       * obtain the everywhere domain, useful for index launches
+       */
+      Domain everywhereDomain() const {
+        return mEverywhereDomain;
+      }
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
                                Context ctx, Runtime *runtime);
       
-      static int numTreeLevels(ImageSize imageSize);
+      static int numTreeLevels(ImageDescriptor imageDescriptor);
       static int numTreeLevels(int numImageLayers);
-
+      
       static void initial_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
                                Context ctx, Runtime *runtime);
@@ -273,10 +295,10 @@ namespace Legion {
                                  const std::vector<PhysicalRegion> &regions,
                                  Context ctx, Runtime *runtime);
       
-
-
+      
+      
     protected:
-            
+      
       class CompositeProjectionFunctor : public ProjectionFunctor {
       public:
         CompositeProjectionFunctor(int offset, int multiplier, int numBounds, int id) {
@@ -296,7 +318,7 @@ namespace Legion {
           if(mNumBounds == 0 || remappedLayer < mNumBounds) {
             remappedPoint[2] = remappedLayer;
           }
-                    
+          
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
           return result;
         }
@@ -319,7 +341,7 @@ namespace Legion {
       };
       
       static CompositeProjectionFunctor* getCompositeProjectionFunctor(int nodeID, int maxTreeLevel, int level);
-
+      
       static CompositeProjectionFunctor* makeCompositeProjectionFunctor(int offset, int numBounds, int nodeID, int level, int numLevels, Runtime* runtime);
       
       
@@ -335,11 +357,11 @@ namespace Legion {
       
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
-      void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageSize mImageSize);
+      void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       FieldSpace imageFields();
       void createImage(LogicalRegion &region, Domain &domain);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition);
-      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageSize imageSize);
+      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition);
       
       FutureMap reduceAssociative();
@@ -348,7 +370,7 @@ namespace Legion {
       void addCompositeArgumentsToArgmap(CompositeArguments *&argsPtr, int taskZ, ArgumentMap &argMap, int layer0, int layer1);
       
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
-
+      
       static void registerTasks();
       
       static void addImageFieldsToRequirement(RegionRequirement &req);
@@ -361,9 +383,9 @@ namespace Legion {
                                           PhysicalRegion region,
                                           ByteOffset offset[image_region_dimensions]);
       
-      static int subtreeHeight(ImageSize imageSize);
+      static int subtreeHeight(ImageDescriptor imageDescriptor);
       
-      static FutureMap launchTreeReduction(ImageSize imageSize, int treeLevel,
+      static FutureMap launchTreeReduction(ImageDescriptor imageDescriptor, int treeLevel,
                                            GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
                                            int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image,
                                            Runtime* runtime, Context context,
@@ -374,7 +396,7 @@ namespace Legion {
       static int subdomainToCompositeIndex(SimulationBoundsCoordinate *bounds, int scale);
       
       
-      ImageSize mImageSize;
+      ImageDescriptor mImageDescriptor;
       Context mContext;
       Runtime *mRuntime;
       LogicalRegion mSourceImage;
@@ -390,6 +412,7 @@ namespace Legion {
       GLenum mDepthFunction;
       int mAccessorFunctorID;
       int mLocalCopyOfNodeID;
+      MapperID mMapperID;
       
     public:
       static const int fieldsPerSimulationBounds = 2 * image_region_dimensions;

@@ -39,7 +39,7 @@ static void simulateTimeStep(int t) {
 
 
 
-static void paintRegion(ImageSize imageSize,
+static void paintRegion(ImageDescriptor imageDescriptor,
                         ImageReduction::PixelField *r,
                         ImageReduction::PixelField *g,
                         ImageReduction::PixelField *b,
@@ -50,8 +50,8 @@ static void paintRegion(ImageSize imageSize,
                         int layer) {
   
   ImageReduction::PixelField zValue = layer;
-  for(int row = 0; row < imageSize.height; ++row) {
-    for(int column = 0; column < imageSize.width; ++column) {
+  for(int row = 0; row < imageDescriptor.height; ++row) {
+    for(int column = 0; column < imageDescriptor.width; ++column) {
       *r = layer;
       *g = layer;
       *b = layer;
@@ -65,7 +65,7 @@ static void paintRegion(ImageSize imageSize,
       z += stride[ImageReduction::FID_FIELD_Z][0];
       userdata += stride[ImageReduction::FID_FIELD_USERDATA][0];
       zValue = (zValue + 1);
-      zValue = (zValue >= imageSize.numImageLayers) ? 0 : zValue;
+      zValue = (zValue >= imageDescriptor.numImageLayers) ? 0 : zValue;
     }
   }
 }
@@ -82,13 +82,13 @@ void render_task(const Task *task,
     UsecTimer render(Legion::Visualization::ImageReduction::describe_task(task) + ":");
     render.start();
     PhysicalRegion image = regions[0];
-    ImageSize imageSize = ((ImageSize *)task->args)[0];
+    ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
     
     ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
     ImageReduction::Stride stride;
-    int layer = task->get_unique_id() % imageSize.numImageLayers;
-    ImageReduction::create_image_field_pointers(imageSize, image, r, g, b, a, z, userdata, stride, runtime, ctx);
-    paintRegion(imageSize, r, g, b, a, z, userdata, stride, layer);
+    int layer = task->get_unique_id() % imageDescriptor.numImageLayers;
+    ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx);
+    paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, layer);
     render.stop();
     cout << render.to_string() << endl;
   }
@@ -102,7 +102,7 @@ void top_level_task(const Task *task,
   
 
 #ifdef IMAGE_SIZE
-  ImageSize imageSize = (ImageSize){ IMAGE_SIZE };
+  ImageDescriptor imageDescriptor = (ImageDescriptor){ IMAGE_SIZE };
   
 #else
   const int width = 3840;
@@ -110,13 +110,13 @@ void top_level_task(const Task *task,
   const int numSimulationTasks = 4;
   const int numFragmentsPerLayer = 8;
   
-  ImageSize imageSize = (ImageSize){ width, height, numSimulationTasks, numFragmentsPerLayer };
+  ImageDescriptor imageDescriptor = (ImageDescriptor){ width, height, numSimulationTasks, numFragmentsPerLayer };
 #endif
   
-  std::cout << "ImageSize (" << imageSize.width << "," << imageSize.height
-  << ") x " << imageSize.numImageLayers << " layers " << imageSize.numFragmentsPerLayer << " frags/layer" << std::endl;
+  std::cout << "ImageDescriptor (" << imageDescriptor.width << "," << imageDescriptor.height
+  << ") x " << imageDescriptor.numImageLayers << " layers " << imageDescriptor.numFragmentsPerLayer << " frags/layer" << std::endl;
   
-  ImageReduction imageReduction(imageSize, ctx, runtime);
+  ImageReduction imageReduction(imageDescriptor, ctx, runtime);
   imageReduction.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   imageReduction.set_blend_equation(GL_FUNC_ADD);
   
