@@ -18,7 +18,8 @@ public:
                           const SliceTaskInput& input,
                           SliceTaskOutput& output);
   
-  void registerRenderTaskName(std::string name);
+  static void registerRenderTaskName(std::string name);
+  static void clearPlacement(LogicalPartition partition);
   
 private:
   
@@ -35,7 +36,10 @@ private:
                                             const SliceTaskInput& input,
                                             SliceTaskOutput& output);
   
+  void sliceTaskAccordingToPreviousPartition(const MapperContext ctx,
+                                             const Task& task,
+                                             const SliceTaskInput& input,
+                                             SliceTaskOutput& output);
 private:
   MapperRuntime* mRuntime;
-  std::vector<std::string> mRenderTaskNames;
 };

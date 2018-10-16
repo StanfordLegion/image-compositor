@@ -2,6 +2,10 @@
 #include "image_reduction_mapper.h"
 
 
+static std::vector<std::string> gRenderTaskNames;
+static std::map<LogicalPartition, std::vector<Processor>> gPlacement;
+
+
 ImageReductionMapper::ImageReductionMapper(MapperRuntime* rt, Machine machine, Processor local)
 : DefaultMapper(rt, machine, local, "image_reduction_mapper")
 {
@@ -15,17 +19,23 @@ void ImageReductionMapper::slice_task(const MapperContext ctx,
   Domain domain = input.domain;
   assert(domain.get_dim() == 1);
   // map this 1D index task launch onto the subregions of the logical partition
-  for(std::vector<std::string>::iterator it = mRenderTaskNames.begin();
-      it != mRenderTaskNames.end(); ++it) {
+  for(std::vector<std::string>::iterator it = gRenderTaskNames.begin();
+      it != gRenderTaskNames.end(); ++it) {
     if(task.get_task_name() == *it) {
       sliceTaskAccordingToLogicalPartition(ctx, task, input, output);
       break;
+    } else if(task.get_task_name() == "composite_task") {
+      sliceTaskAccordingToPreviousPartition(ctx, task, input, output);
     }
   }
 }
 
 void ImageReductionMapper::registerRenderTaskName(std::string name) {
-  mRenderTaskNames.push_back(name);
+  gRenderTaskNames.push_back(name);
+}
+
+void ImageReductionMapper::clearPlacement(LogicalPartition partition) {
+  gPlacement[partition] = std::vector<Processor>();
 }
 
 
@@ -70,10 +80,27 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
     Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
     if(pqIt != targetProcessors.end()) {
       sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
+      gPlacement[targetPartition].push_back(*pqIt);
     }
     targetIt++;
   }
 }
 
+
+void ImageReductionMapper::sliceTaskAccordingToPreviousPartition(const MapperContext ctx,
+                                                                 const Task& task,
+                                                                 const SliceTaskInput& input,
+                                                                 SliceTaskOutput& output) {
+  ImageDescriptor* imageDescriptor = (ImageDescriptor*)task.args;
+  Domain sourceDomain = input.domain;
+  LogicalPartition targetPartition = imageDescriptor->logicalPartition;
+  std::vector<Processor>::iterator procIt = gPlacement[targetPartition].begin();
+  
+  for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
+    if(procIt != gPlacement[targetPartition].end()) {
+      sliceTaskOntoProcessor(sourceDomain, *procIt, output);
+    }
+  }
+}
 
 
