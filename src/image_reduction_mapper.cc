@@ -19,14 +19,17 @@ void ImageReductionMapper::slice_task(const MapperContext ctx,
   Domain domain = input.domain;
   assert(domain.get_dim() == 1);
   // map this 1D index task launch onto the subregions of the logical partition
+  bool found = false;
   for(std::vector<std::string>::iterator it = gRenderTaskNames.begin();
       it != gRenderTaskNames.end(); ++it) {
     if(task.get_task_name() == *it) {
       sliceTaskAccordingToLogicalPartition(ctx, task, input, output);
+      found = true;
       break;
-    } else if(task.get_task_name() == "composite_task") {
-      sliceTaskAccordingToPreviousPartition(ctx, task, input, output);
     }
+  }
+  if(!found && task.get_task_name() == "composite_task") {
+      sliceTaskAccordingToPreviousPartition(ctx, task, input, output);
   }
 }
 
