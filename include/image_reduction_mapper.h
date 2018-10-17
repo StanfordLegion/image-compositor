@@ -20,6 +20,7 @@ public:
   
   static void registerRenderTaskName(std::string name);
   static void clearPlacement(LogicalPartition partition);
+
   
 private:
   

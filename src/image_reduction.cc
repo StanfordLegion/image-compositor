@@ -527,6 +527,8 @@ namespace Legion {
       if(argLen > 0) {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
+
+      std::cout << __FUNCTION__ << " dim everyDomain =" << mEverywhereDomain.get_dim() << std::endl;
       
       IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);

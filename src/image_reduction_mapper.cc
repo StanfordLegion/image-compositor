@@ -4,7 +4,7 @@
 
 static std::vector<std::string> gRenderTaskNames;
 static std::map<LogicalPartition, std::vector<Processor> > gPlacement;
-static Realm::Logger LOG("image_reduction_mapper");
+static Realm::Logger log_mapper("image_reduction_mapper");
 
 
 ImageReductionMapper::ImageReductionMapper(MapperRuntime* rt, Machine machine, Processor local)
@@ -17,22 +17,27 @@ void ImageReductionMapper::slice_task(const MapperContext ctx,
                                       const Task& task,
                                       const SliceTaskInput& input,
                                       SliceTaskOutput& output) {
+  log_mapper.debug("enter image_reduction_mapper.slice_task");
   Domain domain = input.domain;
-  assert(domain.get_dim() == 1);
   // map this 1D index task launch onto the subregions of the logical partition
   bool found = false;
   for(std::vector<std::string>::iterator it = gRenderTaskNames.begin();
       it != gRenderTaskNames.end(); ++it) {
     if(task.get_task_name() == *it) {
-      LOG.debug("task %s is a render task", task.get_task_name());
+      log_mapper.debug("task %s is a render task", task.get_task_name());
       sliceTaskAccordingToLogicalPartition(ctx, task, input, output);
       found = true;
       break;
     }
   }
   if(!found && task.get_task_name() == "composite_task") {
+    log_mapper.debug("slicing composite_task");
     sliceTaskAccordingToPreviousPartition(ctx, task, input, output);
+  } else if(!found) {
+    log_mapper.debug("default slicing %s", task.get_task_name());
+    return DefaultMapper::slice_task(ctx, task, input, output);
   }
+  log_mapper.debug("exit image_reduction_mapper.slice_task");
 }
 
 void ImageReductionMapper::registerRenderTaskName(std::string name) {
@@ -51,7 +56,6 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
   for(Machine::MemoryQuery::iterator queryIt = query.begin();
       queryIt != query.end(); queryIt++) {
     Memory mem = *queryIt;
-    //for (Memory mem : Machine::MemoryQuery(machine)) {
     std::vector<LogicalRegion> regions;
     regions.push_back(mRuntime->get_logical_subregion_by_color(ctx, partition, it));
     LayoutConstraintSet empty_constraints;
@@ -59,7 +63,9 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
     if (mRuntime->find_physical_instance(ctx, mem, empty_constraints, regions, inst,
                                          false/*acquire*/,
                                          false/*tight_region_bounds*/)) {
-      return Machine::ProcessorQuery(machine).has_affinity_to(mem);
+      Machine::ProcessorQuery processorQuery = Machine::ProcessorQuery(machine).has_affinity_to(mem);
+      log_mapper.debug("found physical instance with %ld processors", processorQuery.count());
+      return processorQuery;
     }
   }
 }
@@ -92,11 +98,12 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
   Domain::DomainPointIterator targetIt(targetDomain);
   
+  log_mapper.debug("sourceDomain dim %d targetDomain dim %d", sourceDomain.get_dim(), targetDomain.get_dim());
   for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt);
     Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
     if(pqIt != targetProcessors.end()) {
-      LOG.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
+      log_mapper.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
       sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
       gPlacement[targetPartition].push_back(*pqIt);
     }
@@ -114,9 +121,10 @@ void ImageReductionMapper::sliceTaskAccordingToPreviousPartition(const MapperCon
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
   std::vector<Processor>::iterator procIt = gPlacement[targetPartition].begin();
   
+  log_mapper.debug("sourceDomain dim %d", sourceDomain.get_dim());
   for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
     if(procIt != gPlacement[targetPartition].end()) {
-      LOG.debug("task %s follows on processor %s", task.get_task_name(), describeProcessor(*procIt));
+      log_mapper.debug("task %s follows on processor %s", task.get_task_name(), describeProcessor(*procIt));
       sliceTaskOntoProcessor(sourceDomain, *procIt, output);
     }
   }
