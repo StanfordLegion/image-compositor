@@ -74,12 +74,12 @@ void ImageReductionMapper::sliceTaskOntoProcessor(Domain domain,
 }
 
 
-static char* describeProcessor(Processor processor) {
+static const char* describeProcessor(Processor processor) {
   char buffer[128];
-  unsigned pId = procId & 0xffffffffff;
-  unsigned nodeId = (procId >> 40) & 0xffff;
+  unsigned pId = processor.id & 0xffffffffff;
+  unsigned nodeId = (processor.id >> 40) & 0xffff;
   sprintf(buffer, "node %x proc %x", nodeId, pId);
-  return buffer;
+  return std::string(buffer).c_str();
 }
 
 void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperContext ctx,
