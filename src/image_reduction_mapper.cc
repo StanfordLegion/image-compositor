@@ -3,7 +3,7 @@
 
 
 static std::vector<std::string> gRenderTaskNames;
-static std::map<LogicalPartition, std::vector<Processor>> gPlacement;
+static std::map<LogicalPartition, std::vector<Processor> > gPlacement;
 
 
 ImageReductionMapper::ImageReductionMapper(MapperRuntime* rt, Machine machine, Processor local)
@@ -45,7 +45,11 @@ void ImageReductionMapper::clearPlacement(LogicalPartition partition) {
 Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(const MapperContext ctx,
                                                                             LogicalPartition partition,
                                                                             Domain::DomainPointIterator it) {
-  for (Memory mem : Machine::MemoryQuery(machine)) {
+  Machine::MemoryQuery query = Machine::MemoryQuery(machine);
+  for(Machine::MemoryQuery::iterator queryIt = query.begin(); 
+      queryIt != query.end(); queryIt++) {
+    Memory mem = *queryIt;
+  //for (Memory mem : Machine::MemoryQuery(machine)) {
     std::vector<LogicalRegion> regions;
     regions.push_back(mRuntime->get_logical_subregion_by_color(ctx, partition, it));
     LayoutConstraintSet empty_constraints;
@@ -62,8 +66,8 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
 void ImageReductionMapper::sliceTaskOntoProcessor(Domain domain,
                                                   Processor processor,
                                                   SliceTaskOutput& output) {
-  output.slices.emplace_back(domain, processor,
-                             false/*recurse*/, false/*stealable*/);
+  TaskSlice slice(domain, processor, false/*recurse*/, false/*stealable*/);
+  output.slices.push_back(slice);
   
 }
 
