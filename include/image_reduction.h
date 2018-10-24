@@ -285,6 +285,12 @@ namespace Legion {
       LogicalRegion sourceImage() const {
         return mSourceImage;
       }
+      /**
+       * obtain the image descriptor, pass this to the mapper
+       */
+      ImageDescriptor imageDescriptor() const {
+        return mImageDescriptor;
+      }
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,

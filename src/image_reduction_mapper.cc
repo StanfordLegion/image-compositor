@@ -56,8 +56,9 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
   for(Machine::MemoryQuery::iterator queryIt = query.begin();
       queryIt != query.end(); queryIt++) {
     Memory mem = *queryIt;
+
     std::vector<LogicalRegion> regions;
-    regions.push_back(mRuntime->get_logical_subregion_by_color(ctx, partition, it));
+    regions.push_back(mRuntime->get_logical_subregion_by_color(ctx, partition, it.p));
     LayoutConstraintSet empty_constraints;
     PhysicalInstance inst;
     if (mRuntime->find_physical_instance(ctx, mem, empty_constraints, regions, inst,
@@ -98,7 +99,6 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
   Domain::DomainPointIterator targetIt(targetDomain);
   
-  log_mapper.debug("sourceDomain dim %d targetDomain dim %d", sourceDomain.get_dim(), targetDomain.get_dim());
   for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt);
     Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();

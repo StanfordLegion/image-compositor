@@ -61,7 +61,6 @@ namespace Legion {
       imageDescriptor.logicalPartition = partition;
       imageDescriptor.domain = domain;
       imageDescriptor.numImageLayers = domain.get_volume();
-      std::cout << __FUNCTION__ << " domain.get_volume " << imageDescriptor.numImageLayers << std::endl;
       mImageDescriptor = imageDescriptor;
       mContext = context;
       mRuntime = runtime;
@@ -77,19 +76,13 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       
-      __TRACE;
       createImage(mSourceImage, mSourceImageDomain);
-      __TRACE;
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
-      __TRACE;
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
-      __TRACE;
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
       
-      __TRACE;
       initializeNodes(runtime, context);
       
-      __TRACE;
       assert(mNodeCount > 0);
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
       initializeViewMatrix();
@@ -113,19 +106,13 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       
-      __TRACE;
       createImage(mSourceImage, mSourceImageDomain);
-      __TRACE;
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
-      __TRACE;
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
-      __TRACE;
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
       
-      __TRACE;
       initializeNodes(runtime, context);
       
-      __TRACE;
       assert(mNodeCount > 0);
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
       initializeViewMatrix();
