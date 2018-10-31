@@ -18,6 +18,8 @@
 #ifndef image_reduction_h
 #define image_reduction_h
 
+#define TRACE_TASKS
+
 //tracing for debug
 #if 1
 #define __TRACE {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
@@ -38,7 +40,6 @@
 #include <sstream>
 
 
-#define TRACE_TASKS
 
 
 namespace Legion {

@@ -172,8 +172,6 @@ namespace Legion {
         mZMax = (bound[5] > mZMax) ? bound[5] : mZMax;
         bound += fieldsPerSimulationBounds;
       }
-      std::cout << "loaded " << numBounds << " simulation subdomains, overall bounds ("
-      << mXMin << "," << mXMax << " x " << mYMin << "," << mYMax << " x " << mZMin << "," << mZMax << ")" << std::endl;
       
     }
     
@@ -505,7 +503,7 @@ namespace Legion {
     
     FutureMap ImageReduction::launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
       
-      MustEpochLauncher mustEpochLauncher;
+      //MustEpochLauncher mustEpochLauncher;
       ArgumentMap argMap;
       
       int totalArgLen = sizeof(mImageDescriptor) + argLen;
@@ -515,15 +513,14 @@ namespace Legion {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
 
-      std::cout << __FUNCTION__ << " dim everyDomain =" << mEverywhereDomain.get_dim() << std::endl;
-      
       IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       everywhereLauncher.add_region_requirement(req);
-      mustEpochLauncher.add_index_task(everywhereLauncher);
+      //mustEpochLauncher.add_index_task(everywhereLauncher);
       
-      FutureMap futures = runtime->execute_must_epoch(context, mustEpochLauncher);
+      //FutureMap futures = runtime->execute_must_epoch(context, mustEpochLauncher);
+      FutureMap futures = runtime->execute_index_space(context, everywhereLauncher);
       
       if(blocking) {
         futures.wait_all_results();
