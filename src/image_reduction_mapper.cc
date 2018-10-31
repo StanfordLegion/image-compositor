@@ -11,6 +11,7 @@ ImageReductionMapper::ImageReductionMapper(MapperRuntime* rt, Machine machine, P
 : DefaultMapper(rt, machine, local, "image_reduction_mapper")
 {
   mRuntime = rt;
+  registerRenderTaskName("initial_task");
 }
 
 void ImageReductionMapper::slice_task(const MapperContext ctx,
@@ -56,7 +57,7 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
   for(Machine::MemoryQuery::iterator queryIt = query.begin();
       queryIt != query.end(); queryIt++) {
     Memory mem = *queryIt;
-
+    
     std::vector<LogicalRegion> regions;
     regions.push_back(mRuntime->get_logical_subregion_by_color(ctx, partition, it.p));
     LayoutConstraintSet empty_constraints;
@@ -101,11 +102,14 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   
   for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt);
-    Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
-    if(pqIt != targetProcessors.end()) {
-      log_mapper.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
-      sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
-      gPlacement[targetPartition].push_back(*pqIt);
+    for(Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
+        pqIt != targetProcessors.end(); pqIt++) {
+      ifpqIt->kind() == Processor::LOC_PROC) {
+        log_mapper.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
+        sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
+        gPlacement[targetPartition].push_back(*pqIt);
+        break;
+      }
     }
     targetIt++;
   }
