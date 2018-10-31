@@ -104,7 +104,7 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt);
     for(Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
         pqIt != targetProcessors.end(); pqIt++) {
-      ifpqIt->kind() == Processor::LOC_PROC) {
+      if(pqIt->kind() == Processor::LOC_PROC) {
         log_mapper.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
         sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
         gPlacement[targetPartition].push_back(*pqIt);
