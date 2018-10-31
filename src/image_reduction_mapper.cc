@@ -11,6 +11,7 @@ ImageReductionMapper::ImageReductionMapper(MapperRuntime* rt, Machine machine, P
 : DefaultMapper(rt, machine, local, "image_reduction_mapper")
 {
   mRuntime = rt;
+  registerRenderTaskName("initial_task");
 }
 
 void ImageReductionMapper::slice_task(const MapperContext ctx,
