@@ -38,6 +38,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <unistd.h>
 
 
 
@@ -265,8 +266,14 @@ namespace Legion {
        * @param task Legion task pointer
        */
       static std::string describe_task(const Task *task) {
+        char hostname[128] = { 0 };
+        if(hostname[0] == '\0') gethostname(hostname, sizeof(hostname));
         std::ostringstream output;
-        output << task->get_task_name() << " " << task->get_unique_id()
+        output << task->get_task_name() << " " 
+        << task->task_id << " "
+        << task->get_unique_id()
+        << " pid " << getpid()
+        << " " << hostname
         << " (" << task->index_point.point_data[0]
         << ", " << task->index_point.point_data[1]
         << ", " << task->index_point.point_data[2]
