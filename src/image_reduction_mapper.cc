@@ -70,7 +70,8 @@ std::cout << __FUNCTION__ << " mem " << mem << " it.p " << it.p << std::endl;
                                          false/*acquire*/,
                                          true/*tight_region_bounds*/)) {
 std::cout << __FUNCTION__ << " found physical instance " << inst << std::endl;
-      Machine::ProcessorQuery processorQuery = Machine::ProcessorQuery(machine).has_affinity_to(mem);
+      //Machine::ProcessorQuery processorQuery = Machine::ProcessorQuery(machine).has_affinity_to(mem);
+      Machine::ProcessorQuery processorQuery = Machine::ProcessorQuery(machine).same_address_space_as(mem);
       log_mapper.debug("found physical instance with %ld processors", processorQuery.count());
       return processorQuery;
     }
@@ -105,15 +106,18 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
   Domain::DomainPointIterator targetIt(targetDomain);
   
-  for(Domain::DomainPointIterator sourceIt(sourceDomain); sourceIt; sourceIt++) {
-std::cout << __FUNCTION__ << " source domain point " << (sourceIt) << std::endl;
+  const int dim = 3;
+  Rect<dim> rect = input.domain;
+  for (PointInRectIterator<dim> pir(rect); pir(); pir++) {
+std::cout << __FUNCTION__ << " source domain point " << (*pir) << std::endl;
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt);
     for(Machine::ProcessorQuery::iterator pqIt = targetProcessors.begin();
         pqIt != targetProcessors.end(); pqIt++) {
 std::cout << __FUNCTION__ << " processor " << describeProcessor(*pqIt) << " kind " << pqIt->kind() << std::endl;
       if(pqIt->kind() == Processor::LOC_PROC) {
         log_mapper.debug("task %s sliced onto processor %s", task.get_task_name(), describeProcessor(*pqIt));
-        sliceTaskOntoProcessor(sourceDomain, *pqIt, output);
+        Rect<dim> slice(*pir, *pir);
+        sliceTaskOntoProcessor(slice, *pqIt, output);
         gPlacement[targetPartition].push_back(*pqIt);
         break;
       }
