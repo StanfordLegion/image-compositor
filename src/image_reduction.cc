@@ -369,6 +369,7 @@ namespace Legion {
       
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
+      std::cout << __FUNCTION__ << " pid " << getpid() << std::endl;
 #endif
       
       Processor processor = runtime->get_executing_processor(ctx);
@@ -513,6 +514,7 @@ namespace Legion {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
 
+std::cout << __FUNCTION__ << " pid " << getpid() << " everywhereDomain/volume " << mEverywhereDomain.get_volume() << std::endl;
       IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);

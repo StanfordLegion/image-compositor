@@ -19,6 +19,7 @@ public:
                           SliceTaskOutput& output);
   
   static void registerRenderTaskName(std::string name);
+  static bool isRenderTask(const Task& task);
   static void clearPlacement(LogicalPartition partition);
 
   
