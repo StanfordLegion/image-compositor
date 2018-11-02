@@ -369,17 +369,21 @@ namespace Legion {
       
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
-      std::cout << __FUNCTION__ << " pid " << getpid() << std::endl;
 #endif
       
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
+#if 1
+      {
+#else
       if(processor.id == query.first().id) {
+#endif
         // set the node ID
         Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
         Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
         int myNodeID = imageBounds.lo[2];
+// storeMyNodeID looks questionable here
         
         ImageDescriptor imageDescriptor = ((ImageDescriptor*)task->args)[0];
         storeMyNodeID(myNodeID, imageDescriptor.numImageLayers);
@@ -514,7 +518,6 @@ namespace Legion {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
 
-std::cout << __FUNCTION__ << " pid " << getpid() << " everywhereDomain/volume " << mEverywhereDomain.get_volume() << std::endl;
       IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
