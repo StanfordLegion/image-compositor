@@ -27,7 +27,8 @@ private:
   
   Machine::ProcessorQuery getProcessorsFromTargetDomain(const MapperContext ctx,
                                                         LogicalPartition partition,
-                                                        Domain::DomainPointIterator it);
+                                                        Domain::DomainPointIterator it,
+                                                        bool& result);
   
   void sliceTaskOntoProcessor(Domain domain,
                               Processor processor,
