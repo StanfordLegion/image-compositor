@@ -67,7 +67,7 @@ Machine::ProcessorQuery ImageReductionMapper::getProcessorsFromTargetDomain(cons
     PhysicalInstance inst;
     if (mRuntime->find_physical_instance(ctx, mem, empty_constraints, regions, inst,
                                          false/*acquire*/,
-                                         true/*tight_region_bounds*/)) {
+                                         false/*tight_region_bounds*/)) {
       Machine::ProcessorQuery targetProcessors = Machine::ProcessorQuery(machine).same_address_space_as(mem);
       log_mapper.debug("found physical instance with %ld processors", targetProcessors.count());
       result = true;
