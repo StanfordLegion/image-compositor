@@ -2,10 +2,12 @@
 #include "mappers/default_mapper.h"
 #include "realm/logging.h"
 #include "legion_visualization.h"
+#include "image_reduction_projection_functor.h"
 
 using namespace Legion;
 using namespace Legion::Mapping;
 using namespace Legion::Visualization;
+
 
 
 class ImageReductionMapper : public DefaultMapper {

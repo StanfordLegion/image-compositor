@@ -129,4 +129,3 @@ include_directories(${LG_RT_DIR}/legion ${LG_RT_DIR}/realm)
 
 add_subdirectory(src)
 
-

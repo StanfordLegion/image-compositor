@@ -24,6 +24,7 @@ list(APPEND LEGION_SRC
   image_reduction.cc
   image_reduction_composite.cc
   image_reduction_mapper.cc
+  image_reduction_projection_functor.cc
 )
 
 add_library(ImageCompositor ${LEGION_SRC})
