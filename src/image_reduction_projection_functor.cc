@@ -8,7 +8,6 @@ namespace Legion {
       mLaunchDomain = launchDomain;
       mPartition = partition;
       mPartitionColorSpace = Runtime::get_runtime()->get_index_partition_color_space(partition.get_index_partition());
-      assert(mPartition.get_dim() == mPartitionColorSpace.get_dim());
     }
     
     LogicalRegion ImageReductionProjectionFunctor::project(const Mappable* mappable,
