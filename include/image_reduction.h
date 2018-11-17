@@ -299,6 +299,12 @@ namespace Legion {
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
       }
+      /**
+       * obtain the depth partition
+       */
+      LogicalPartition depthPartition() const {
+        return mDepthPartition;
+      }
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
