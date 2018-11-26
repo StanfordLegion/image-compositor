@@ -61,7 +61,7 @@ namespace Legion {
       imageDescriptor.logicalPartition = partition;
       imageDescriptor.domain = domain;
       imageDescriptor.numImageLayers = domain.get_volume();
-std::cout << __FUNCTION__ << " domain " << domain << std::endl;
+      std::cout << __FUNCTION__ << " domain " << domain << std::endl;
       mImageDescriptor = imageDescriptor;
       mContext = context;
       mRuntime = runtime;
@@ -375,16 +375,12 @@ std::cout << __FUNCTION__ << " domain " << domain << std::endl;
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
-#if 1
       {
-#else
-      if(processor.id == query.first().id) {
-#endif
         // set the node ID
         Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
         Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
         int myNodeID = imageBounds.lo[2];
-// storeMyNodeID looks questionable here
+        // storeMyNodeID looks questionable here
         
         ImageDescriptor imageDescriptor = ((ImageDescriptor*)task->args)[0];
         storeMyNodeID(myNodeID, imageDescriptor.numImageLayers);
@@ -417,7 +413,7 @@ std::cout << __FUNCTION__ << " domain " << domain << std::endl;
           numFragments[2] = numLeaves - 1;
           Rect<image_region_dimensions> launchBounds(Point<image_region_dimensions>::ZEROES(), numFragments);
           Domain domain = Domain(launchBounds);
-std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << std::endl;
+          std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << std::endl;
           mHierarchicalTreeDomain->push_back(domain);
         }
         numLeaves *= 2;
@@ -519,7 +515,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       if(argLen > 0) {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
-
+      
       IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
@@ -566,9 +562,9 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       CompositeArguments args = ((CompositeArguments*)task->args)[0];
       PhysicalRegion fragment0 = regions[0];
       PhysicalRegion fragment1 = regions[1];
-
-std::cout << __FUNCTION__ << " fragment0 tree id " << (fragment0.get_logical_region().get_tree_id()) << " fregment1 tree id " << (fragment1.get_logical_region().get_tree_id()) << std::endl;
-std::cout << __FUNCTION__ << " fragment0 index space id " << (fragment0.get_logical_region().get_index_space().get_id()) << " fragment1 index space id " << (fragment1.get_logical_region().get_index_space().get_id()) << std::endl;
+      
+      std::cout << __FUNCTION__ << " fragment0 tree id " << (fragment0.get_logical_region().get_tree_id()) << " fregment1 tree id " << (fragment1.get_logical_region().get_tree_id()) << std::endl;
+      std::cout << __FUNCTION__ << " fragment0 index space id " << (fragment0.get_logical_region().get_index_space().get_id()) << " fragment1 index space id " << (fragment1.get_logical_region().get_index_space().get_id()) << std::endl;
       
       Stride stride;
       PixelField *r0, *g0, *b0, *a0, *z0, *userdata0;
@@ -633,9 +629,11 @@ std::cout << __FUNCTION__ << " fragment0 index space id " << (fragment0.get_logi
     
     FutureMap ImageReduction::reduceAssociative() {
       int maxTreeLevel = numTreeLevels(mImageDescriptor);
-      return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
-                                 mCompositeTaskID, mDepthPartition, mSourceImage,
-                                 mRuntime, mContext, mLocalCopyOfNodeID, maxTreeLevel);
+      if(maxTreeLevel > 0) {
+        return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
+                                   mCompositeTaskID, mDepthPartition, mSourceImage,
+                                   mRuntime, mContext, mLocalCopyOfNodeID, maxTreeLevel);
+      }
     }
     
     
