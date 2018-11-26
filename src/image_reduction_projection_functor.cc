@@ -29,18 +29,4 @@ namespace Legion {
     }
   }
   
-  LogicalRegion ProjectionFunctor::project(LogicalRegion upperBound,
-                                           const DomainPoint& point,
-                                           const Domain& launch_domain)
-  {
-    
-  }
-  
-  LogicalRegion ProjectionFunctor::project(LogicalPartition upperBound,
-                                           const DomainPoint& point,
-                                           const Domain& launch_domain)
-  {
-    
-  }
-  
 }
