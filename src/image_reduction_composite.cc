@@ -81,11 +81,16 @@ namespace Legion {
                                                              int numPixels,
                                                              Legion::Visualization::ImageReduction::Stride stride){
       
+std::cout << __FUNCTION__ << " r0 " << r0 << " *r0 " << (*r0) << " z0 " << z0 << " *z0 " << (*z0) << " r1 " << r1 << " *r1 " << (*r1) << " z1 " << z1 << " *z1 " << (*z1) <<std::endl;
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 < *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
+if(i<10)
+std::cout << __FUNCTION__ << " ** z0 ** " << *z0 << "\t" << *r0 << "," << *g0 << "," << *b0 << "\t z1 " << *z1 << "\t" << *r1 << "," << *g1 << "," << *b1 << " " << z0 << " " << z1 << std::endl;
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
+if(i<10)
+std::cout << __FUNCTION__ << " z0 " << *z0 << "\t" << *r0 << "," << *g0 << "," << *b0 << "\t** z1 ** " << *z1 << "\t" << *r1 << "," << *g1 << "," << *b1 << " " << z0 << " " << z1 << std::endl;
         }
         increment(r0, g0, b0, a0, z0, userdata0, stride);
         increment(r1, g1, b1, a1, z1, userdata1, stride);

@@ -344,6 +344,7 @@ namespace Legion {
           if(mNumBounds == 0 || remappedLayer < mNumBounds) {
             remappedPoint[2] = remappedLayer;
           }
+std::cout << __FUNCTION__ << to_string() << " input: " << point << " output: " << remappedPoint << std::endl;
           
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
           return result;

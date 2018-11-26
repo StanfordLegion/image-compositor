@@ -147,8 +147,9 @@ void ImageReductionMapper::sliceTaskAccordingToPreviousPartition(const MapperCon
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)task.args;
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
 
+  unsigned counter = 0;
   for(std::vector<Placement>::iterator procIt = gPlacement[targetPartition].begin();
-    procIt != gPlacement[targetPartition].end(); procIt++) {
+    procIt != gPlacement[targetPartition].end() && counter++ < input.domain.get_volume(); procIt++) {
       log_mapper.debug("task %s follows on processor %s", task.get_task_name(), describeProcessor(procIt->first));
       sliceTaskOntoProcessor(procIt->second, procIt->first, output);
   }
