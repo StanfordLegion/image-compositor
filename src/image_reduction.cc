@@ -111,14 +111,13 @@ namespace Legion {
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
-      
+
       initializeNodes(runtime, context);
-      
+
       assert(mNodeCount > 0);
       mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
       initializeViewMatrix();
       createTreeDomains(mLocalCopyOfNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
-      
     }
     
     ImageReduction::~ImageReduction() {
@@ -413,7 +412,7 @@ namespace Legion {
           numFragments[2] = numLeaves - 1;
           Rect<image_region_dimensions> launchBounds(Point<image_region_dimensions>::ZEROES(), numFragments);
           Domain domain = Domain(launchBounds);
-          std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << std::endl;
+std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << std::endl;
           mHierarchicalTreeDomain->push_back(domain);
         }
         numLeaves *= 2;

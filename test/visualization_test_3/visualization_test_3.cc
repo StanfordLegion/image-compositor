@@ -25,11 +25,10 @@ void top_level_task(const Legion::Task *task,
                     const std::vector<Legion::PhysicalRegion> &regions,
                     Legion::Context ctx, Legion::Runtime *runtime) {
   
-  const int fewFragmentsPerLayer = 4;
   
   {
     // test with large images
-    Legion::Visualization::ImageDescriptor imageDescriptor = { 3840, 2160, numDomainNodes, fewFragmentsPerLayer };
+    Legion::Visualization::ImageDescriptor imageDescriptor = { 3840, 2160, numDomainNodes };
     Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
     Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
     Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);

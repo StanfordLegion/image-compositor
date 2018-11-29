@@ -28,7 +28,6 @@ namespace Legion {
       int width;
       int height;
       int numImageLayers;
-      int numFragmentsPerLayer;
       LogicalPartition logicalPartition;
       Domain domain;
       
@@ -52,6 +51,7 @@ namespace Legion {
         result[2] = 1;
         return result;
       }
+      
       Point<image_region_dimensions> numLayers() const{
         Point<image_region_dimensions> result;
         result[0] = 1;
@@ -60,27 +60,18 @@ namespace Legion {
         return result;
       }
       
-      // launch by composite fragment,
       Point<image_region_dimensions> fragmentSize() const{
         Point<image_region_dimensions> result;
-        if(numFragmentsPerLayer > height) {
-          assert((width * height) % numFragmentsPerLayer == 0);
-          result[0] = (width * height) / numFragmentsPerLayer;
-          result[1] = 1;
-          result[2] = 1;
-        } else {
-          result[0] = width;
-          assert(height % numFragmentsPerLayer == 0);
-          result[1] = height / numFragmentsPerLayer;
-          result[2] = 1;
-        }
+        result[0] = width;
+        result[1] = height;
+        result[2] = 1;
         return result;
       }
+      
       Point<image_region_dimensions> numFragments() const{
         Point<image_region_dimensions> result;
-        Point<image_region_dimensions> size = fragmentSize();
-        result[0] = width / size[0];
-        result[1] = height / size[1];
+        result[0] = 1;
+        result[1] = 1;
         result[2] = numImageLayers;
         return result;
       }
@@ -112,8 +103,8 @@ namespace Legion {
       
       std::string toString() const {
         char buffer[512];
-        sprintf(buffer, "(%dx%d) x %d layers, %d fragments per layer (%lldx%lldx%lld)",
-                width, height, numImageLayers, numFragmentsPerLayer,
+        sprintf(buffer, "(%dx%d) x %d layers (%lldx%lldx%lld)",
+                width, height, numImageLayers,
                 fragmentSize()[0], fragmentSize()[1], fragmentSize()[2]);
         return std::string(buffer);
       }
