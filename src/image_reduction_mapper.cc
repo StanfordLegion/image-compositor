@@ -113,9 +113,7 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   
   const int dim = 3;
   Rect<dim> rect = input.domain;
-std::cout << __FUNCTION__ << " rect " << rect << task.get_task_name() << std::endl;
   for (PointInRectIterator<dim> pir(rect); pir(); pir++) {
-std::cout << __FUNCTION__ << " pir " << *pir << task.get_task_name() << std::endl;
     bool ret = false;
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt, ret);
     if(ret) {
