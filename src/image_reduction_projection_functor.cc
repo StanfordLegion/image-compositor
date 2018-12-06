@@ -9,7 +9,7 @@ namespace Legion {
       mPartition = partition;
       mPartitionColorSpace = Runtime::get_runtime()->get_index_partition_color_space(partition.get_index_partition());
     }
-    
+        
     LogicalRegion ImageReductionProjectionFunctor::project(const Mappable* mappable,
                                                            unsigned index,
                                                            LogicalPartition upperBound,
