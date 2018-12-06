@@ -596,9 +596,9 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
       CompositeProjectionFunctor* functor1 = (*mCompositeProjectionFunctor)[index + 1];
       
-#if 1
-      std::cout << " tree level " << treeLevel << " using functors " << functor0->to_string() << " " << functor1->to_string() << std::endl;
-      std::cout << "launch domain at tree level " << treeLevel
+#if 0
+      std::cout << __FUNCTION__ << " tree level " << treeLevel << " using functors " << functor0->to_string() << " " << functor1->to_string() << std::endl;
+      std::cout << __FUNCTION__ << " launch domain at tree level " << treeLevel
       << launchDomain << std::endl;
 #endif
       
@@ -632,6 +632,8 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
                                    mCompositeTaskID, mDepthPartition, mSourceImage,
                                    mRuntime, mContext, mLocalCopyOfNodeID, maxTreeLevel);
+      } else {
+        return FutureMap();
       }
     }
     
