@@ -18,7 +18,7 @@
 #ifndef image_reduction_h
 #define image_reduction_h
 
-#define TRACE_TASKS
+//#define TRACE_TASKS
 
 //tracing for debug
 #if 1

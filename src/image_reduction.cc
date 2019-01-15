@@ -562,9 +562,6 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       PhysicalRegion fragment0 = regions[0];
       PhysicalRegion fragment1 = regions[1];
       
-      std::cout << __FUNCTION__ << " fragment0 tree id " << (fragment0.get_logical_region().get_tree_id()) << " fregment1 tree id " << (fragment1.get_logical_region().get_tree_id()) << std::endl;
-      std::cout << __FUNCTION__ << " fragment0 index space id " << (fragment0.get_logical_region().get_index_space().get_id()) << " fragment1 index space id " << (fragment1.get_logical_region().get_index_space().get_id()) << std::endl;
-      
       Stride stride;
       PixelField *r0, *g0, *b0, *a0, *z0, *userdata0;
       PixelField *r1, *g1, *b1, *a1, *z1, *userdata1;
