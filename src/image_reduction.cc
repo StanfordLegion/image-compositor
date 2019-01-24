@@ -33,7 +33,7 @@ namespace Legion {
     
     // declare module static data
     
-    int *ImageReduction::mNodeID;
+    int ImageReduction::mNodeID;
     ImageReduction::SimulationBoundsCoordinate *ImageReduction::mSimulationBounds;
     int ImageReduction::mNumSimulationBounds;
     ImageReduction::SimulationBoundsCoordinate ImageReduction::mXMax;
@@ -43,7 +43,6 @@ namespace Legion {
     ImageReduction::SimulationBoundsCoordinate ImageReduction::mZMax;
     ImageReduction::SimulationBoundsCoordinate ImageReduction::mZMin;
     std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = NULL;
-    int ImageReduction::mNodeCount;
     std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = NULL;
     GLfloat ImageReduction::mGlViewTransform[numMatrixElements4x4];
     ImageReduction::PixelField ImageReduction::mGlConstantColor[numPixelFields];
@@ -68,7 +67,7 @@ namespace Legion {
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
-      mNodeID = NULL;
+      mNodeID = -1;
       mMapperID = mapperID;
       gMapperID = mapperID;
       
@@ -84,10 +83,9 @@ namespace Legion {
       
       initializeNodes(runtime, context);
       
-      assert(mNodeCount > 0);
-      mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
+      assert(mNodeID != -1);
       initializeViewMatrix();
-      createTreeDomains(mLocalCopyOfNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
+      createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
       
     }
     
@@ -98,7 +96,7 @@ namespace Legion {
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
-      mNodeID = NULL;
+      mNodeID = -1;
       mMapperID = mapperID;
       gMapperID = mapperID;
       
@@ -114,10 +112,9 @@ namespace Legion {
 
       initializeNodes(runtime, context);
 
-      assert(mNodeCount > 0);
-      mLocalCopyOfNodeID = mNodeID[mNodeCount - 1];//written by initial_task
+      assert(mNodeID != -1);
       initializeViewMatrix();
-      createTreeDomains(mLocalCopyOfNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
+      createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
     }
     
     ImageReduction::~ImageReduction() {
@@ -151,7 +148,6 @@ namespace Legion {
     // its purpose is to copy the domain bounds to all nodes
     
     void ImageReduction::preregisterSimulationBounds(SimulationBoundsCoordinate *bounds, int numBounds) {
-      mNodeCount = 0;
       mNumSimulationBounds = numBounds;
       
       int totalElements = numBounds * fieldsPerSimulationBounds;
@@ -292,20 +288,9 @@ namespace Legion {
       domain = Domain(fragmentBounds);
     }
     
-    
-    ///////////////
-    //FIXME awkwardness about running multithreaded versus multinode can this be removed
-    
     void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
-      if(mNodeID == NULL) {
-        mNodeID = new int[numNodes];
-      }
-      mNodeID[nodeID] = nodeID;
-      mNodeCount++;
+      mNodeID = nodeID;
     }
-    
-    ////////////////
-    
     
     
     int ImageReduction::numTreeLevels(int numImageLayers) {
@@ -378,9 +363,7 @@ namespace Legion {
         // set the node ID
         Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
         Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
-        int myNodeID = imageBounds.lo[2];
-        // storeMyNodeID looks questionable here
-        
+        int myNodeID = imageBounds.lo[2];        
         ImageDescriptor imageDescriptor = ((ImageDescriptor*)task->args)[0];
         storeMyNodeID(myNodeID, imageDescriptor.numImageLayers);
         createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
@@ -628,7 +611,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       if(maxTreeLevel > 0) {
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
                                    mCompositeTaskID, mDepthPartition, mSourceImage,
-                                   mRuntime, mContext, mLocalCopyOfNodeID, maxTreeLevel);
+                                   mRuntime, mContext, mNodeID, maxTreeLevel);
       } else {
         return FutureMap();
       }

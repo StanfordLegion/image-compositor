@@ -437,16 +437,14 @@ namespace Legion {
       LogicalPartition mSourceFragmentPartition;
       GLenum mDepthFunction;
       int mAccessorFunctorID;
-      int mLocalCopyOfNodeID;
       MapperID mMapperID;
       
     public:
       static const int fieldsPerSimulationBounds = 2 * image_region_dimensions;
-      static int* mNodeID;
+      static int mNodeID;
       static SimulationBoundsCoordinate *mSimulationBounds;
       static int mNumSimulationBounds;
       static SimulationBoundsCoordinate mXMax, mXMin, mYMax, mYMin, mZMax, mZMin;
-      static int mNodeCount;
       static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
       static std::vector<Domain> *mHierarchicalTreeDomain;
       static const int numMatrixElements4x4 = 16;
