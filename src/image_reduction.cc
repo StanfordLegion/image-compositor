@@ -75,8 +75,10 @@ namespace Legion {
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
-      
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain);
+      legion_field_id_t fieldID[6];
+      FieldSpace fields;
+
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, fields, fieldID);
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
@@ -104,9 +106,10 @@ namespace Legion {
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
-      
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields);
-      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition, mDepthColorSpace);
+      legion_field_id_t fieldID[6];
+
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID);
+      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
 
@@ -251,7 +254,7 @@ namespace Legion {
       Point<image_region_dimensions> blockingFactor = mImageDescriptor.layerSize();
       IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(mContext, parent, blockingFactor);
       mDepthPartitionColorSpace =
-        legion_index_partition_get_color_space(mRuntime, imageDepthIndexPartition);
+        CObjectWrapper::unwrap(legion_index_partition_get_color_space(CObjectWrapper::wrap(mRuntime), CObjectWrapper::wrap(imageDepthIndexPartition)));
       partition = mRuntime->get_logical_partition(mContext, image, imageDepthIndexPartition);
       mRuntime->attach_name(partition, "image depth partition");
       Rect<image_region_dimensions> depthBounds(mImageDescriptor.origin(), mImageDescriptor.numLayers() - Point<image_region_dimensions>(1));
@@ -261,10 +264,8 @@ namespace Legion {
     
     void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       
-      Future nodeCountFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT, mMapperID);
-      Future globalCPUsFuture = runtime->select_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS, mMapperID);
-      int nodeCount = nodeCountFuture.get_result<int>();
-      int cpuCount = globalCPUsFuture.get_result<int>();
+      int nodeCount = runtime->get_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT, mMapperID);
+      int cpuCount = runtime->get_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS, mMapperID);
       int cpusPerNode = cpuCount / nodeCount;
       
       Point<image_region_dimensions> p0;

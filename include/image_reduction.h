@@ -40,7 +40,7 @@
 #include <sstream>
 #include <unistd.h>
 
-
+#include "legion_c_util.h"
 
 
 namespace Legion {
@@ -303,7 +303,11 @@ namespace Legion {
        * obtain the source image fields
        **/
       void sourceImageFields(legion_field_id_t imageFields[]) const {
-        memcpy(imageFields, mSourceImageFields, sizeof(mSourceImageFields));
+        std::vector<FieldID> fields;
+        mRuntime->get_field_space_fields(mContext, mSourceImageFields, fields); 
+        for(unsigned i = 0; i < fields.size(); ++i) {
+          imageFields[i] = fields[i];
+        }
       }
       /**
        * obtain the image descriptor, pass this to the mapper
@@ -446,7 +450,7 @@ namespace Legion {
       IndexSpace mSourceIndexSpace;
       IndexSpace mDepthPartitionColorSpace;
       LogicalRegion mSourceImage;
-      legion_field_id_t mSourceImageFields[6];
+      FieldSpace mSourceImageFields;
       Domain mSourceImageDomain;
       Domain mDepthDomain;
       Domain mEverywhereDomain;
