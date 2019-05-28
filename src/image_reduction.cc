@@ -76,7 +76,7 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       
-      createImage(mSourceImage, mSourceImageDomain);
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain);
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
@@ -105,8 +105,8 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       
-      createImage(mSourceImage, mSourceImageDomain);
-      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields);
+      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition, mDepthColorSpace);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
 
@@ -219,7 +219,7 @@ namespace Legion {
     }
     
     
-    void ImageReduction::createImage(LogicalRegion &region, Domain &domain) {
+    void ImageReduction::createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[]) {
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1;
@@ -234,9 +234,15 @@ namespace Legion {
       Rect<image_region_dimensions> r(p0, p2);
       Rect<image_region_dimensions> imageBounds(mImageDescriptor.origin(), mImageDescriptor.upperBound() - Point<image_region_dimensions>(1));
       domain = Domain(imageBounds);
-      IndexSpace pixels = mRuntime->create_index_space(mContext, domain);
-      FieldSpace fields = imageFields();
-      region = mRuntime->create_logical_region(mContext, pixels, fields);
+      indexSpace = mRuntime->create_index_space(mContext, domain);
+      fields = imageFields();
+      region = mRuntime->create_logical_region(mContext, indexSpace, fields);
+      fieldID[0] = FID_FIELD_R;
+      fieldID[1] = FID_FIELD_G;
+      fieldID[2] = FID_FIELD_B;
+      fieldID[3] = FID_FIELD_A;
+      fieldID[4] = FID_FIELD_Z;
+      fieldID[5] = FID_FIELD_USERDATA;
     }
     
     
@@ -244,6 +250,8 @@ namespace Legion {
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
       Point<image_region_dimensions> blockingFactor = mImageDescriptor.layerSize();
       IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(mContext, parent, blockingFactor);
+      mDepthPartitionColorSpace =
+        legion_index_partition_get_color_space(mRuntime, imageDepthIndexPartition);
       partition = mRuntime->get_logical_partition(mContext, image, imageDepthIndexPartition);
       mRuntime->attach_name(partition, "image depth partition");
       Rect<image_region_dimensions> depthBounds(mImageDescriptor.origin(), mImageDescriptor.numLayers() - Point<image_region_dimensions>(1));

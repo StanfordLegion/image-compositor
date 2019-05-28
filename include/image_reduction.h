@@ -288,16 +288,34 @@ namespace Legion {
         return mEverywhereDomain;
       }
       /**
+       * obtain the source image index space
+       **/
+      IndexSpace sourceIndexSpace() const {
+        return mSourceIndexSpace;
+      }
+      /**
        * obtain the source image logical regiob
        */
       LogicalRegion sourceImage() const {
         return mSourceImage;
       }
       /**
+       * obtain the source image fields
+       **/
+      void sourceImageFields(legion_field_id_t imageFields[]) const {
+        memcpy(imageFields, mSourceImageFields, sizeof(mSourceImageFields));
+      }
+      /**
        * obtain the image descriptor, pass this to the mapper
        */
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
+      }
+      /**
+       * obtain the depth partition color space
+       **/
+      IndexSpace depthPartitionColorSpace() const {
+        return mDepthPartitionColorSpace;
       }
       /**
        * obtain the depth partition
@@ -385,7 +403,7 @@ namespace Legion {
       void initializeViewMatrix();
       void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       FieldSpace imageFields();
-      void createImage(LogicalRegion &region, Domain &domain);
+      void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[]);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition);
       void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition);
@@ -425,7 +443,10 @@ namespace Legion {
       ImageDescriptor mImageDescriptor;
       Context mContext;
       Runtime *mRuntime;
+      IndexSpace mSourceIndexSpace;
+      IndexSpace mDepthPartitionColorSpace;
       LogicalRegion mSourceImage;
+      legion_field_id_t mSourceImageFields[6];
       Domain mSourceImageDomain;
       Domain mDepthDomain;
       Domain mEverywhereDomain;
