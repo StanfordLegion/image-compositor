@@ -76,9 +76,8 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
-      FieldSpace fields;
 
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, fields, fieldID);
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID);
       partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
       partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
