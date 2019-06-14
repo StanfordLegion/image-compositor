@@ -359,6 +359,10 @@ namespace Legion {
         virtual LogicalRegion project(const Mappable *mappable, unsigned index,
                                       LogicalPartition upperBound,
                                       const DomainPoint &point) {
+          assert(false);
+        }
+
+        virtual LogicalRegion project(LogicalPartition upper_bound, const DomainPoint &point, const Domain &launch_domain) {
           int launchDomainLayer = point[2];
           DomainPoint remappedPoint = point;
           int remappedLayer = launchDomainLayer * mMultiplier + mOffset;
@@ -367,9 +371,18 @@ namespace Legion {
             remappedPoint[2] = remappedLayer;
           }
           
-          LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
+          LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upper_bound, remappedPoint);
           return result;
         }
+
+        virtual LogicalRegion project(const Mappable *mappable, unsigned index, LogicalRegion upper_bound, const DomainPoint &point) {
+          assert(false);
+        }
+
+        virtual LogicalRegion project(LogicalRegion upper_bound, const DomainPoint &point, const Domain &launch_domain) {
+          assert(false);
+        }
+
         
         int id() const{ return mID; }
         std::string to_string() const {
@@ -380,6 +393,7 @@ namespace Legion {
         
         virtual bool is_exclusive(void) const{ return true; }
         virtual unsigned get_depth(void) const{ return 0; }
+        virtual bool is_functional() const{ return true; }
         
       private:
         int mOffset;
