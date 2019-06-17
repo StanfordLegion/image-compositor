@@ -393,7 +393,7 @@ namespace Legion {
         
         virtual bool is_exclusive(void) const{ return true; }
         virtual unsigned get_depth(void) const{ return 0; }
-        virtual bool is_functional() const{ return true; }
+        virtual bool is_functional(void) const override { return true; }
         
       private:
         int mOffset;
