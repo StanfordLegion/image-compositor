@@ -157,30 +157,30 @@ namespace Legion {
        * Perform a tree reduction using an associative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
        */
-      FutureMap reduce_associative_commutative();
+      FutureMap reduce_associative_commutative(Context context);
       /**
        * Perform a tree reduction using an associative noncommutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
        * Be sure to call preregisterSimulationBounds before starting the Legion runtime.
        */
-      FutureMap reduce_associative_noncommutative();
+      FutureMap reduce_associative_noncommutative(Context context);
       /**
        * Perform a pipeline reduction using a nonassociative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
        */
-      FutureMap reduce_nonassociative_commutative();
+      FutureMap reduce_nonassociative_commutative(Context context);
       /**
        * Perform a pipeline reduction using a nonassociative noncommutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
        * Be sure to call preregisterSimulationBounds before starting the Legion runtime.
        */
-      FutureMap reduce_nonassociative_noncommutative();
+      FutureMap reduce_nonassociative_noncommutative(Context context);
       /**
        * Move reduced image result to a display.
        *
        * @param t integer timestep
        */
-      Future display(int t);
+      Future display(int t, Context context);
       
       /**
        * Provide the camera view matrix, typically from gluLookAt
@@ -302,9 +302,9 @@ namespace Legion {
       /**
        * obtain the source image fields
        **/
-      void sourceImageFields(legion_field_id_t imageFields[]) const {
+      void sourceImageFields(Context context, legion_field_id_t imageFields[]) const {
         std::vector<FieldID> fields;
-        mRuntime->get_field_space_fields(mContext, mSourceImageFields, fields); 
+        mRuntime->get_field_space_fields(context, mSourceImageFields, fields);
         for(unsigned i = 0; i < fields.size(); ++i) {
           imageFields[i] = fields[i];
         }
@@ -420,14 +420,14 @@ namespace Legion {
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
       void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
-      FieldSpace imageFields();
-      void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[]);
-      void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition);
+      FieldSpace imageFields(Context context);
+      void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
+      void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
       void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
-      void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition);
+      void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
       
-      FutureMap reduceAssociative();
-      FutureMap reduceNonassociative();
+      FutureMap reduceAssociative(Context context);
+      FutureMap reduceNonassociative(Context context);
       
       void addCompositeArgumentsToArgmap(CompositeArguments *&argsPtr, int taskZ, ArgumentMap &argMap, int layer0, int layer1);
       
@@ -459,7 +459,6 @@ namespace Legion {
       
       
       ImageDescriptor mImageDescriptor;
-      Context mContext;
       Runtime *mRuntime;
       IndexSpace mSourceIndexSpace;
       IndexSpace mDepthPartitionColorSpace;

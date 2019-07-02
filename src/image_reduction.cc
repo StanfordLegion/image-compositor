@@ -62,7 +62,6 @@ namespace Legion {
       imageDescriptor.numImageLayers = domain.get_volume();
       std::cout << __FUNCTION__ << " domain " << domain << std::endl;
       mImageDescriptor = imageDescriptor;
-      mContext = context;
       mRuntime = runtime;
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
@@ -77,10 +76,10 @@ namespace Legion {
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
 
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID);
-      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition, context);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
-      partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
+      partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition, context);
       
       initializeNodes(runtime, context);
       
@@ -92,7 +91,6 @@ namespace Legion {
     
     ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       mImageDescriptor = imageDescriptor;
-      mContext = context;
       mRuntime = runtime;
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
@@ -107,10 +105,10 @@ namespace Legion {
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
 
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID);
-      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition);
+      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+      partitionImageByDepth(mSourceImage, mDepthDomain, mDepthPartition, context);
       partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
-      partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition);
+      partitionImageByFragment(mSourceImage, mSourceFragmentDomain, mSourceFragmentPartition, context);
 
       initializeNodes(runtime, context);
 
@@ -129,12 +127,14 @@ namespace Legion {
         mCompositeProjectionFunctor = NULL;
       }
       
-      mRuntime->destroy_index_space(mContext, mSourceImage.get_index_space());
-      mRuntime->destroy_logical_region(mContext, mSourceImage);
-      mRuntime->destroy_index_partition(mContext, mDepthPartition.get_index_partition());
-      mRuntime->destroy_logical_partition(mContext, mDepthPartition);
-      mRuntime->destroy_index_partition(mContext, mSourceFragmentPartition.get_index_partition());
-      mRuntime->destroy_logical_partition(mContext, mSourceFragmentPartition);
+#if 0 // can't destroy these, missing context
+      mRuntime->destroy_index_space(context, mSourceImage.get_index_space());
+      mRuntime->destroy_logical_region(context, mSourceImage);
+      mRuntime->destroy_index_partition(context, mDepthPartition.get_index_partition());
+      mRuntime->destroy_logical_partition(context, mDepthPartition);
+      mRuntime->destroy_index_partition(context, mSourceFragmentPartition.get_index_partition());
+      mRuntime->destroy_logical_partition(context, mSourceFragmentPartition);
+#endif
     }
     
     
@@ -199,11 +199,11 @@ namespace Legion {
     }
     
     
-    FieldSpace ImageReduction::imageFields() {
-      FieldSpace fields = mRuntime->create_field_space(mContext);
+    FieldSpace ImageReduction::imageFields(Context context) {
+      FieldSpace fields = mRuntime->create_field_space(context);
       mRuntime->attach_name(fields, "pixel fields");
       {
-        FieldAllocator allocator = mRuntime->create_field_allocator(mContext, fields);
+        FieldAllocator allocator = mRuntime->create_field_allocator(context, fields);
         FieldID fidr = allocator.allocate_field(sizeof(PixelField), FID_FIELD_R);
         assert(fidr == FID_FIELD_R);
         FieldID fidg = allocator.allocate_field(sizeof(PixelField), FID_FIELD_G);
@@ -221,7 +221,7 @@ namespace Legion {
     }
     
     
-    void ImageReduction::createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[]) {
+    void ImageReduction::createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context) {
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1;
@@ -236,9 +236,9 @@ namespace Legion {
       Rect<image_region_dimensions> r(p0, p2);
       Rect<image_region_dimensions> imageBounds(mImageDescriptor.origin(), mImageDescriptor.upperBound() - Point<image_region_dimensions>(1));
       domain = Domain(imageBounds);
-      indexSpace = mRuntime->create_index_space(mContext, domain);
-      fields = imageFields();
-      region = mRuntime->create_logical_region(mContext, indexSpace, fields);
+      indexSpace = mRuntime->create_index_space(context, domain);
+      fields = imageFields(context);
+      region = mRuntime->create_logical_region(context, indexSpace, fields);
       fieldID[0] = FID_FIELD_R;
       fieldID[1] = FID_FIELD_G;
       fieldID[2] = FID_FIELD_B;
@@ -248,13 +248,13 @@ namespace Legion {
     }
     
     
-    void ImageReduction::partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition) {
+    void ImageReduction::partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
       Point<image_region_dimensions> blockingFactor = mImageDescriptor.layerSize();
-      IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(mContext, parent, blockingFactor);
+      IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(context, parent, blockingFactor);
       mDepthPartitionColorSpace =
         CObjectWrapper::unwrap(legion_index_partition_get_color_space(CObjectWrapper::wrap(mRuntime), CObjectWrapper::wrap(imageDepthIndexPartition)));
-      partition = mRuntime->get_logical_partition(mContext, image, imageDepthIndexPartition);
+      partition = mRuntime->get_logical_partition(context, image, imageDepthIndexPartition);
       mRuntime->attach_name(partition, "image depth partition");
       Rect<image_region_dimensions> depthBounds(mImageDescriptor.origin(), mImageDescriptor.numLayers() - Point<image_region_dimensions>(1));
       domain = Domain(depthBounds);
@@ -285,12 +285,12 @@ namespace Legion {
     }
     
     
-    void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition) {
+    void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
       Point<image_region_dimensions> blockingFactor = mImageDescriptor.fragmentSize();
-      IndexPartition imageFragmentIndexPartition = mRuntime->create_partition_by_blockify(mContext, parent, blockingFactor);
+      IndexPartition imageFragmentIndexPartition = mRuntime->create_partition_by_blockify(context, parent, blockingFactor);
       mRuntime->attach_name(imageFragmentIndexPartition, "image fragment index");
-      partition = mRuntime->get_logical_partition(mContext, image, imageFragmentIndexPartition);
+      partition = mRuntime->get_logical_partition(context, image, imageFragmentIndexPartition);
       mRuntime->attach_name(partition, "image fragment partition");
       Rect<image_region_dimensions> fragmentBounds(mImageDescriptor.origin(), mImageDescriptor.numFragments() - Point<image_region_dimensions>(1));
       domain = Domain(fragmentBounds);
@@ -484,7 +484,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       RegionRequirement req(mDepthPartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       depthLauncher.add_region_requirement(req);
-      FutureMap futures = mRuntime->execute_index_space(mContext, depthLauncher);
+      FutureMap futures = mRuntime->execute_index_space(context, depthLauncher);
       
       if(blocking) {
         futures.wait_all_results();
@@ -614,25 +614,25 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
     
     
     
-    FutureMap ImageReduction::reduceAssociative() {
+    FutureMap ImageReduction::reduceAssociative(Context context) {
       int maxTreeLevel = numTreeLevels(mImageDescriptor);
       if(maxTreeLevel > 0) {
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
                                    mCompositeTaskID, mDepthPartition, mSourceImage,
-                                   mRuntime, mContext, mNodeID, maxTreeLevel);
+                                   mRuntime, context, mNodeID, maxTreeLevel);
       } else {
         return FutureMap();
       }
     }
     
     
-    FutureMap ImageReduction::reduce_associative_commutative(){
-      return reduceAssociative();
+    FutureMap ImageReduction::reduce_associative_commutative(Context context){
+      return reduceAssociative(context);
     }
     
-    FutureMap ImageReduction::reduce_associative_noncommutative(){
+    FutureMap ImageReduction::reduce_associative_noncommutative(Context context){
       if(mNumSimulationBounds == mImageDescriptor.numImageLayers) {
-        return reduceAssociative();
+        return reduceAssociative(context);
       } else {
         std::cout << "cannot reduce noncommutatively until simulation bounds are provided" << std::endl;
         std::cout << "call ImageReduction::preregisterSimulationBounds(SimulationBoundsCoordinate *bounds, int numBounds) before starting Legion runtime" << std::endl;
@@ -648,16 +648,17 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
     
     
     
-    FutureMap ImageReduction::reduceNonassociative() {
+    FutureMap ImageReduction::reduceNonassociative(Context context) {
+      // NOP - TODO
       return launchPipelineReduction();
     }
     
-    FutureMap ImageReduction::reduce_nonassociative_commutative(){
-      return reduceNonassociative();
+    FutureMap ImageReduction::reduce_nonassociative_commutative(Context context){
+      return reduceNonassociative(context);
     }
     
-    FutureMap ImageReduction::reduce_nonassociative_noncommutative(){
-      return reduceNonassociative();
+    FutureMap ImageReduction::reduce_nonassociative_noncommutative(Context context){
+      return reduceNonassociative(context);
     }
     
     //project pixels from eye space bounded by l,r,t,p,n,f to clip space -1,1
@@ -859,7 +860,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
     
     
     
-    Future ImageReduction::display(int t) {
+    Future ImageReduction::display(int t, Context context) {
       DisplayArguments args = { mImageDescriptor, t };
       TaskLauncher taskLauncher(mDisplayTaskID, TaskArgument(&args, sizeof(args)));
       DomainPoint origin = DomainPoint(Point<image_region_dimensions>::ZEROES());
@@ -867,7 +868,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       RegionRequirement req(displayPlane, READ_ONLY, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       taskLauncher.add_region_requirement(req);
-      Future displayFuture = mRuntime->execute_task(mContext, taskLauncher);
+      Future displayFuture = mRuntime->execute_task(context, taskLauncher);
       return displayFuture;
     }
     
