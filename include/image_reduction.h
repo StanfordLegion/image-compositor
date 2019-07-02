@@ -367,7 +367,7 @@ namespace Legion {
             remappedPoint[2] = remappedLayer;
           }
           
-          LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upper_bound, remappedPoint);
+          LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
           return result;
         }
 
