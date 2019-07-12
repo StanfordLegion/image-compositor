@@ -87,7 +87,7 @@ void render_task(const Task *task,
     ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
     ImageReduction::Stride stride;
     int layer = task->get_unique_id() % imageDescriptor.numImageLayers;
-    ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx);
+    ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
     paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, layer);
     render.stop();
     cout << render.to_string() << endl;
@@ -108,13 +108,12 @@ void top_level_task(const Task *task,
   const int width = 3840;
   const int height = 2160;
   const int numSimulationTasks = 4;
-  const int numFragmentsPerLayer = 8;
   
-  ImageDescriptor imageDescriptor = (ImageDescriptor){ width, height, numSimulationTasks, numFragmentsPerLayer };
+  ImageDescriptor imageDescriptor = (ImageDescriptor){ width, height, numSimulationTasks };
 #endif
   
   std::cout << "ImageDescriptor (" << imageDescriptor.width << "," << imageDescriptor.height
-  << ") x " << imageDescriptor.numImageLayers << " layers " << imageDescriptor.numFragmentsPerLayer << " frags/layer" << std::endl;
+  << ") x " << imageDescriptor.numImageLayers << " layers " << std::endl;
   
   ImageReduction imageReduction(imageDescriptor, ctx, runtime);
   imageReduction.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -137,11 +136,11 @@ void top_level_task(const Task *task,
       renderFutures.wait_all_results();
       
       reduce.start();
-      FutureMap reduceFutures = imageReduction.reduce_associative_commutative();
+      FutureMap reduceFutures = imageReduction.reduce_associative_commutative(ctx);
       reduceFutures.wait_all_results();
       reduce.stop();
       
-      displayFuture = imageReduction.display(t);
+      displayFuture = imageReduction.display(t, ctx);
       displayFuture.wait();
       frame.stop();
     }
@@ -161,14 +160,17 @@ void top_level_task(const Task *task,
 
 int main(const int argc, char *argv[]) {
   
-  Legion::Visualization::ImageReduction::initialize();
   HighLevelRuntime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
-  HighLevelRuntime::register_legion_task<top_level_task>(TOP_LEVEL_TASK_ID,
-                                                         Processor::LOC_PROC, true/*single*/, false/*index*/,
-                                                         AUTO_GENERATE_ID, TaskConfigOptions(false/*leaf*/), "topLevelTask");
-  HighLevelRuntime::register_legion_task<render_task>(RENDER_TASK_ID,
-                                                      Processor::LOC_PROC, false/*single*/, true/*index*/,
-                                                      AUTO_GENERATE_ID, TaskConfigOptions(true/*leaf*/), "renderTask");
   
+  {
+    Legion::TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level_task");
+    Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "top_level_task");
+  }
+
+  {
+    Legion::TaskVariantRegistrar registrar(RENDER_TASK_ID, "render_task");
+    Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "render_task");
+  }
+
   return HighLevelRuntime::start(argc, argv);
 }

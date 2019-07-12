@@ -435,7 +435,7 @@ namespace Legion {
       prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
       UsecTimer reduceCommutative("image reduction " + testLabel);
       reduceCommutative.start();
-      FutureMap futureMap = imageReduction.reduce_associative_commutative();
+      FutureMap futureMap = imageReduction.reduce_associative_commutative(context);
       futureMap.wait_all_results();
       reduceCommutative.stop();
       std::cout << reduceCommutative.to_string() << std::endl;
@@ -444,7 +444,7 @@ namespace Legion {
       return;//stop here
       
       testLabel = "associative,noncommutative";
-      futureMap = imageReduction.reduce_associative_noncommutative();
+      futureMap = imageReduction.reduce_associative_noncommutative(context);
       futureMap.wait_all_results();
       verifyAssociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
@@ -460,12 +460,12 @@ namespace Legion {
       std::string testLabel = "nonassociative,commutative";
       prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
       FutureMap futureMap;
-      futureMap = imageReduction.reduce_nonassociative_commutative();
+      futureMap = imageReduction.reduce_nonassociative_commutative(context);
       futureMap.wait_all_results();
       verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       
       testLabel = "nonassociative,noncommutative";
-      futureMap = imageReduction.reduce_nonassociative_noncommutative();
+      futureMap = imageReduction.reduce_nonassociative_noncommutative(context);
       futureMap.wait_all_results();
       verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
     }
