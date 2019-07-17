@@ -45,15 +45,15 @@ namespace Legion {
                                                               ImageReduction::PixelField *zOut,
                                                               ImageReduction::PixelField *userdataOut,
                                                               int numPixels,
-                                                              Legion::Visualization::ImageReduction::Stride stride) {
-      
+                                                              Legion::Visualization::ImageReduction::Stride stride0,
+                                                              Legion::Visualization::ImageReduction::Stride stride1) {
+            
       for(int i = 0; i < numPixels; ++i) {
         *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
     }
     
     
@@ -79,7 +79,8 @@ namespace Legion {
                                                              ImageReduction::PixelField *zOut,
                                                              ImageReduction::PixelField *userdataOut,
                                                              int numPixels,
-                                                             Legion::Visualization::ImageReduction::Stride stride){
+                                                             Legion::Visualization::ImageReduction::Stride stride0,
+                                                             Legion::Visualization::ImageReduction::Stride stride1){
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 < *z1) {
@@ -87,9 +88,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -114,7 +115,8 @@ namespace Legion {
                                                               ImageReduction::PixelField *zOut,
                                                               ImageReduction::PixelField *userdataOut,
                                                               int numPixels,
-                                                              Legion::Visualization::ImageReduction::Stride stride) {
+                                                              Legion::Visualization::ImageReduction::Stride stride0,
+                                                              Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 == *z1) {
@@ -122,9 +124,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -149,7 +151,8 @@ namespace Legion {
                                                                ImageReduction::PixelField *zOut,
                                                                ImageReduction::PixelField *userdataOut,
                                                                int numPixels,
-                                                               Legion::Visualization::ImageReduction::Stride stride) {
+                                                               Legion::Visualization::ImageReduction::Stride stride0,
+                                                               Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 <= *z1) {
@@ -157,9 +160,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -184,7 +187,8 @@ namespace Legion {
                                                                 ImageReduction::PixelField *zOut,
                                                                 ImageReduction::PixelField *userdataOut,
                                                                 int numPixels,
-                                                                Legion::Visualization::ImageReduction::Stride stride) {
+                                                                Legion::Visualization::ImageReduction::Stride stride0,
+                                                                Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 > *z1) {
@@ -192,9 +196,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -218,7 +222,8 @@ namespace Legion {
                                                                  ImageReduction::PixelField *zOut,
                                                                  ImageReduction::PixelField *userdataOut,
                                                                  int numPixels,
-                                                                 Legion::Visualization::ImageReduction::Stride stride) {
+                                                                 Legion::Visualization::ImageReduction::Stride stride0,
+                                                                 Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 != *z1) {
@@ -226,9 +231,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -253,7 +258,8 @@ namespace Legion {
                                                                ImageReduction::PixelField *zOut,
                                                                ImageReduction::PixelField *userdataOut,
                                                                int numPixels,
-                                                               Legion::Visualization::ImageReduction::Stride stride) {
+                                                               Legion::Visualization::ImageReduction::Stride stride0,
+                                                               Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 >= *z1) {
@@ -261,9 +267,9 @@ namespace Legion {
         } else {
           *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         }
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
     }
@@ -287,7 +293,8 @@ namespace Legion {
                                                                ImageReduction::PixelField *zOut,
                                                                ImageReduction::PixelField *userdataOut,
                                                                int numPixels,
-                                                               Legion::Visualization::ImageReduction::Stride stride) {
+                                                               Legion::Visualization::ImageReduction::Stride stride0,
+                                                               Legion::Visualization::ImageReduction::Stride stride1) {
       
       // no change */
     }
@@ -628,7 +635,8 @@ namespace Legion {
                                                            ImageReduction::PixelField *zOut,
                                                            ImageReduction::PixelField *userdataOut,
                                                            int numPixels,
-                                                           Legion::Visualization::ImageReduction::Stride stride) {
+                                                           Legion::Visualization::ImageReduction::Stride stride0,
+                                                           Legion::Visualization::ImageReduction::Stride stride1) {
       
       for(int i = 0; i < numPixels; ++i) {
         
@@ -686,9 +694,9 @@ namespace Legion {
         *bOut = std::min(1.0f, std::max(0.0f, *bOut));
         *aOut = std::min(1.0f, std::max(0.0f, *aOut));
         
-        increment(r0, g0, b0, a0, z0, userdata0, stride);
-        increment(r1, g1, b1, a1, z1, userdata1, stride);
-        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride);
+        increment(r0, g0, b0, a0, z0, userdata0, stride0);
+        increment(r1, g1, b1, a1, z1, userdata1, stride1);
+        increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
       
       

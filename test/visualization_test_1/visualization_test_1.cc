@@ -32,10 +32,9 @@ void top_level_task(const Legion::Task *task,
     
     Legion::Visualization::ImageDescriptor imageDescriptor = { width, rows, numDomainNodes };
     Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
-__TRACE
+
     for(int i = 0; i < Legion::Visualization::numDepthFuncs; ++i) {
       GLenum depthFunc = Legion::Visualization::depthFuncs[i];
-      __TRACE
       Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
       Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
     }

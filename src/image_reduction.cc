@@ -287,12 +287,14 @@ namespace Legion {
     
     void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
       IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
-      Point<image_region_dimensions> blockingFactor = mImageDescriptor.fragmentSize();
+      Point<image_region_dimensions> fragmentSize = { mImageDescriptor.width, mImageDescriptor.height, 1 };
+      Point<image_region_dimensions> blockingFactor = fragmentSize;
       IndexPartition imageFragmentIndexPartition = mRuntime->create_partition_by_blockify(context, parent, blockingFactor);
       mRuntime->attach_name(imageFragmentIndexPartition, "image fragment index");
       partition = mRuntime->get_logical_partition(context, image, imageFragmentIndexPartition);
       mRuntime->attach_name(partition, "image fragment partition");
-      Rect<image_region_dimensions> fragmentBounds(mImageDescriptor.origin(), mImageDescriptor.numFragments() - Point<image_region_dimensions>(1));
+      Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
+      Rect<image_region_dimensions> fragmentBounds(mImageDescriptor.origin(), numFragments);
       domain = Domain(fragmentBounds);
     }
     
@@ -348,7 +350,7 @@ namespace Legion {
           runtime->register_projection_functor(id1, functor1);
           mCompositeProjectionFunctor->push_back(functor1);
           
-          multiplier /= num_fragments_per_composite;
+          multiplier /= 2;
         }
       }
     }
@@ -395,7 +397,8 @@ namespace Legion {
         mHierarchicalTreeDomain = new std::vector<Domain>();
       }
       
-      Point<image_region_dimensions> numFragments = imageDescriptor.numFragments() - Point<image_region_dimensions>(1);
+      std::cout << "image descriptor " << mImageDescriptor.width << " " << mImageDescriptor.height << " " << mImageDescriptor.numImageLayers << std::endl;
+      Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
       int numLeaves = 1;
       
       for(int level = 0; level < numTreeLevels; ++level) {
@@ -468,6 +471,11 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
         userdata = (PixelField*)acc_userdata.ptr(rect, stride[5]);
         
       }
+      
+#if 1
+      std::cout << __FUNCTION__ << " stride " << stride[0][0] << " " << stride[1][0] << " " << stride[2][0] << " " << stride[3][0] << " " << stride[4][0] << " " << stride[5][0] << std::endl;
+      std::cout << __FUNCTION__ << " r " << r << " g " << g << " b " << b << " a " << a << " z " << z << " userdata " << userdata << std::endl;
+#endif
     }
     
     FutureMap ImageReduction::launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
@@ -553,21 +561,37 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       PhysicalRegion fragment0 = regions[0];
       PhysicalRegion fragment1 = regions[1];
       
-      Stride stride;
+      Stride stride0, stride1;
       PixelField *r0, *g0, *b0, *a0, *z0, *userdata0;
       PixelField *r1, *g1, *b1, *a1, *z1, *userdata1;
       ImageReductionComposite::CompositeFunction* compositeFunction;
       
       //      UsecTimer composite("composite time:");
       //      composite.start();
-      create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride, runtime, ctx, true);
-      create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride, runtime, ctx, false);
+      create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
+      create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
+      
+#if 1
+      ImageReduction::PixelField* rr = r0;
+      ImageReduction::PixelField* gg = g0;
+      ImageReduction::PixelField* bb = b0;
+      ImageReduction::PixelField* aa = a0;
+      ImageReduction::PixelField* zz = z0;
+      ImageReduction::PixelField* uu = userdata0;
+#endif
       
       compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
-      compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.numPixelsPerFragment(), stride);
+      compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       //      composite.stop();
       //      std::cout << composite.to_string() << std::endl;
-      
+#if 1
+      std::cout << "after tree reduction in parallel, here are the pixels" << std::endl;
+      for(unsigned i = 0; i < 64; ++i) {
+        std::cout << "pixel " << i << ": " << *rr << " " << *gg << " " << *bb << " " << *aa << " " << *zz << " " << *uu << std::endl;
+        ImageReductionComposite::increment(rr, gg, bb, aa, zz, uu, stride0);
+      }
+#endif
+
     }
     
     
@@ -584,10 +608,10 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
       CompositeProjectionFunctor* functor1 = (*mCompositeProjectionFunctor)[index + 1];
       
-#if 0
+#if 1
       std::cout << __FUNCTION__ << " tree level " << treeLevel << " using functors " << functor0->to_string() << " " << functor1->to_string() << std::endl;
       std::cout << __FUNCTION__ << " launch domain at tree level " << treeLevel
-      << launchDomain << std::endl;
+      << " " << launchDomain << std::endl;
 #endif
       
       ArgumentMap argMap;
@@ -608,6 +632,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
         
         futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID, sourceFragmentPartition, image, runtime, context, nodeID, maxTreeLevel);
       }
+      
       return futures;
       
     }

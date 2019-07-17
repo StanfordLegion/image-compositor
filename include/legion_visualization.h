@@ -59,53 +59,11 @@ namespace Legion {
         result[2] = numImageLayers;
         return result;
       }
-      
-      Point<image_region_dimensions> fragmentSize() const{
-        Point<image_region_dimensions> result;
-        result[0] = width;
-        result[1] = height;
-        result[2] = 1;
-        return result;
-      }
-      
-      Point<image_region_dimensions> numFragments() const{
-        Point<image_region_dimensions> result;
-        result[0] = 1;
-        result[1] = 1;
-        result[2] = numImageLayers;
-        return result;
-      }
-      
-      Point<image_region_dimensions> incrementFragment(Point<image_region_dimensions> point) const {
-        point[0] += 1;
-        if(point[0] >= numFragments()[0]) {
-          point[0] = 0;
-          point[1] += 1;
-          if(point[1] >= numFragments()[1]) {
-            point[1] = 0;
-            point[2] += 1;
-            if(point[2] >= numFragments()[2]) {
-              point[2] = 0;
-            }
-          }
-        }
-        return point;
-      }
-      
-      int numPixelsPerFragment() const {
-        Point<image_region_dimensions> size = fragmentSize();
-        int result = 1;
-        for(int i = 0; i < image_region_dimensions; ++i) {
-          result *= size[i];
-        }
-        return result;
-      }
-      
+         
       std::string toString() const {
         char buffer[512];
-        sprintf(buffer, "(%dx%d) x %d layers (%lldx%lldx%lld)",
-                width, height, numImageLayers,
-                fragmentSize()[0], fragmentSize()[1], fragmentSize()[2]);
+        sprintf(buffer, "(%dx%d) x %d layers",
+                width, height, numImageLayers);
         return std::string(buffer);
       }
       

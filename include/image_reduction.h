@@ -87,7 +87,6 @@ namespace Legion {
       
       typedef float PixelField;
       static const int numPixelFields = 6;//rgbazu
-      static const int num_fragments_per_composite = 2;
       typedef float SimulationBoundsCoordinate;
       typedef size_t Stride[ImageReduction::numPixelFields][image_region_dimensions];
       
