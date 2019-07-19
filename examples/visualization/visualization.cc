@@ -164,11 +164,13 @@ int main(const int argc, char *argv[]) {
   
   {
     Legion::TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level_task");
+    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "top_level_task");
   }
 
   {
     Legion::TaskVariantRegistrar registrar(RENDER_TASK_ID, "render_task");
+    registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "render_task");
   }
 

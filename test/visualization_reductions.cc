@@ -212,24 +212,6 @@ namespace Legion {
       // expected comes from a file and has contiguous data
       // the other pointers are from a logical region and are separated by stride[i][0]
       
-#if 1
-      std::cout << __FUNCTION__ << " here are the pixels from layer 0" << std::endl;
-      std::cout << __FUNCTION__ << " r " << r << " g " << g << " b " << b << " a " << a << " z " << z << " u " << userdata << std::endl;
-      for(unsigned i = 0; i < 6; ++i) {
-        std::cout << "stride " << i << " = " << stride[i][0] << " " << stride[i][1] << " " << stride[i][2] << std::endl;
-      }
-      ImageReduction::PixelField* rr = r;
-      ImageReduction::PixelField* gg = g;
-      ImageReduction::PixelField* bb = b;
-      ImageReduction::PixelField* aa = a;
-      ImageReduction::PixelField* zz = z;
-      ImageReduction::PixelField* uu = userdata;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << " " << *rr << " " << *gg << " " << *bb << " " << *aa << " " << *zz << " " << *uu << std::endl;
-        ImageReductionComposite::increment(rr, gg, bb, aa, zz, uu, stride);
-      }
-#endif
-      
       const int maxFailuresBeforeAbort = 10;
       int failures = 0;
       for(int i = 0; i < imageDescriptor.pixelsPerLayer(); ++i) {
@@ -316,11 +298,7 @@ namespace Legion {
       ImageReduction::PixelField *a1In = b1In + 1;
       ImageReduction::PixelField *z1In = a1In + 1;
       ImageReduction::PixelField *userdata1In = z1In + 1;
-      
-#if 1
-      std::cout << __FUNCTION__ << " calling composite function for expected values" << std::endl;
-#endif
-      
+            
       ImageReduction::Stride stride;
       for(int i = 0; i < ImageReduction::numPixelFields; ++i) {
         stride[i][0] = 1 * ImageReduction::numPixelFields;

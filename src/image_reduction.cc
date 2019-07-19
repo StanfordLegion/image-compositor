@@ -472,10 +472,6 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
         
       }
       
-#if 1
-      std::cout << __FUNCTION__ << " stride " << stride[0][0] << " " << stride[1][0] << " " << stride[2][0] << " " << stride[3][0] << " " << stride[4][0] << " " << stride[5][0] << std::endl;
-      std::cout << __FUNCTION__ << " r " << r << " g " << g << " b " << b << " a " << a << " z " << z << " userdata " << userdata << std::endl;
-#endif
     }
     
     FutureMap ImageReduction::launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
@@ -571,26 +567,10 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
       create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
       
-#if 1
-      ImageReduction::PixelField* rr = r0;
-      ImageReduction::PixelField* gg = g0;
-      ImageReduction::PixelField* bb = b0;
-      ImageReduction::PixelField* aa = a0;
-      ImageReduction::PixelField* zz = z0;
-      ImageReduction::PixelField* uu = userdata0;
-#endif
-      
       compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
       compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       //      composite.stop();
       //      std::cout << composite.to_string() << std::endl;
-#if 1
-      std::cout << "after tree reduction in parallel, here are the pixels" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << ": " << *rr << " " << *gg << " " << *bb << " " << *aa << " " << *zz << " " << *uu << std::endl;
-        ImageReductionComposite::increment(rr, gg, bb, aa, zz, uu, stride0);
-      }
-#endif
 
     }
     
@@ -608,7 +588,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
       CompositeProjectionFunctor* functor1 = (*mCompositeProjectionFunctor)[index + 1];
       
-#if 1
+#if 0
       std::cout << __FUNCTION__ << " tree level " << treeLevel << " using functors " << functor0->to_string() << " " << functor1->to_string() << std::endl;
       std::cout << __FUNCTION__ << " launch domain at tree level " << treeLevel
       << " " << launchDomain << std::endl;

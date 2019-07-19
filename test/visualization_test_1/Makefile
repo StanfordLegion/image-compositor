@@ -4,7 +4,7 @@ $(error LG_RT_DIR variable is not defined, aborting build)
 endif
 
 #Flags for directing the runtime makefile what to include
-DEBUG=1                   # Include debugging symbols
+DEBUG=0                   # Include debugging symbols
 OUTPUT_LEVEL=LEVEL_DEBUG  # Compile time print level
 USE_CUDA	?= 0
 USE_HDF		?= 0
@@ -19,7 +19,7 @@ GEN_SRC		:= ../visualization_reductions.cc visualization_test_1.cc        # .cc 
 
 # You can modify these variables, some will be appended to by the runtime makefile
 INC_FLAGS	?= -I../../include -I${LG_RT_DIR} -I${LG_RT_DIR}/legion -I${LG_RT_DIR}/realm -I..
-CC_FLAGS	:=
+CC_FLAGS	:= 
 NVCC_FLAGS	:=
 GASNET_FLAGS	:=
 LD_FLAGS	:= -L../../src -lImageCompositor
