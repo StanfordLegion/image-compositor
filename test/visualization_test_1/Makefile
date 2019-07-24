@@ -4,7 +4,7 @@ $(error LG_RT_DIR variable is not defined, aborting build)
 endif
 
 #Flags for directing the runtime makefile what to include
-DEBUG=0                   # Include debugging symbols
+DEBUG		?= 0              # Include debugging symbols
 OUTPUT_LEVEL=LEVEL_DEBUG  # Compile time print level
 USE_CUDA	?= 0
 USE_HDF		?= 0

@@ -36,6 +36,7 @@ void top_level_task(const Legion::Task *task,
     for(int i = 0; i < Legion::Visualization::numDepthFuncs; ++i) {
       GLenum depthFunc = Legion::Visualization::depthFuncs[i];
       Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
+      return;//DEBUG
       Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
     }
 

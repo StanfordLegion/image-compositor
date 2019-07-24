@@ -35,6 +35,7 @@ namespace Legion {
       int pixelsPerLayer() const{ return width * height; }
       
       Point<image_region_dimensions> origin() const{ return Point<image_region_dimensions>::ZEROES(); }
+      
       Point<image_region_dimensions> upperBound() const{
         Point<image_region_dimensions> result;
         result[0] = width;

@@ -122,6 +122,7 @@ namespace Legion {
     // generate Image contents
     //
     
+    // this is used to generate a contiguous buffer of test data
     static void paintImage(ImageDescriptor imageDescriptor, int taskID, Image &image) {
       image = new ImageReduction::PixelField[imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields];
       Image imagePtr = image;
@@ -142,6 +143,7 @@ namespace Legion {
     }
     
     
+    // this is used to generate the test contents for the logical region
     static void paintRegion(ImageDescriptor imageDescriptor,
                             ImageReduction::PixelField *r,
                             ImageReduction::PixelField *g,
@@ -194,6 +196,7 @@ namespace Legion {
       LegionRuntime::Arrays::Rect<image_region_dimensions> imageBounds = indexSpaceDomain.get_rect<image_region_dimensions>();
       
       int taskID = imageBounds.lo[2];
+      std::cout << __FUNCTION__ << " taskID " << taskID << " (is it ever nonzero?)" << std::endl;
       paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, taskID);
       render.stop();
       cout << render.to_string() << endl;
@@ -256,6 +259,9 @@ namespace Legion {
         ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
         ImageReduction::Stride stride;
         ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
+#if 1
+        std::cout << "verify_composited_image_data_task r is " << r << std::endl;
+#endif
         return verifyImage(imageDescriptor, expected, r, g, b, a, z, userdata, stride);
       }
       return 0;
@@ -354,8 +360,31 @@ namespace Legion {
         image1 = treeReduction(treeLevel + 1, maxTreeLevel, layer1, imageReduction, imageDescriptor,
                                depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       }
+
+#if 1
+      std::cout << "about to composite these two test images for verification" << std::endl;
+      std::cout << "image 0" << std::endl;
+      for(unsigned i = 0; i < 64; ++i) {
+        ImageReduction::PixelField* im = image0 + 6 * i;
+        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
+      }
+      std::cout << "image 1" << std::endl;
+      for(unsigned i = 0; i < 64; ++i) {
+        ImageReduction::PixelField* im = image1 + 6 * i;
+        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
+      }
+#endif
+
       
       compositeTwoImages(image0, image1, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      
+#if 1
+      std::cout << "result of compositing two test images for verification" << std::endl;
+      for(unsigned i = 0; i < 64; ++i) {
+        ImageReduction::PixelField* im = image0 + 6 * i;
+        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
+      }
+#endif
       
       delete [] image1;
       return image0;
@@ -410,7 +439,9 @@ namespace Legion {
     
     
     static void paintImages(ImageDescriptor imageDescriptor, Context context, Runtime *runtime, ImageReduction &imageReduction) {
-      imageReduction.launch_index_task_by_depth(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, NULL, 0, /*blocking*/true);
+      void* args = &imageDescriptor;
+      int argLen = sizeof(ImageDescriptor);
+      FutureMap futures = imageReduction.launch_task_everywhere(GENERATE_IMAGE_DATA_TASK_ID, runtime, context, args, argLen, /*blocking*/true);
     }
     
     

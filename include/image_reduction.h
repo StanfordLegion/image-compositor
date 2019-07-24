@@ -314,18 +314,6 @@ namespace Legion {
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
       }
-      /**
-       * obtain the depth partition color space
-       **/
-      IndexSpace depthPartitionColorSpace() const {
-        return mDepthPartitionColorSpace;
-      }
-      /**
-       * obtain the depth partition
-       */
-      LogicalPartition depthPartition() const {
-        return mDepthPartition;
-      }
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
@@ -367,6 +355,9 @@ namespace Legion {
           }
           
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
+#if 1
+          std::cout << to_string() << " project " << point[2] << " to " << remappedPoint[2] << std::endl;
+#endif
           return result;
         }
 
@@ -460,7 +451,6 @@ namespace Legion {
       ImageDescriptor mImageDescriptor;
       Runtime *mRuntime;
       IndexSpace mSourceIndexSpace;
-      IndexSpace mDepthPartitionColorSpace;
       LogicalRegion mSourceImage;
       FieldSpace mSourceImageFields;
       Domain mSourceImageDomain;
@@ -469,9 +459,7 @@ namespace Legion {
       Domain mCompositePipelineDomain;
       Domain mDisplayDomain;
       Domain mSourceFragmentDomain;
-      LogicalPartition mDepthPartition;
       LogicalPartition mEverywherePartition;
-      LogicalPartition mSourceFragmentPartition;
       GLenum mDepthFunction;
       int mAccessorFunctorID;
       MapperID mMapperID;
