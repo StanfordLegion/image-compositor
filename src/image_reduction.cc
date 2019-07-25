@@ -210,19 +210,9 @@ namespace Legion {
     
     
     void ImageReduction::createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context) {
-      Point<image_region_dimensions> p0;
-      p0 = mImageDescriptor.origin();
-      Point <image_region_dimensions> p1;
-      p1 = mImageDescriptor.upperBound();
-      Point <image_region_dimensions> p2(1);
-      p2 = Point<image_region_dimensions>(1);
-      p2 = mImageDescriptor.upperBound() - Point<image_region_dimensions>(1);
-      Point <image_region_dimensions> p3;
-      p3 = Point<image_region_dimensions>::ONES();
-      Point <image_region_dimensions> p4;
-      p4 = p1 - p3;
-      Rect<image_region_dimensions> r(p0, p2);
-      Rect<image_region_dimensions> imageBounds(mImageDescriptor.origin(), mImageDescriptor.upperBound() - Point<image_region_dimensions>(1));
+      Point<image_region_dimensions> p0 = mImageDescriptor.origin();
+      Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
+      Rect<image_region_dimensions> imageBounds(p0, p1);
       domain = Domain(imageBounds);
       indexSpace = mRuntime->create_index_space(context, domain);
       fields = imageFields(context);
