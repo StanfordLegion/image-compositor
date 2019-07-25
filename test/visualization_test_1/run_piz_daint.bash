@@ -15,4 +15,4 @@ source ~/setup.bash
 source ~/PSAAP/setup.bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HDF_ROOT/lib
 
-srun ./visualization_test_1 -ll:cpu 4 -ll:csize 4096 -lg:spy -logfile spy_%.log
+srun ./visualization_test_1 -ll:cpu 4 -ll:csize 4096 
