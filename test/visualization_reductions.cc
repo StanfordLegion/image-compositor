@@ -160,9 +160,6 @@ namespace Legion {
       
       for(int row = 0; row < imageDescriptor.height; ++row) {
         for(int column = 0; column < imageDescriptor.width; ++column) {
-#if 0
-          std::cout << __FUNCTION__ << " row " << row << " column " << column << " *r " << *r << " *imagePtr " << *imagePtr << std::endl;
-#endif
           *r = *imagePtr++;
           *g = *imagePtr++;
           *b = *imagePtr++;
@@ -196,7 +193,6 @@ namespace Legion {
       LegionRuntime::Arrays::Rect<image_region_dimensions> imageBounds = indexSpaceDomain.get_rect<image_region_dimensions>();
       
       int taskID = imageBounds.lo[2];
-      std::cout << __FUNCTION__ << " taskID " << taskID << " (is it ever nonzero?)" << std::endl;
       paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, taskID);
       render.stop();
       cout << render.to_string() << endl;
@@ -218,7 +214,6 @@ namespace Legion {
       const int maxFailuresBeforeAbort = 10;
       int failures = 0;
       for(int i = 0; i < imageDescriptor.pixelsPerLayer(); ++i) {
-        std::cout << "verify pixel " << i << " " << *r << "," << *g << "," << *b << "," << *a << "," << *z << "," << *userdata << " ==?== " << expected[0] << "," << expected[1] << "," << expected[2] << "," << expected[3] << "," << expected[4] << "," << expected[5] << std::endl;
         if(!verifyImageReduction(i, (char*)"r", *expected++, *r)) {
           failures++;
         }
@@ -259,9 +254,6 @@ namespace Legion {
         ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
         ImageReduction::Stride stride;
         ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
-#if 1
-        std::cout << "verify_composited_image_data_task r is " << r << std::endl;
-#endif
         return verifyImage(imageDescriptor, expected, r, g, b, a, z, userdata, stride);
       }
       return 0;
@@ -361,30 +353,7 @@ namespace Legion {
                                depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       }
 
-#if 1
-      std::cout << "about to composite these two test images for verification" << std::endl;
-      std::cout << "image 0" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        ImageReduction::PixelField* im = image0 + 6 * i;
-        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
-      }
-      std::cout << "image 1" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        ImageReduction::PixelField* im = image1 + 6 * i;
-        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
-      }
-#endif
-
-      
       compositeTwoImages(image0, image1, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
-      
-#if 1
-      std::cout << "result of compositing two test images for verification" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        ImageReduction::PixelField* im = image0 + 6 * i;
-        std::cout << "pixel " << i << " : " << im[0] << " " << im[1] << " " << im[2] << " " << im[3] << " " << im[4] << " " << im[5] << std::endl;
-      }
-#endif
       
       delete [] image1;
       return image0;
@@ -394,7 +363,6 @@ namespace Legion {
     static void savePaintedImages(ImageDescriptor imageDescriptor) {
       for(int taskID = 0; taskID < imageDescriptor.numImageLayers; ++taskID) {
         
-        std::cout << "save painted images " << imageDescriptor.width << " " << imageDescriptor.height << " " << imageDescriptor.numImageLayers << std::endl;
         Image image;
         paintImage(imageDescriptor, taskID, image);
         saveImage(taskID, imageDescriptor, image);
@@ -407,7 +375,6 @@ namespace Legion {
                                             HighLevelRuntime* runtime, Context context) {
       savePaintedImages(imageDescriptor);
       int maxTreeLevel = ImageReduction::numTreeLevels(imageDescriptor);
-      std::cout << "verifying expected result with imageDescriptor " << imageDescriptor.width << " " << imageDescriptor.height << " " << imageDescriptor.numImageLayers << std::endl;
       Image expected = treeReduction(0, maxTreeLevel, 0, imageReduction, imageDescriptor,
                                      depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
       verifyTestResult(testLabel, imageReduction, imageDescriptor,

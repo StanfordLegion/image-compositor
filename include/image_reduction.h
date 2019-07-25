@@ -355,9 +355,6 @@ namespace Legion {
           }
           
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
-#if 1
-          std::cout << to_string() << " project " << point[2] << " to " << remappedPoint[2] << std::endl;
-#endif
           return result;
         }
 

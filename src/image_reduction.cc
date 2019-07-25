@@ -123,15 +123,6 @@ namespace Legion {
         delete mCompositeProjectionFunctor;
         mCompositeProjectionFunctor = NULL;
       }
-      
-#if 0 // can't destroy these, missing context
-      mRuntime->destroy_index_space(context, mSourceImage.get_index_space());
-      mRuntime->destroy_logical_region(context, mSourceImage);
-      mRuntime->destroy_index_partition(context, mDepthPartition.get_index_partition());
-      mRuntime->destroy_logical_partition(context, mDepthPartition);
-      mRuntime->destroy_index_partition(context, mSourceFragmentPartition.get_index_partition());
-      mRuntime->destroy_logical_partition(context, mSourceFragmentPartition);
-#endif
     }
     
     
@@ -244,69 +235,14 @@ namespace Legion {
       fieldID[5] = FID_FIELD_USERDATA;
     }
     
-#if 0
-    void ImageReduction::partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
-      IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
-      Point<image_region_dimensions> blockingFactor = mImageDescriptor.layerSize();
-      IndexPartition imageDepthIndexPartition = mRuntime->create_partition_by_blockify(context, parent, blockingFactor);
-      mDepthPartitionColorSpace =
-        CObjectWrapper::unwrap(legion_index_partition_get_color_space(CObjectWrapper::wrap(mRuntime), CObjectWrapper::wrap(imageDepthIndexPartition)));
-      partition = mRuntime->get_logical_partition(context, image, imageDepthIndexPartition);
-      mRuntime->attach_name(partition, "image depth partition");
-      Rect<image_region_dimensions> depthBounds(mImageDescriptor.origin(), mImageDescriptor.numLayers() - Point<image_region_dimensions>(1));
-      domain = Domain(depthBounds);
-    }
-#endif
     
-    
-#if 0
     void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
-      
-      int nodeCount = runtime->get_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT, mMapperID);
-      int cpuCount = runtime->get_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_GLOBAL_CPUS, mMapperID);
-      int cpusPerNode = cpuCount / nodeCount;
-      
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1;
       p1[0] = 0;
       p1[1] = 0;
       p1[2] = mImageDescriptor.numImageLayers - 1;
-#if 1
-      std::cout << __FUNCTION__ << " p0 " << p0 << " p1 " << p1 << std::endl;
-#endif
-      Rect<image_region_dimensions> color_bounds(p0, p1);
-      IndexSpace color_is = runtime->create_index_space(ctx, color_bounds);
-      IndexSpace is = image.get_index_space();
-      IndexPartition ip = runtime->create_equal_partition(ctx, is, color_is);
-      runtime->attach_name(ip, "ip");
-      partition = runtime->get_logical_partition(ctx, image, ip);
-      mRuntime->attach_name(partition, "image everywhere partition");
-      p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
-#if 1
-      std::cout << __FUNCTION__ << "p0 " << p0 << " p1 " << p1 << std::endl;
-#endif
-      Rect<image_region_dimensions> everywhereBounds(p0, p1);
-      domain = Domain(everywhereBounds);
-#if 1
-      std::cout << __FUNCTION__ << "p0 " << p0 << " p1 " << p1 << std::endl;
-      std::cout << __FUNCTION__ << " bounds " << everywhereBounds << std::endl;
-#endif
-    }
-
-#else
-    
-    /*
-LEGION ERROR: Invalid color space color for child 4 of partition 4
-     */
-
-    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
-      Point<image_region_dimensions> p0;
-      p0 = mImageDescriptor.origin();
-      Point <image_region_dimensions> p1;
-      p1[0] = 0;
-      p1[1] = 0;
-      p1[2] = mImageDescriptor.numImageLayers - 1;//4-1
       Rect<image_region_dimensions> color_bounds(p0, p1);
       IndexSpace color_space = runtime->create_index_space(ctx, color_bounds);
       IndexSpace is_parent = image.get_index_space();
@@ -317,36 +253,16 @@ LEGION ERROR: Invalid color space color for child 4 of partition 4
       transform[0][0] = 1;
       transform[1][1] = 1;
       transform[2][2] = 1;
-      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()//16,4,1
+      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()
         - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> slice(p0, p2);
       IndexPartition ip = runtime->create_partition_by_restriction(ctx,
         is_parent, color_space, transform, slice);
       partition = runtime->get_logical_partition(ctx, image, ip);
       runtime->attach_name(partition, "everywherePartition");
-      Point<image_region_dimensions> p3 = imageDescriptor.upperBound()//16,4,4
-        - Point<image_region_dimensions>::ONES();
-      Rect<image_region_dimensions> everywhereBounds(p0, p3);
-      domain = Domain(everywhereBounds);
+      domain = runtime->get_index_space_domain(ctx, color_space);
     }
-
-#endif
     
-#if 0
-    void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
-      IndexSpaceT<image_region_dimensions> parent(image.get_index_space());
-      Point<image_region_dimensions> fragmentSize = { mImageDescriptor.width, mImageDescriptor.height, 1 };
-      Point<image_region_dimensions> blockingFactor = fragmentSize;
-      IndexPartition imageFragmentIndexPartition = mRuntime->create_partition_by_blockify(context, parent, blockingFactor);
-      mRuntime->attach_name(imageFragmentIndexPartition, "image fragment index");
-      partition = mRuntime->get_logical_partition(context, image, imageFragmentIndexPartition);
-      mRuntime->attach_name(partition, "image fragment partition");
-      Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
-      Rect<image_region_dimensions> fragmentBounds(mImageDescriptor.origin(), numFragments);
-      domain = Domain(fragmentBounds);
-    }
-#endif
-
     void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
       mNodeID = nodeID;
     }
@@ -455,7 +371,6 @@ LEGION ERROR: Invalid color space color for child 4 of partition 4
           numFragments[2] = numLeaves - 1;
           Rect<image_region_dimensions> launchBounds(Point<image_region_dimensions>::ZEROES(), numFragments);
           Domain domain = Domain(launchBounds);
-std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << std::endl;
           mHierarchicalTreeDomain->push_back(domain);
         }
         numLeaves *= 2;
@@ -523,38 +438,10 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       
     }
     
-#if 0
-    FutureMap ImageReduction::launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
-      
-      ArgumentMap argMap;
-      int totalArgLen = sizeof(mImageDescriptor) + argLen;
-      char *argsBuffer = new char[totalArgLen];
-      memcpy(argsBuffer, &mImageDescriptor, sizeof(mImageDescriptor));
-      if(argLen > 0) {
-        memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
-      }
-      
-      IndexTaskLauncher depthLauncher(taskID, mDepthDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
-      RegionRequirement req(mDepthPartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
-      addImageFieldsToRequirement(req);
-      depthLauncher.add_region_requirement(req);
-      FutureMap futures = mRuntime->execute_index_space(context, depthLauncher);
-      
-      if(blocking) {
-        futures.wait_all_results();
-      }
-      delete [] argsBuffer;
-      return futures;
-    }
-#endif
-    
     
     FutureMap ImageReduction::launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
       
       ArgumentMap argMap;
-      
-      __TRACE
-      
       int totalArgLen = sizeof(mImageDescriptor) + argLen;
       char *argsBuffer = new char[totalArgLen];
       memcpy(argsBuffer, &mImageDescriptor, sizeof(mImageDescriptor));
@@ -567,7 +454,6 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       addImageFieldsToRequirement(req);
       everywhereLauncher.add_region_requirement(req);
       
-      __TRACE
       FutureMap futures = runtime->execute_index_space(context, everywhereLauncher);
       
       if(blocking) {
@@ -617,77 +503,11 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
       create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
       
-#if 1
-        PixelField* rr = r0;
-        PixelField* gg = g0;
-        PixelField* bb = b0;
-        PixelField* aa = a0;
-        PixelField* zz = z0;
-        PixelField* uu = userdata0;
-#endif
-      
-#if 1
-      PixelField* rr0 = r0;
-      PixelField* gg0 = g0;
-      PixelField* bb0 = b0;
-      PixelField* aa0 = a0;
-      PixelField* zz0 = z0;
-      PixelField* uu0 = userdata0;
-      std::cout << "composite image 0" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << " : " << *rr0 << " " << *gg0 << " " << *bb0 << " " << *aa0 << " " << *zz0 << " " << *uu0 << std::endl;
-        ImageReductionComposite::increment(rr0, gg0, bb0, aa0, zz0, uu0, stride0);
-      }
-      PixelField* rr1 = r1;
-      PixelField* gg1 = g1;
-      PixelField* bb1 = b1;
-      PixelField* aa1 = a1;
-      PixelField* zz1 = z1;
-      PixelField* uu1 = userdata1;
-      std::cout << "composite image 1" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << " : " << *rr1 << " " << *gg1 << " " << *bb1 << " " << *aa1 << " " << *zz1 << " " << *uu1 << std::endl;
-        ImageReductionComposite::increment(rr1, gg1, bb1, aa1, zz1, uu1, stride1);
-      }
-#endif
-      
-#if 0
-      std::cout << "composite_task pointer0 " << r0 << " " << g0 << " " << b0 << " " << a0 << " " << z0 << " " << userdata0 << std::endl;
-      std::cout << "composite_task pointer1 " << r1 << " " << g1 << " " << b1 << " " << a1 << " " << z1 << " " << userdata1 << std::endl;
-      PixelField* delta = (PixelField*)0x1800;
-      PixelField* newBase = (PixelField*)((long long int)r0 - (long long int)delta);
-      PixelField* newBase96 = (PixelField*)((long long int)newBase + 96);
-      std::cout << "base of result region should be at " << newBase << " also " << newBase96 << std::endl;
-      std::cout << "watch *(float*)" << newBase << std::endl;
-      std::cout << "watch *(float*)" << newBase96 << std::endl;
-#if 0
-      PixelField* rr = newBase;
-      std::cout << "here is the data already in the result buffer" << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << " : " << *rr << std::endl;
-        rr = rr + stride0[0][0];
-      }
-#endif
-      if(loop) std::cout << "looping here for debugger" << std::endl;
-      while(loop) {
-        if(!loop)
-          break;
-      }
-      std::cout << "exiting debug loop" << std::endl;
-#endif
-
       compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
       compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       //      composite.stop();
       //      std::cout << composite.to_string() << std::endl;
 
-#if 1
-      std::cout << "after composite_task with pointer0 " << rr << " " << gg << " " << bb << " " << aa << " " << zz << "" << uu << std::endl;
-      for(unsigned i = 0; i < 64; ++i) {
-        std::cout << "pixel " << i << " : " << *rr << " " << *gg << " " << *bb << " " << *aa << " " << *zz << " " << *uu << std::endl;
-        ImageReductionComposite::increment(rr, gg, bb, aa, zz, uu, stride0);
-      }
-#endif
     }
     
     
@@ -703,13 +523,7 @@ std::cout << __FUNCTION__ << " tree level " << level << " domain " << domain << 
       int index = (treeLevel - 1) * 2;
       CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
       CompositeProjectionFunctor* functor1 = (*mCompositeProjectionFunctor)[index + 1];
-      
-#if 1
-      std::cout << __FUNCTION__ << " tree level " << treeLevel << " using functors " << functor0->to_string() << " " << functor1->to_string() << std::endl;
-      std::cout << __FUNCTION__ << " launch domain at tree level " << treeLevel
-      << " " << launchDomain << std::endl;
-#endif
-      
+            
       ArgumentMap argMap;
       CompositeArguments args = { imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation };
       IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain, TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false, gMapperID);
