@@ -259,6 +259,7 @@ namespace Legion {
 #endif
     
     
+#if 0
     void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       
       int nodeCount = runtime->get_tunable_value(ctx, DefaultMapper::DEFAULT_TUNABLE_NODE_COUNT, mMapperID);
@@ -292,6 +293,44 @@ namespace Legion {
       std::cout << __FUNCTION__ << " bounds " << everywhereBounds << std::endl;
 #endif
     }
+
+#else
+    
+    /*
+LEGION ERROR: Invalid color space color for child 4 of partition 4
+     */
+
+    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+      Point<image_region_dimensions> p0;
+      p0 = mImageDescriptor.origin();
+      Point <image_region_dimensions> p1;
+      p1[0] = 0;
+      p1[1] = 0;
+      p1[2] = mImageDescriptor.numImageLayers - 1;//4-1
+      Rect<image_region_dimensions> color_bounds(p0, p1);
+      IndexSpace color_space = runtime->create_index_space(ctx, color_bounds);
+      IndexSpace is_parent = image.get_index_space();
+      Transform<image_region_dimensions, image_region_dimensions> transform;;
+      for(unsigned i = 0; i < image_region_dimensions; ++i)
+        for(unsigned j = 0; j < image_region_dimensions; ++j)
+          transform[i][j] = 0;
+      transform[0][0] = 1;
+      transform[1][1] = 1;
+      transform[2][2] = 1;
+      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()//16,4,1
+        - Point<image_region_dimensions>::ONES();
+      Rect<image_region_dimensions> slice(p0, p2);
+      IndexPartition ip = runtime->create_partition_by_restriction(ctx,
+        is_parent, color_space, transform, slice);
+      partition = runtime->get_logical_partition(ctx, image, ip);
+      runtime->attach_name(partition, "everywherePartition");
+      Point<image_region_dimensions> p3 = imageDescriptor.upperBound()//16,4,4
+        - Point<image_region_dimensions>::ONES();
+      Rect<image_region_dimensions> everywhereBounds(p0, p3);
+      domain = Domain(everywhereBounds);
+    }
+
+#endif
     
 #if 0
     void ImageReduction::partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context) {
