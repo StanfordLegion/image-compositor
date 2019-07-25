@@ -105,8 +105,8 @@ void top_level_task(const Task *task,
   ImageDescriptor imageDescriptor = (ImageDescriptor){ IMAGE_SIZE };
   
 #else
-  const int width = 3840;
-  const int height = 2160;
+  const int width = 1920;
+  const int height = 1080;
   const int numSimulationTasks = 4;
   
   ImageDescriptor imageDescriptor = (ImageDescriptor){ width, height, numSimulationTasks };
