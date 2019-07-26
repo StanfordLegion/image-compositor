@@ -3,11 +3,11 @@
 ## Introduction
 This is an image compositor framework for Legion.  It allows Legion applications to render data in situ and in parallel and reduce the resulting plurality of images down to a single image for display.
 
-![](./doc/isav_workshop_sc17_presentation.m4v)
+![](./doc/image-reduction.gif)
 
-<video controls="controls">
-<source type="video/m4v" src="doc/isav_workshop_sc17_presentation.m4v"></source>
-</video>
+Responsibility for rendering images is left up to the application.
+The application can render data from either Regent or C++.
+The framework will composite those rendered images to produce a reduced result.
 
 ## Requirements
 The framework supports the standard OpenGL Depth and Blend compositing functions in a distributed environment.
@@ -27,13 +27,30 @@ See "Blending todo" for notes on how to implement the other reductions,
 ├── include
 ├── src
 └── test
-           ├── visualization_test_1
-           ├── visualization_test_2
-           └── visualization_test_3
+    ├── visualization_test_1
+    ├── visualization_test_2
+    └── visualization_test_3
 ```
 
 ### framework
+The framework is contained in src/ and include/.
+It is built with cmake.
+To build the framework do this:
+```
+cd image-compositor
+
+cmake .
+or
+cmake -DCMAKE_BUILD_TYPE=Debug .
+
+make
+```
 #### mapper
+The framework contains a customer mapper in src/.
+During application startup the mapper is provided with the name of the Render function.
+The mapper will track the address spaces where the Render function executes, and will ensure that subsequent compositing functions are mapped to the same address spaces.
+This gives the application full control over where the data resides and where rendering takes place.
+
 ### tests
 #### running tests
 ### examples
