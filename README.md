@@ -4,7 +4,7 @@
 This is an image compositor framework for Legion.  It allows Legion applications to render data in situ and in parallel and reduce the resulting plurality of images down to a single image for display.
 
 <video controls="controls">
-<source type="video/m4v" src="doc/isav_workshop_sc17_presentation.m4v"></source>
+<source type="video/mp4" src="doc/isav_workshop_sc17_presentation.m4v"></source>
 <p>Your browser does not support the m4v video element.</p>
 </video>
 
