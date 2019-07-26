@@ -3,7 +3,7 @@
 ## Introduction
 This is an image compositor framework for Legion.  It allows Legion applications to render data in situ and in parallel and reduce the resulting plurality of images down to a single image for display.
 
-(./doc/isav_workshop_sc17_presentation.m4v "Video Illustration")
+![](./doc/isav_workshop_sc17_presentation.m4v)
 
 <video controls="controls">
 <source type="video/m4v" src="doc/isav_workshop_sc17_presentation.m4v"></source>
@@ -21,7 +21,7 @@ See "Blending todo" for notes on how to implement the other reductions,
 
 ## Code organization
 
-----
+```
 ├── examples
 │   └── visualization
 ├── include
@@ -30,7 +30,7 @@ See "Blending todo" for notes on how to implement the other reductions,
            ├── visualization_test_1
            ├── visualization_test_2
            └── visualization_test_3
-----
+```
 
 ### framework
 #### mapper
