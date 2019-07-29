@@ -3,7 +3,7 @@
 ## Introduction
 This is an image compositor framework for Legion.  It allows Legion applications to render data in situ and in parallel and reduce the resulting plurality of images down to a single image for display.
 
-![](./doc/image-reduction.gif)
+![](./doc/isav_workshop_sc17_presentation.mp4.gif)
 
 Responsibility for rendering images is left up to the application.
 The application can render data from either Regent or C++.
