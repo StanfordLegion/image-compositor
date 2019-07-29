@@ -53,12 +53,33 @@ The mapper will track the address spaces where the Render function executes, and
 This gives the application full control over where the data resides and where rendering takes place.
 
 ### tests
+Tests exist for associative-commutative reductions and surface rendering.
+Tests exercise the full range of OpenGL depth and blend functions.
+Since many of the blend functions are non-commutative the values computed in these tests are incorrect.
+To build the tests do this:
+```
+cd test
+make
+```
+
 #### running tests
+Run the tests using the run* bash scripts in the test/visualization_test_* directories.
+
 ### examples
+The visualization example is a basic C++ example that does not define a simulation domain.
+We need to develop a Regent example that defines a simulation domain.
+
 #### running examples
+Run the examples using the run* bash scripts in the examples/* directories.
 
 ## Use cases
-### Tests and examples
+The framework was originally developed in C++ for use with Legion applications.
+It can also be used with Regent programs.
+The following use cases exist:
+
+### Tests and visualization example
+
+
 ### C++ Legion application
 ### Regent application with rendering in C++/OpenGL
 #### Soleil-x
