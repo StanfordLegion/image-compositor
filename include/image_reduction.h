@@ -133,13 +133,6 @@ namespace Legion {
       virtual ~ImageReduction();
       
       /**
-       * Launch a set of tasks that each receive one layer in Z of the image space.
-       * Use this for example to render to the individual layers.
-       *
-       * @param taskID ID of task that has previously been registered with the Legion runtime
-       */
-      FutureMap launch_index_task_by_depth(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args = NULL, int argLen = 0, bool blocking = false);
-      /**
        * Launch a set of tasks on all processors.  This is useful for launching
        * render tasks, which should run once per node.  To enforce once-per-node
        * use this idiom within a task:
@@ -286,6 +279,18 @@ namespace Legion {
       Domain everywhereDomain() const {
         return mEverywhereDomain;
       }
+      /*
+       * obtain the everywhere partition
+       */
+      LogicalPartition everywherePartition() const {
+        return mEverywherePartition;
+      }
+      /*
+       * obtain the everywhere color space
+       */
+      IndexSpace everywhereColorSpace() const {
+        return mEverywhereColorSpace;
+      }
       /**
        * obtain the source image index space
        **/
@@ -293,7 +298,7 @@ namespace Legion {
         return mSourceIndexSpace;
       }
       /**
-       * obtain the source image logical regiob
+       * obtain the source image logical region
        */
       LogicalRegion sourceImage() const {
         return mSourceImage;
@@ -314,6 +319,7 @@ namespace Legion {
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
       }
+      
       
       static void display_task(const Task *task,
                                const std::vector<PhysicalRegion> &regions,
@@ -410,7 +416,7 @@ namespace Legion {
       FieldSpace imageFields(Context context);
       void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
-      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
       
       FutureMap reduceAssociative(Context context);
@@ -451,8 +457,8 @@ namespace Legion {
       LogicalRegion mSourceImage;
       FieldSpace mSourceImageFields;
       Domain mSourceImageDomain;
-      Domain mDepthDomain;
       Domain mEverywhereDomain;
+      IndexSpace mEverywhereColorSpace;
       Domain mCompositePipelineDomain;
       Domain mDisplayDomain;
       Domain mSourceFragmentDomain;

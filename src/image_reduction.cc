@@ -78,7 +78,7 @@ namespace Legion {
       legion_field_id_t fieldID[6];
 
       createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
+      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
       
       initializeNodes(runtime, context);
       
@@ -105,7 +105,7 @@ namespace Legion {
       legion_field_id_t fieldID[6];
 
       createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, context, runtime, imageDescriptor);
+      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
 
       initializeNodes(runtime, context);
 
@@ -226,7 +226,7 @@ namespace Legion {
     }
     
     
-    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1;
@@ -234,7 +234,7 @@ namespace Legion {
       p1[1] = 0;
       p1[2] = mImageDescriptor.numImageLayers - 1;
       Rect<image_region_dimensions> color_bounds(p0, p1);
-      IndexSpace color_space = runtime->create_index_space(ctx, color_bounds);
+      colorSpace = runtime->create_index_space(ctx, color_bounds);
       IndexSpace is_parent = image.get_index_space();
       Transform<image_region_dimensions, image_region_dimensions> transform;;
       for(unsigned i = 0; i < image_region_dimensions; ++i)
@@ -247,10 +247,10 @@ namespace Legion {
         - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> slice(p0, p2);
       IndexPartition ip = runtime->create_partition_by_restriction(ctx,
-        is_parent, color_space, transform, slice);
+        is_parent, colorSpace, transform, slice);
       partition = runtime->get_logical_partition(ctx, image, ip);
       runtime->attach_name(partition, "everywherePartition");
-      domain = runtime->get_index_space_domain(ctx, color_space);
+      domain = runtime->get_index_space_domain(ctx, colorSpace);
     }
     
     void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
