@@ -28,8 +28,10 @@ namespace Legion {
       int width;
       int height;
       int numImageLayers;
+      // while it is handy to put the next fields here, they are not really image description
       LogicalPartition logicalPartition;
       Domain domain;
+      bool hasPartition;
       
       
       int pixelsPerLayer() const{ return width * height; }

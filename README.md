@@ -22,6 +22,7 @@ See "Blending todo" for notes on how to implement the other reductions,
 ## Code organization
 
 ```
+image-compositor
 ├── examples
 │   └── visualization
 ├── include
