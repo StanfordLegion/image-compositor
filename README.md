@@ -68,6 +68,11 @@ Run the tests using the run* bash scripts in the test/visualization_test_* direc
 ### examples
 The visualization example is a basic C++ example that does not define a simulation domain.
 We need to develop a Regent example that defines a simulation domain.
+To make the visualization example do this:
+```
+cd examples/visualization
+make
+```
 
 #### running examples
 Run the examples using the run* bash scripts in the examples/* directories.
@@ -75,14 +80,74 @@ Run the examples using the run* bash scripts in the examples/* directories.
 ## Use cases
 The framework was originally developed in C++ for use with Legion applications.
 It can also be used with Regent programs.
-The following use cases exist:
+The framework uses a logical partition as a source for the image reduction.
+These use cases differ in how this logical partition is defined,  in whether the rendering is done in C++ or in Regent, and whether they use the ImageReductionMapper..
+These use cases are described here.
 
 ### Tests and visualization example
-
+In this case the logical partition is created for a source image according to an image descriptor.
+The index space of the partition is required to be 3D.
+Rendering and reduction are performed in C++.
+This case does not use the ImageReductionMapper.
 
 ### C++ Legion application
+In this case the application has defined a simulation domain.
+It provides a logical partition of this domain to the ImageCompositor constructor.
+It defines the name of the Render task by calling ImageReductionMapper::registerRenderTaskName().
+The application index launches the Render tasks using ImageReductionProjectFunctors that mediate between the simulation domain and the source image domain.
+When the Render tasks execute the mapper records the address spaces where the tasks are mapped.
+The application invokes
+```
+compositor->reduce_associative_commutative()
+```
+which index launches the image reduction operations in the address spaces that were recorded previously by the mapper.
+
 ### Regent application with rendering in C++/OpenGL
+This is the most common use case for applications that use OpenGL or similar C++ graphics APIs.
+
 #### Soleil-x
+Soleil-x is  combined fluid-particle-radiation simulation written in Regent.
+It is located here:
+https://github.com/stanfordhpccenter/soleil-x/tree/feat/viz/4
+The relevant parts of the Soleil-x source code are in render.h and render.cpp.
+These export symbols cxx_preinitialize, cxx_initialize, cxx_render and cxx_reduce.
+
+##### cxx_preinitialize
+This is called from the mapper before the runtime starts and performs certain initializations.
+The soleil_mapper ends with this code:
+```
+static void create_mappers(Machine machine,
+Runtime* rt,
+const std::set<Processor>& local_procs) {
+for (Processor proc : local_procs) {
+rt->replace_default_mapper(new SoleilMapper(rt, machine, proc), proc);
+ImageReductionMapper* irMapper =
+new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
+}
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void cxx_preinitialize(MapperID);
+
+#ifdef __cplusplus
+}
+#endif
+
+void register_mappers() {
+imageReductionMapperID = Legion::Runtime::generate_static_mapper_id();
+cxx_preinitialize(imageReductionMapperID);
+Runtime::add_registration_callback(create_mappers);
+}
+```
+##### cxx_initialize
+##### cxx_render
+##### cxx_reduce
+
+
 ### Regent application with rendering in Regent
 
 ## Blending todo
