@@ -109,6 +109,7 @@ This is the most common use case for applications that use OpenGL or similar C++
 Soleil-x is  combined fluid-particle-radiation simulation written in Regent.
 It is located here:
 https://github.com/stanfordhpccenter/soleil-x/tree/feat/viz/4
+
 The relevant parts of the Soleil-x source code are in render.h and render.cpp.
 These export symbols cxx_preinitialize, cxx_initialize, cxx_render and cxx_reduce.
 
@@ -116,31 +117,37 @@ These export symbols cxx_preinitialize, cxx_initialize, cxx_render and cxx_reduc
 This is called from the mapper before the runtime starts and performs certain initializations.
 The soleil_mapper ends with this code:
 ```
+static MapperID imageReductionMapperID;
+class ImageReductionMapper : public DefaultMapper {
+public:
+  ImageReductionMapper(MapperRuntime* rt, Machine machine, Processor local);
+};
+
 static void create_mappers(Machine machine,
-Runtime* rt,
-const std::set<Processor>& local_procs) {
-for (Processor proc : local_procs) {
-rt->replace_default_mapper(new SoleilMapper(rt, machine, proc), proc);
-ImageReductionMapper* irMapper =
-new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
-rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
-}
+                           Runtime* rt,
+                           const std::set<Processor>& local_procs) {
+  for (Processor proc : local_procs) {
+    rt->replace_default_mapper(new SoleilMapper(rt, machine, proc), proc);
+    ImageReductionMapper* irMapper =
+      new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+    rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
+  }
 }
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void cxx_preinitialize(MapperID);
-
+  void cxx_preinitialize(MapperID);
+  
 #ifdef __cplusplus
 }
 #endif
 
 void register_mappers() {
-imageReductionMapperID = Legion::Runtime::generate_static_mapper_id();
-cxx_preinitialize(imageReductionMapperID);
-Runtime::add_registration_callback(create_mappers);
+  imageReductionMapperID = Legion::Runtime::generate_static_mapper_id();
+  cxx_preinitialize(imageReductionMapperID);
+  Runtime::add_registration_callback(create_mappers);
 }
 ```
 ##### cxx_initialize
@@ -148,41 +155,203 @@ This entry point is called once when the program starts up.
 It creates an ImageCompositor that respects the fluidPartition.
 It returns a struct (type RegionPartition) that contains several legion objects related to the source image region.
 ```
-// this entry point is called once from the main task
 RegionPartition cxx_initialize(
-legion_runtime_t runtime_,
-legion_context_t ctx_,
-legion_mapper_id_t sampleId,
-legion_logical_partition_t fluidPartition_
-)
-{
-Runtime *runtime = CObjectWrapper::unwrap(runtime_);
-Context ctx = CObjectWrapper::unwrap(ctx_)->context();
-LogicalPartition fluidPartition = CObjectWrapper::unwrap(fluidPartition_);
+                                    legion_runtime_t runtime_,
+                                    legion_context_t ctx_,
+                                    legion_mapper_id_t sampleId,
+                                    legion_logical_partition_t fluidPartition_
+                                    )
+  {
+    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+    Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+    LogicalPartition fluidPartition = CObjectWrapper::unwrap(fluidPartition_);
 
-// Initialize an image compositor, or reuse an initialized one
-
-Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
-
-if(gImageCompositors.find(sampleId) == gImageCompositors.end()) {
-gImageCompositors[sampleId] = new Visualization::ImageReduction(fluidPartition, imageDescriptor, ctx, runtime, gImageReductionMapperID);
-ImageReductionMapper::registerRenderTaskName("render_task");
-}
-
-Visualization::ImageReduction* compositor = gImageCompositors[sampleId];
-RegionPartition result;
-result.indexSpace = CObjectWrapper::wrap(compositor->sourceIndexSpace());
-result.imageX = CObjectWrapper::wrap(compositor->sourceImage());
-result.colorSpace = CObjectWrapper::wrap(compositor->everywhereColorSpace());
-result.p_Image = CObjectWrapper::wrap(compositor->everywherePartition());
-compositor->sourceImageFields(ctx,    result.imageFields);
-return result;
-}
+    // Initialize an image compositor, or reuse an initialized one
+    
+    Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
+    
+    if(gImageCompositors.find(sampleId) == gImageCompositors.end()) {
+      gImageCompositors[sampleId] = new Visualization::ImageReduction(fluidPartition, imageDescriptor, ctx, runtime, gImageReductionMapperID);
+      ImageReductionMapper::registerRenderTaskName("render_task");
+    }
+    
+    Visualization::ImageReduction* compositor = gImageCompositors[sampleId];
+    RegionPartition result;
+    result.indexSpace = CObjectWrapper::wrap(compositor->sourceIndexSpace());
+    result.imageX = CObjectWrapper::wrap(compositor->sourceImage());
+    result.colorSpace = CObjectWrapper::wrap(compositor->everywhereColorSpace());
+    result.p_Image = CObjectWrapper::wrap(compositor->everywherePartition());
+    compositor->sourceImageFields(ctx,    result.imageFields);
+    return result;
+  }
 ```
 
 ##### cxx_render
-##### cxx_reduce
+This entry point is called each time the application wants to perform a parallel rendering operation.
+The application passes the simulation data in.
+The entry point performs an index launch of the Render task and uses ImageReductionProjectionFunctor objects to map between the simulation domain and the source image.
+```
+  void cxx_render(legion_runtime_t runtime_,
+                  legion_context_t ctx_,
+                  legion_mapper_id_t sampleId,
+                  legion_physical_region_t* fluid_,
+                  legion_field_id_t fluidFields[],
+                  int numFluidFields,
+                  legion_physical_region_t* particles_,
+                  legion_field_id_t particlesFields[],
+                  int numParticlesFields,
+                  legion_physical_region_t* image_,
+                  legion_field_id_t imageFields[],
+                  int numImageFields,
+                  legion_logical_partition_t fluidPartition_,
+                  legion_logical_partition_t particlesPartition_,
+                  int numParticlesToDraw,
+                  int isosurfaceField,
+                  double isosurfaceValue,
+                  double isosurfaceScale[2],
+                  legion_physical_region_t* particlesToDraw_,
+                  FieldData lowerBound[3],
+                  FieldData upperBound[3]
+                  )
+  {
+    std::cout << __FUNCTION__ << " pid " << getpid() << std::endl;
+    static bool firstTime = true;
+    
+    // Unwrap objects
+    
+    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+    Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+    PhysicalRegion* fluid = CObjectWrapper::unwrap(fluid_[0]);
+    LogicalPartition fluidPartition = CObjectWrapper::unwrap(fluidPartition_);
+    PhysicalRegion* particles = CObjectWrapper::unwrap(particles_[0]);
+    LogicalPartition particlesPartition = CObjectWrapper::unwrap(particlesPartition_);
+    PhysicalRegion* particlesToDraw = CObjectWrapper::unwrap(particlesToDraw_[0]);
+    PhysicalRegion* image = CObjectWrapper::unwrap(image_[0]);
 
+    // Create projection functors
+    
+    Visualization::ImageReduction* compositor = gImageCompositors[sampleId];
+    if(firstTime) {
+      ImageReductionProjectionFunctor* functor0 = new ImageReductionProjectionFunctor(compositor->everywhereDomain(), fluidPartition);
+      runtime->register_projection_functor(1, functor0);
+      ImageReductionProjectionFunctor* functor1 = new ImageReductionProjectionFunctor(compositor->everywhereDomain(), particlesPartition);
+      runtime->register_projection_functor(2, functor1);
+      ImageReductionProjectionFunctor* functor2 = new ImageReductionProjectionFunctor(compositor->everywhereDomain(), compositor->everywherePartition());
+      runtime->register_projection_functor(3, functor2);
+    }
+    
+    // Construct arguments to render task
+
+    ArgumentMap argMap;
+    ImageDescriptor imageDescriptor = compositor->imageDescriptor();
+    size_t argSize = sizeof(imageDescriptor) + 6 * sizeof(FieldData) + sizeof(int) + sizeof(VisualizationField) + sizeof(double) + 2 * sizeof(double) +
+      numParticlesToDraw * sizeof(long int);
+    char args[argSize];
+    char* argsPtr = args;
+    memcpy(argsPtr, &imageDescriptor, sizeof(imageDescriptor));
+    argsPtr += sizeof(imageDescriptor);
+    memcpy(argsPtr, lowerBound, 3 * sizeof(FieldData));
+    argsPtr += 3 * sizeof(FieldData);
+    memcpy(argsPtr, upperBound, 3 * sizeof(FieldData));
+    argsPtr += 3 * sizeof(FieldData);
+    memcpy(argsPtr, &numParticlesToDraw, sizeof(int));
+    argsPtr += sizeof(int);
+    memcpy(argsPtr, &isosurfaceField, sizeof(VisualizationField));
+    argsPtr += sizeof(VisualizationField);
+    memcpy(argsPtr, &isosurfaceValue, sizeof(double));
+    argsPtr += sizeof(double);
+    memcpy(argsPtr, isosurfaceScale, 2 * sizeof(double));
+    argsPtr += 2 * sizeof(double);
+    
+    // Copy particlesToDraw as a task argument
+    
+    std::vector<legion_field_id_t> particlesToDrawFields;
+    particlesToDraw->get_fields(particlesToDrawFields);
+    AccessorRO<long int, 1> particlesToDrawId(*particlesToDraw, particlesToDrawFields[0]);
+ 
+    long int* longArgsPtr = (long int*)argsPtr;
+    for(int i = 0; i < numParticlesToDraw; ++i) {
+      Point<1> p = i;
+      longArgsPtr[i] = particlesToDrawId[p];
+    }
+
+    // Setup the render task launch with region requirements
+    
+    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(args, argSize), argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
+    
+    RegionRequirement req0(fluidPartition, 1, READ_ONLY, EXCLUSIVE, fluid->get_logical_region(), gImageReductionMapperID);
+    for(int i = 0; i < numFluidFields; ++i) req0.add_field(fluidFields[i]);
+    renderLauncher.add_region_requirement(req0);
+    
+    RegionRequirement req1(particlesPartition, 2, READ_ONLY, EXCLUSIVE, particles->get_logical_region(), gImageReductionMapperID);
+    for(int i = 0; i < numParticlesFields; ++i) {
+      req1.add_field(particlesFields[i]);
+    }
+    renderLauncher.add_region_requirement(req1);
+    
+    RegionRequirement req2(compositor->everywherePartition(), 3, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
+    req2.add_field(Visualization::ImageReduction::FID_FIELD_R);
+    req2.add_field(Visualization::ImageReduction::FID_FIELD_G);
+    req2.add_field(Visualization::ImageReduction::FID_FIELD_B);
+    req2.add_field(Visualization::ImageReduction::FID_FIELD_A);
+    req2.add_field(Visualization::ImageReduction::FID_FIELD_Z);
+    renderLauncher.add_region_requirement(req2);
+    
+    // Clear the mapping history so render_task will create it anew
+    
+    ImageReductionMapper::clearPlacement(fluidPartition);
+    
+    // Launch the render task
+    
+    FutureMap futures = runtime->execute_index_space(ctx, renderLauncher);
+    futures.wait_all_results();
+    firstTime = false;
+  }
+```
+
+##### cxx_reduce
+This entry point is called immediately after cxx_render.
+It invokes the compositor to perform the image reduction, and then uses a singleton task to save the image to disk.
+```
+  void cxx_reduce(legion_runtime_t runtime_,
+                  legion_context_t ctx_,
+                  legion_mapper_id_t sampleId,
+                  const char* outDir
+                  )
+  {
+#if !USE_COMPOSITOR
+    return;
+#endif
+    std::cout << __FUNCTION__ << std::endl;
+    
+    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+    Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+    
+    Visualization::ImageReduction* compositor = gImageCompositors[sampleId];
+    compositor->set_depth_func(GL_LESS);
+    FutureMap futures = compositor->reduce_associative_commutative(ctx);
+    futures.wait_all_results();
+    
+    // save the image
+    ImageDescriptor imageDescriptor = compositor->imageDescriptor();
+    size_t argLen = sizeof(ImageDescriptor) + strlen(outDir) + 1;
+    char args[argLen] = { 0 };
+    memcpy(args, &imageDescriptor, sizeof(imageDescriptor));
+    strcpy(args + sizeof(imageDescriptor), outDir);
+    TaskLauncher saveImageLauncher(gSaveImageTaskID, TaskArgument(args, argLen), Predicate::TRUE_PRED, gImageReductionMapperID);
+    DomainPoint slice0 = Point<3>::ZEROES();
+    LogicalRegion imageSlice0 = runtime->get_logical_subregion_by_color(compositor->everywherePartition(), slice0);
+    RegionRequirement req(imageSlice0, READ_ONLY, EXCLUSIVE, compositor->sourceImage());
+    saveImageLauncher.add_region_requirement(req);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_R);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_G);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_B);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_A);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_Z);
+    Future result = runtime->execute_task(ctx, saveImageLauncher);
+    result.get_result<int>();
+  }
+```
 
 ### Regent application with rendering in Regent
 
