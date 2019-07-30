@@ -81,7 +81,7 @@ Run the examples using the run* bash scripts in the examples/* directories.
 The framework was originally developed in C++ for use with Legion applications.
 It can also be used with Regent programs.
 The framework uses a logical partition as a source for the image reduction.
-These use cases differ in how this logical partition is defined,  in whether the rendering is done in C++ or in Regent, and whether they use the ImageReductionMapper..
+These use cases differ in how this logical partition is defined,  in whether the rendering is done in C++ or in Regent, and whether they use the ImageReductionMapper.
 These use cases are described here.
 
 ### Tests and visualization example
@@ -150,6 +150,14 @@ void register_mappers() {
   Runtime::add_registration_callback(create_mappers);
 }
 ```
+
+The register_mappers() function is invoked from the Regent program like this:
+```
+local MAPPER = terralib.includec("soleil_mapper.h")
+
+regentlib.saveobj(main, "soleil.o", "object", MAPPER.register_mappers)
+```
+
 ##### cxx_initialize
 This entry point is called once when the program starts up.
 It creates an ImageCompositor that respects the fluidPartition.
@@ -354,6 +362,33 @@ It invokes the compositor to perform the image reduction, and then uses a single
 ```
 
 ### Regent application with rendering in Regent
+This is similar to the previous case, but without using cxx_render().
+The application calls cxx_preinitialize and cxx_initialize as before.
+Instead of cxx_render() the application index launches a render task in Regent.
+The render task writes to the source image region created by the image compositor.
+After launching the render task the application calls cxx_reduce.
 
 ## Blending todo
+These notes describe how to implement ordered blending as is required for volume rendering.
 
+We assume the render tasks are launched over all elements of a partition P.
+At application startup a vector of coordinates is computed where each coordinate is the center coordinate of an element of P.
+Before the application calls cxx_reduce it 
+applies the current view transform to each element of this vector, and sorts the transformed result by the Z coordinate.
+At the same time it sorts by Z it maintains a permutation vector that indicates 
+the sorted position of each element.
+After sorting this permutation vector gives the blending order of the elements of P.
+
+The image reduction framework needs to blend images in order according to their line-of-sight from the camera.
+This order is defined by the permutation vector computed above.
+The reduce_associative_noncommutative() function will differ from its commutative counterpart in that it will use a custom projection functor that reads this permutation vector.
+When the projection functor is constructed it is given the base address of the permutation vector.
+The project() function takes in an index space coordinate i and returns a subregion of P that corresponds to the ith element of the permutation vector.
+
+## Nonassociative todo
+Associative reductions can be implemented in a tree.
+Nonassociative reductions must be implemented in a serial chain.
+Nonocommutative reductions subsume commutative reductions 
+so it is suffiient to implement only the noncommutative form.
+
+These can be implemented when there is a need.
