@@ -144,6 +144,42 @@ Runtime::add_registration_callback(create_mappers);
 }
 ```
 ##### cxx_initialize
+This entry point is called once when the program starts up.
+It creates an ImageCompositor that respects the fluidPartition.
+It returns a struct (type RegionPartition) that contains several legion objects related to the source image region.
+```
+// this entry point is called once from the main task
+RegionPartition cxx_initialize(
+legion_runtime_t runtime_,
+legion_context_t ctx_,
+legion_mapper_id_t sampleId,
+legion_logical_partition_t fluidPartition_
+)
+{
+Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+LogicalPartition fluidPartition = CObjectWrapper::unwrap(fluidPartition_);
+
+// Initialize an image compositor, or reuse an initialized one
+
+Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
+
+if(gImageCompositors.find(sampleId) == gImageCompositors.end()) {
+gImageCompositors[sampleId] = new Visualization::ImageReduction(fluidPartition, imageDescriptor, ctx, runtime, gImageReductionMapperID);
+ImageReductionMapper::registerRenderTaskName("render_task");
+}
+
+Visualization::ImageReduction* compositor = gImageCompositors[sampleId];
+RegionPartition result;
+result.indexSpace = CObjectWrapper::wrap(compositor->sourceIndexSpace());
+result.imageX = CObjectWrapper::wrap(compositor->sourceImage());
+result.colorSpace = CObjectWrapper::wrap(compositor->everywhereColorSpace());
+result.p_Image = CObjectWrapper::wrap(compositor->everywherePartition());
+compositor->sourceImageFields(ctx,    result.imageFields);
+return result;
+}
+```
+
 ##### cxx_render
 ##### cxx_reduce
 
