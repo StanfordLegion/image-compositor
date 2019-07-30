@@ -17,7 +17,7 @@ associative-commutative, associative-noncommutative, nonassociative-noncommutati
 Surface rendering uses the associative-commutative depth functions, while volume rendering uses the associative-noncommutative blend functions.
 
 Note: following the philosophy of "don't build it until there is a customer" the framework has only implemented the associate-commutative reductions.
-See "Blending todo" for notes on how to implement the other reductions,
+See "Blending todo" and "Nonassociative todo" below for notes on how to implement the other reductions.
 
 ## Code organization
 
