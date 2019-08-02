@@ -59,7 +59,6 @@ namespace Legion {
     ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.logicalPartition = partition;
-      imageDescriptor.hasPartition = true;
       imageDescriptor.domain = domain;
       imageDescriptor.numImageLayers = domain.get_volume();
       std::cout << __FUNCTION__ << " domain " << domain << std::endl;
@@ -91,7 +90,6 @@ namespace Legion {
     
     ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       mImageDescriptor = imageDescriptor;
-      imageDescriptor.hasPartition = false;
       mRuntime = runtime;
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
@@ -229,37 +227,30 @@ namespace Legion {
     
     
     void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
-      if(mImageDescriptor.hasPartition) {
-        // these values should be stored in the ImageReduction object
-        partition = imageDescriptor.logicalPartition;
-        domain = imageDescriptor.domain;
-        colorSpace = runtime->get_index_partition_color_space_name(ctx, partition.get_index_partition());
-      } else {
-        Point<image_region_dimensions> p0;
-        p0 = mImageDescriptor.origin();
-        Point <image_region_dimensions> p1;
-        p1[0] = 0;
-        p1[1] = 0;
-        p1[2] = mImageDescriptor.numImageLayers - 1;
-        Rect<image_region_dimensions> color_bounds(p0, p1);
-        colorSpace = runtime->create_index_space(ctx, color_bounds);
-        IndexSpace is_parent = image.get_index_space();
-        Transform<image_region_dimensions, image_region_dimensions> transform;;
-        for(unsigned i = 0; i < image_region_dimensions; ++i)
-          for(unsigned j = 0; j < image_region_dimensions; ++j)
-            transform[i][j] = 0;
-        transform[0][0] = 1;
-        transform[1][1] = 1;
-        transform[2][2] = 1;
-        Point<image_region_dimensions> p2 = imageDescriptor.layerSize()
-        - Point<image_region_dimensions>::ONES();
-        Rect<image_region_dimensions> slice(p0, p2);
-        IndexPartition ip = runtime->create_partition_by_restriction(ctx,
-                                                                     is_parent, colorSpace, transform, slice);
-        partition = runtime->get_logical_partition(ctx, image, ip);
-        runtime->attach_name(partition, "everywherePartition");
-        domain = runtime->get_index_space_domain(ctx, colorSpace);
-      }
+      Point<image_region_dimensions> p0;
+      p0 = mImageDescriptor.origin();
+      Point <image_region_dimensions> p1;
+      p1[0] = 0;
+      p1[1] = 0;
+      p1[2] = mImageDescriptor.numImageLayers - 1;
+      Rect<image_region_dimensions> color_bounds(p0, p1);
+      colorSpace = runtime->create_index_space(ctx, color_bounds);
+      IndexSpace is_parent = image.get_index_space();
+      Transform<image_region_dimensions, image_region_dimensions> transform;;
+      for(unsigned i = 0; i < image_region_dimensions; ++i)
+        for(unsigned j = 0; j < image_region_dimensions; ++j)
+          transform[i][j] = 0;
+      transform[0][0] = 1;
+      transform[1][1] = 1;
+      transform[2][2] = 1;
+      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()
+      - Point<image_region_dimensions>::ONES();
+      Rect<image_region_dimensions> slice(p0, p2);
+      IndexPartition ip = runtime->create_partition_by_restriction(ctx,
+                                                                   is_parent, colorSpace, transform, slice);
+      partition = runtime->get_logical_partition(ctx, image, ip);
+      runtime->attach_name(partition, "everywherePartition");
+      domain = runtime->get_index_space_domain(ctx, colorSpace);
     }
     
     void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
