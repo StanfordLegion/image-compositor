@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH --job-name=vis_example
+#SBATCH --job-name=visualization_1
 #SBATCH --mail-user=aheirich@stanford.edu
 #SBATCH --time=00:10:00
 #SBATCH --nodes=4
@@ -13,4 +13,4 @@ export REALM_BACKTRACE=1
 export GASNET_BACKTRACE=1
 export REALM_FREEZE_ON_ERROR=1
 
-srun -C gpu -N 4 ~/PSAAP/legion/examples/visualization/visualization -ll:cpu 16 -ll:csize 8192
+srun -C gpu -N 4 ~/PSAAP/legion/examples/visualization_1/visualization_1 -ll:cpu 16 -ll:csize 8192
