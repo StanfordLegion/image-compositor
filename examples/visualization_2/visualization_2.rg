@@ -89,13 +89,18 @@ task renderScene(
   var imageX = __import_region(indexSpace, Image_columns, viz.imageX, viz.imageFields)
 
   var numImageFields : int = 6
+  var numPFields : int = 1
+
 
   render.cxx_render(__runtime(),
     __context(),
     __physical(imageX),
     viz.imageFields,
     numImageFields,
-    __raw(p))
+    __raw(r),
+    __raw(p),
+    __fields(r),
+    numPFields)
 end
 
 

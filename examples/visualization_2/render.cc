@@ -22,7 +22,9 @@ extern "C" {
   static legion_mapper_id_t gImageReductionMapperID = 0;
   static int gRenderTaskID = 0;
   static int gSaveImageTaskID = 0;
-  
+  static int gFrameNumber = 0; 
+  static int gImageWidth = 1280;
+  static int gImageHeight = 720;
   
   
   
@@ -109,6 +111,17 @@ extern "C" {
   // Called from mapper before runtime has started
   void cxx_preinitialize(legion_mapper_id_t mapperID) {
     Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
+
+    // allocate physical regions contiguously in memory
+    LayoutConstraintRegistrar layout_registrar(FieldSpace::NO_SPACE, "SOA layout");
+    std::vector<DimensionKind> dim_order(4);
+    dim_order[0] = DIM_X;
+    dim_order[1] = DIM_Y;
+    dim_order[2] = DIM_Z;
+    dim_order[3] = DIM_F; // fields go last for SOA
+    layout_registrar.add_constraint(OrderingConstraint(dim_order, true/*contig*/));
+    LayoutConstraintID soa_layout_id = Runtime::preregister_layout(layout_registrar);
+
     
     // preregister render task
     gImageReductionMapperID = mapperID;
@@ -178,14 +191,20 @@ extern "C" {
                   legion_physical_region_t image_[],
                   legion_field_id_t imageFields[],
                   int numImageFields,
+                  legion_logical_region_t r_,
                   legion_logical_partition_t p_,
+                  legion_field_id_t pFields[],
+                  int numPFields
                   ) {
+
+    static bool firstTime = true;
     
     // Unwrap objects
     
     Runtime *runtime = CObjectWrapper::unwrap(runtime_);
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     PhysicalRegion* image = CObjectWrapper::unwrap(image_[0]);
+    LogicalRegion r = CObjectWrapper::unwrap(r_);
     LogicalPartition p = CObjectWrapper::unwrap(p_);
 
     
@@ -202,11 +221,13 @@ extern "C" {
     // Setup the render task launch with region requirements
     
     ArgumentMap argMap;
-    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(args, argSize),
+    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(NULL, 0),
                                      argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
     
-    RegionRequirement req0(p, 1, READ_ONLY, EXCLUSIVE, p->get_logical_region(), gImageReductionMapperID);
-    req0.add_field(fluidFields[i]);
+    RegionRequirement req0(p, 1, READ_ONLY, EXCLUSIVE, r, gImageReductionMapperID);
+    for(int i = 0; i < numPFields; ++i) {
+      req0.add_field(pFields[i]);
+    }
     renderLauncher.add_region_requirement(req0);
 
     RegionRequirement req1(compositor->everywherePartition(), 3, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
@@ -219,7 +240,7 @@ extern "C" {
     
     // Clear the mapping history so render_task will create it anew
     
-    ImageReductionMapper::clearPlacement(fluidPartition);
+    ImageReductionMapper::clearPlacement(p);
     
     // Launch the render task
     

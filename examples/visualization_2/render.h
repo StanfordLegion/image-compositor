@@ -3,7 +3,7 @@
 //
 
 
-
+#include "legion.h"
 #include "legion_c.h"
 
 #ifdef __cplusplus
@@ -48,7 +48,10 @@ void cxx_render(legion_runtime_t runtime_,
                 legion_physical_region_t image_[],
                 legion_field_id_t imageFields[],
                 int numImageFields,
-                legion_logical_partition_t p_);
+                legion_logical_region_t r_,
+                legion_logical_partition_t p_,
+                legion_field_id_t pFields[],
+                int numPFields);
 
 void cxx_reduce(legion_runtime_t runtime_,
                   legion_context_t ctx_,
@@ -59,5 +62,15 @@ void cxx_reduce(legion_runtime_t runtime_,
 
 #ifdef __cplusplus
 }
+#endif
+
+
+#ifdef __cplusplus
+template<typename FT, int N, typename T = long long>
+using AccessorRO = Legion::FieldAccessor<READ_ONLY,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
+template<typename FT, int N, typename T = long long>
+using AccessorWO = Legion::FieldAccessor<WRITE_DISCARD,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
+template<typename FT, int N, typename T = long long>
+using AccessorRW = Legion::FieldAccessor<READ_WRITE,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
 #endif
 
