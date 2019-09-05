@@ -12,16 +12,6 @@ extern "C" {
 
 
 typedef struct {
-  float xMin;
-  float yMin;
-  float zMin;
-  float xMax;
-  float yMax;
-  float zMax;
-  int numNodes[3];
-} Model;
-
-typedef struct {
   float from[3];
   float at[3];
   float up[3];
@@ -51,13 +41,16 @@ void cxx_render(legion_runtime_t runtime_,
                 legion_logical_region_t r_,
                 legion_logical_partition_t p_,
                 legion_field_id_t pFields[],
-                int numPFields);
+                int numPFields,
+                Camera camera);
 
-void cxx_reduce(legion_runtime_t runtime_,
+  void cxx_reduce(legion_context_t ctx_);
+  
+  void cxx_saveImage(legion_runtime_t runtime_,
                   legion_context_t ctx_,
                   const char* outDir
                   );
-
+  
 
 
 #ifdef __cplusplus

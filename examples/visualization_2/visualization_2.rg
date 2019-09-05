@@ -30,22 +30,6 @@ render = terralib.includec("render.h",
 "-I", realm_dir,
 })
 
-struct Model {
-  xMin : float,
-  yMin : float,
-  zMin : float,
-  xMax : float,
-  yMax : float,
-  zMax : float,
-  numNodes : int[3]
-}
-
-struct Camera {
-  from : float[3],
-  at : float[3],
-  up : float[3]
-}
-
 struct Image_columns {
   R : float,
   G : float,
@@ -69,17 +53,16 @@ end
 
 
 
-task configureCamera(model : Model, angle : float) 
+task configureCamera(angle : float)
 -- compute from, at, up
-  var camera : Camera
+  var camera : render.Camera
   return camera
 end
 
 
 
 task renderScene(
-  camera : Camera,
-  model : Model,
+  camera : render.Camera,
   r : region(ispace(int3d), float),
   colors : ispace(int3d),
   p : partition(disjoint, r, colors),
@@ -100,51 +83,37 @@ task renderScene(
     __raw(r),
     __raw(p),
     __fields(r),
-    numPFields)
+    numPFields,
+    camera)
 end
 
 
 
 task compositeImages() 
-  render.cxx_reduce(__runtime(), __context(), ".")
+  render.cxx_reduce(__runtime(), __context())
 end
 
 
 
 task saveImage() 
-
+  render.cxx_saveImage(__runtime(), __context(), ".")
 end
 
 
 
 task main() 
 
-  -- geometry model
-
-  var model : Model
-  model.xMin = 0
-  model.yMin = 0
-  model.zMin = 0
-  model.xMax = 1
-  model.yMax = 1
-  model.zMax = 1
-  model.numNodes[0] = 2
-  model.numNodes[1] = 2
-  model.numNodes[2] = 2
-  var totalNodes : int = 8
-
   -- logical region and partition
 
-  var r = region(ispace(int3d, {2,2,2}, {0,0,0}), float)
-  var colors = ispace(int3d, {1, 1, totalNodes}, {0, 0, 0})
+  var r = region(ispace(int3d, {2, 2, 2}, {0, 0, 0}), float)
+  var colors = ispace(int3d, {1, 1, 8}, {0, 0, 0})
   var p = partition(equal, r, colors)
 
   var viz = renderInitialize(r, colors, p)
 
   for angle = 0, 360 do
-    var camera : Camera
-    camera = configureCamera(model, angle)
-    renderScene(camera, model, r, colors, p, viz)
+    var camera = configureCamera(angle)
+    renderScene(camera, r, colors, p, viz)
     compositeImages()
     saveImage()
   end

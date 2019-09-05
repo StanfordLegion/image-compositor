@@ -27,10 +27,25 @@ extern "C" {
   static int gImageHeight = 720;
   
   
+  void renderCube(Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer);
   
   static void render_task(const Task *task,
                           const std::vector<PhysicalRegion> &regions,
                           Context ctx, HighLevelRuntime *runtime) {
+    
+    PhysicalRegion data = regions[0];
+    PhysicalRegion image = regions[1];
+    IndexSpace indexSpace = data.get_logical_region().get_index_space();
+    Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
+    char* argsPtr = (char*)task->args;
+    ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
+    Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
+    unsigned char* rgbaBuffer;
+    float* depthBuffer;
+    renderCube(bounds, imageDescriptor, camera, rgbaBuffer, depthBuffer);
+    // now copy the image data into the image logical region
+    delete [] rgbaBuffer;
+    delete [] depthBuffer;
   }
   
   
@@ -194,7 +209,8 @@ extern "C" {
                   legion_logical_region_t r_,
                   legion_logical_partition_t p_,
                   legion_field_id_t pFields[],
-                  int numPFields
+                  int numPFields,
+                  Camera camera
                   ) {
 
     static bool firstTime = true;
@@ -221,7 +237,12 @@ extern "C" {
     // Setup the render task launch with region requirements
     
     ArgumentMap argMap;
-    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(NULL, 0),
+    ImageDescriptor imageDescriptor = compositor->imageDescriptor();
+    size_t argSize = sizeof(ImageDescriptor) + sizeof(camera);
+    char args[argSize];
+    memcpy(args, (char*)&imageDescriptor, sizeof(ImageDescriptor));
+    memcpy(args + sizeof(ImageDescriptor), (char*)&camera, sizeof(camera));
+    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(args, argSize),
                                      argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
     
     RegionRequirement req0(p, 1, READ_ONLY, EXCLUSIVE, r, gImageReductionMapperID);
@@ -250,20 +271,25 @@ extern "C" {
   }
   
   
-  void cxx_reduce(legion_runtime_t runtime_,
-                  legion_context_t ctx_,
-                  const char* outDir
-                  ) {
+  void cxx_reduce(legion_context_t ctx_) {
 
-    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
-
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_depth_func(GL_LESS);
     FutureMap futures = compositor->reduce_associative_noncommutative(ctx);
     futures.wait_all_results();
+  }
 
+  
+  void cxx_saveImage(legion_runtime_t runtime_,
+                     legion_context_t ctx_,
+                     const char* outDir
+                     ) {
+    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+    Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+    
     // save the image
+    Visualization::ImageReduction* compositor = gImageCompositor;
     ImageDescriptor imageDescriptor = compositor->imageDescriptor();
     size_t argLen = sizeof(ImageDescriptor) + strlen(outDir) + 1;
     char args[argLen] = { 0 };
@@ -273,7 +299,7 @@ extern "C" {
     DomainPoint slice0 = Point<3>::ZEROES();
     LogicalRegion imageSlice0 = runtime->get_logical_subregion_by_color(compositor->everywherePartition(), slice0);
     RegionRequirement req(imageSlice0, READ_ONLY, EXCLUSIVE, compositor->sourceImage());
-   saveImageLauncher.add_region_requirement(req);
+    saveImageLauncher.add_region_requirement(req);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_R);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_G);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_B);
@@ -282,9 +308,6 @@ extern "C" {
     Future result = runtime->execute_task(ctx, saveImageLauncher);
     result.get_result<int>();
   }
-
-  
-  
   
   
   

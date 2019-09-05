@@ -24,13 +24,16 @@ clean:
 	rm -f visualization_2.exec visualization_2.so render.o visualization_2_mapper.o
 
 
-visualization_2.exec: visualization_2.so render.o visualization_2_mapper.o
-	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lOSMesa
+visualization_2.exec: visualization_2.so render.o renderCube.o visualization_2_mapper.o
+	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lglut -lOSMesa
 
 visualization_2.so: visualization_2.rg
 	$(REGENT) visualization_2.rg $(REGENT_FLAGS)
 
 render.o: render.cc render.h 
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+renderCube.o: renderCube.cc render.h 
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 visualization_2_mapper.o: visualization_2_mapper.cc visualization_2_mapper.h 
