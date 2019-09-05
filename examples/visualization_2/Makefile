@@ -15,6 +15,7 @@ CXXFLAGS += -std=c++11 -ggdb -O0 -Wall -Werror -fno-strict-aliasing -I$(LEGION_D
 export INCLUDE_PATH := .;$(IMAGE_COMPOSITOR_DIR)/include;$(LEGION_DIR)/runtime/realm
 REGENT := $(LEGION_DIR)/language/regent.py -g
 
+LINK_FLAGS += -g
 LINK_FLAGS += -L$(LEGION_DIR)/bindings/regent -lregent
 LINK_FLAGS += -L$(IMAGE_COMPOSITOR_DIR)/src -lImageCompositor
 

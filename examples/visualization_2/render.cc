@@ -38,6 +38,10 @@ extern "C" {
     IndexSpace indexSpace = data.get_logical_region().get_index_space();
     Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
     char* argsPtr = (char*)task->args;
+
+    // first task argument to render task must be an ImageDescriptor
+    // or the mapper will complain
+
     ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
     Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
     unsigned char* rgbaBuffer;

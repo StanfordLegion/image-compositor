@@ -110,10 +110,13 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
   Domain targetDomain = imageDescriptor->domain;
   LogicalPartition targetPartition = imageDescriptor->logicalPartition;
   Domain::DomainPointIterator targetIt(targetDomain);
+std::cout << "targetIt " << targetIt << std::endl;
   
   const int dim = 3;
   Rect<dim> rect = input.domain;
   for (PointInRectIterator<dim> pir(rect); pir(); pir++) {
+std::cout << "pir " << (*pir) << " targetDomain " << targetDomain << " targetPartition " << targetPartition << std::endl;
+
     bool ret = false;
     Machine::ProcessorQuery targetProcessors = getProcessorsFromTargetDomain(ctx, targetPartition, targetIt, ret);
     if(ret) {
