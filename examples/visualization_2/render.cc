@@ -42,8 +42,38 @@ extern "C" {
     Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
     unsigned char* rgbaBuffer;
     float* depthBuffer;
+    
+    // draw a cube in the center of the space
+    
     renderCube(bounds, imageDescriptor, camera, rgbaBuffer, depthBuffer);
+    
     // now copy the image data into the image logical region
+    
+    glReadPixels(0, 0, imageDescriptor->width, imageDescriptor->height, GL_DEPTH_COMPONENT, GL_FLOAT, depthBuffer);
+    
+    std::vector<legion_field_id_t> imageFields;
+    image.get_fields(imageFields);
+    AccessorWO<ImageReduction::PixelField, 3> r(image, imageFields[0]);
+    AccessorWO<ImageReduction::PixelField, 3> g(image, imageFields[1]);
+    AccessorWO<ImageReduction::PixelField, 3> b(image, imageFields[2]);
+    AccessorWO<ImageReduction::PixelField, 3> a(image, imageFields[3]);
+    AccessorWO<ImageReduction::PixelField, 3> z(image, imageFields[4]);
+    AccessorWO<ImageReduction::PixelField, 3> u(image, imageFields[5]);
+
+    IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
+    Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
+    
+    int index = 0;
+    for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
+      r[*pir] = rgbaBuffer[index * 4] / 255.0;
+      g[*pir] = rgbaBuffer[index * 4 + 1] / 255.0;
+      b[*pir] = rgbaBuffer[index * 4 + 2] / 255.0;
+      a[*pir] = rgbaBuffer[index * 4 + 3] / 255.0;
+      z[*pir] = depthBuffer[index];
+      u[*pir] = 0; // user defined channel, unused
+      index++;
+    }
+
     delete [] rgbaBuffer;
     delete [] depthBuffer;
   }
@@ -257,6 +287,7 @@ extern "C" {
     req1.add_field(Visualization::ImageReduction::FID_FIELD_B);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_A);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_Z);
+    req1.add_field(Visualization::ImageReduction::FID_FIELD_USERDATA);
     renderLauncher.add_region_requirement(req1);
     
     // Clear the mapping history so render_task will create it anew

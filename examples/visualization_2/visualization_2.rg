@@ -54,8 +54,16 @@ end
 
 
 task configureCamera(angle : float)
--- compute from, at, up
   var camera : render.Camera
+  camera.up[0] = 0
+  camera.up[1] = 1
+  camera.up[2] = 0
+  camera.from[0] = c.cos(angle) * 4
+  camera.from[1] = 1.5
+  camera.from[2] = c.sin(angle) * 4
+  camera.at[0] = 1
+  camera.at[1] = 1
+  camera.at[2] = 1
   return camera
 end
 
@@ -90,7 +98,7 @@ end
 
 
 task compositeImages() 
-  render.cxx_reduce(__runtime(), __context())
+  render.cxx_reduce(__context())
 end
 
 
