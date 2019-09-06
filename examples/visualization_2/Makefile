@@ -23,10 +23,11 @@ all: visualization_2.exec
 
 clean:
 	rm -f visualization_2.exec visualization_2.so render.o visualization_2_mapper.o
+	rm -f image.*.tga
 
 
 visualization_2.exec: visualization_2.so render.o renderCube.o visualization_2_mapper.o
-	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lglut -lOSMesa
+	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lOSMesa
 
 visualization_2.so: visualization_2.rg
 	$(REGENT) visualization_2.rg $(REGENT_FLAGS)

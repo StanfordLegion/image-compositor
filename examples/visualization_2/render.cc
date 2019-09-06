@@ -22,7 +22,7 @@ extern "C" {
   static legion_mapper_id_t gImageReductionMapperID = 0;
   static int gRenderTaskID = 0;
   static int gSaveImageTaskID = 0;
-  static int gFrameNumber = 0; 
+  static int gFrameNumber = 0;
   static int gImageWidth = 1280;
   static int gImageHeight = 720;
   
@@ -38,10 +38,10 @@ extern "C" {
     IndexSpace indexSpace = data.get_logical_region().get_index_space();
     Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
     char* argsPtr = (char*)task->args;
-
+    
     // first task argument to render task must be an ImageDescriptor
     // or the mapper will complain
-
+    
     ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
     Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
     unsigned char* rgbaBuffer;
@@ -63,7 +63,7 @@ extern "C" {
     AccessorWO<ImageReduction::PixelField, 3> a(image, imageFields[3]);
     AccessorWO<ImageReduction::PixelField, 3> z(image, imageFields[4]);
     AccessorWO<ImageReduction::PixelField, 3> u(image, imageFields[5]);
-
+    
     IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
     Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
     
@@ -77,7 +77,7 @@ extern "C" {
       u[*pir] = 0; // user defined channel, unused
       index++;
     }
-
+    
     delete [] rgbaBuffer;
     delete [] depthBuffer;
   }
@@ -160,7 +160,7 @@ extern "C" {
   // Called from mapper before runtime has started
   void cxx_preinitialize(legion_mapper_id_t mapperID) {
     Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
-
+    
     // allocate physical regions contiguously in memory
     LayoutConstraintRegistrar layout_registrar(FieldSpace::NO_SPACE, "SOA layout");
     std::vector<DimensionKind> dim_order(4);
@@ -170,7 +170,7 @@ extern "C" {
     dim_order[3] = DIM_F; // fields go last for SOA
     layout_registrar.add_constraint(OrderingConstraint(dim_order, true/*contig*/));
     LayoutConstraintID soa_layout_id = Runtime::preregister_layout(layout_registrar);
-
+    
     
     // preregister render task
     gImageReductionMapperID = mapperID;
@@ -209,14 +209,12 @@ extern "C" {
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     LogicalPartition partition = CObjectWrapper::unwrap(partition_);
     
-    // Initialize an image compositor, or reuse an initialized one
+    // Initialize an image compositor
     
     Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
     
-    if(gImageCompositor == nullptr) {
-      gImageCompositor = new Visualization::ImageReduction(partition, imageDescriptor, ctx, runtime, gImageReductionMapperID);
-      ImageReductionMapper::registerRenderTaskName("render_task");
-    }
+    gImageCompositor = new Visualization::ImageReduction(partition, imageDescriptor, ctx, runtime, gImageReductionMapperID);
+    ImageReductionMapper::registerRenderTaskName("render_task");
     
     Visualization::ImageReduction* compositor = gImageCompositor;
     RegionPartition result;
@@ -246,7 +244,7 @@ extern "C" {
                   int numPFields,
                   Camera camera
                   ) {
-
+    
     static bool firstTime = true;
     
     // Unwrap objects
@@ -256,7 +254,7 @@ extern "C" {
     PhysicalRegion* image = CObjectWrapper::unwrap(image_[0]);
     LogicalRegion r = CObjectWrapper::unwrap(r_);
     LogicalPartition p = CObjectWrapper::unwrap(p_);
-
+    
     
     // Create projection functors
     
@@ -274,6 +272,7 @@ extern "C" {
     ImageDescriptor imageDescriptor = compositor->imageDescriptor();
     size_t argSize = sizeof(ImageDescriptor) + sizeof(camera);
     char args[argSize];
+    // ImageDescriptor must be the first argument to the render task
     memcpy(args, (char*)&imageDescriptor, sizeof(ImageDescriptor));
     memcpy(args + sizeof(ImageDescriptor), (char*)&camera, sizeof(camera));
     IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(args, argSize),
@@ -284,8 +283,8 @@ extern "C" {
       req0.add_field(pFields[i]);
     }
     renderLauncher.add_region_requirement(req0);
-
-    RegionRequirement req1(compositor->everywherePartition(), 3, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
+    
+    RegionRequirement req1(compositor->everywherePartition(), 2, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_R);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_G);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_B);
@@ -306,15 +305,20 @@ extern "C" {
   }
   
   
+  
+  
+  
+  
   void cxx_reduce(legion_context_t ctx_) {
-
+    
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_depth_func(GL_LESS);
-    FutureMap futures = compositor->reduce_associative_noncommutative(ctx);
+    //FutureMap futures = compositor->reduce_associative_noncommutative(ctx);
+    FutureMap futures = compositor->reduce_associative_commutative(ctx);
     futures.wait_all_results();
   }
-
+  
   
   void cxx_saveImage(legion_runtime_t runtime_,
                      legion_context_t ctx_,

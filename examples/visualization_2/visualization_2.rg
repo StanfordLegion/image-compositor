@@ -41,19 +41,8 @@ struct Image_columns {
 
 
 
-task renderInitialize(
-  r : region(ispace(int3d), float),
-  colors : ispace(int3d),
-  p : partition(disjoint, r, colors)
-) 
-  var result = render.cxx_initialize(__runtime(), __context(), __raw(p))
-  return result
-end
 
-
-
-
-task configureCamera(angle : float)
+terra configureCamera(angle : float)
   var camera : render.Camera
   camera.up[0] = 0
   camera.up[1] = 1
@@ -69,44 +58,6 @@ end
 
 
 
-task renderScene(
-  camera : render.Camera,
-  r : region(ispace(int3d), float),
-  colors : ispace(int3d),
-  p : partition(disjoint, r, colors),
-  viz : render.RegionPartition) 
-
-  var indexSpace = __import_ispace(int3d, viz.indexSpace)
-  var imageX = __import_region(indexSpace, Image_columns, viz.imageX, viz.imageFields)
-
-  var numImageFields : int = 6
-  var numPFields : int = 1
-
-
-  render.cxx_render(__runtime(),
-    __context(),
-    __physical(imageX),
-    viz.imageFields,
-    numImageFields,
-    __raw(r),
-    __raw(p),
-    __fields(r),
-    numPFields,
-    camera)
-end
-
-
-
-task compositeImages() 
-  render.cxx_reduce(__context())
-end
-
-
-
-task saveImage() 
-  render.cxx_saveImage(__runtime(), __context(), ".")
-end
-
 
 
 task main() 
@@ -114,16 +65,30 @@ task main()
   -- logical region and partition
 
   var r = region(ispace(int3d, {2, 2, 2}, {0, 0, 0}), float)
-  var colors = ispace(int3d, {1, 1, 8}, {0, 0, 0})
+  var colors = ispace(int3d, {2, 2, 2}, {0, 0, 0})
   var p = partition(equal, r, colors)
+  fill(r, 0.0)
 
-  var viz = renderInitialize(r, colors, p)
+  var viz = render.cxx_initialize(__runtime(), __context(), __raw(p))
+  var indexSpace = __import_ispace(int3d, viz.indexSpace)
+  var imageX = __import_region(indexSpace, Image_columns, viz.imageX, viz.imageFields)
+  var numImageFields : int = 6
+  var numPFields : int = 1
 
-  for angle = 0, 360 do
+  for angle = 0, 1 do -- 360 do
     var camera = configureCamera(angle)
-    renderScene(camera, r, colors, p, viz)
-    compositeImages()
-    saveImage()
+    render.cxx_render(__runtime(),
+      __context(),
+      __physical(imageX),
+      viz.imageFields,
+      numImageFields,
+      __raw(r),
+      __raw(p),
+      __fields(r),
+      numPFields,
+      camera)
+    render.cxx_reduce(__context())
+    render.cxx_saveImage(__runtime(), __context(), ".")
   end
 end
 
