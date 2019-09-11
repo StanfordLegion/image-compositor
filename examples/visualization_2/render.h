@@ -9,50 +9,59 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-typedef struct {
-  float from[3];
-  float at[3];
-  float up[3];
-} Camera;
-
-
-void cxx_preinitialize(legion_mapper_id_t mapperID);
-
-typedef struct {
-  legion_index_space_t indexSpace;
-  legion_logical_region_t imageX;
-  legion_index_space_t colorSpace;
-  legion_logical_partition_t p_Image;
-  legion_field_id_t imageFields[6];
-} RegionPartition;
-
-RegionPartition cxx_initialize(
-                               legion_runtime_t runtime_,
-                               legion_context_t ctx_,
-                               legion_logical_partition_t partition_);
-
-void cxx_render(legion_runtime_t runtime_,
-                legion_context_t ctx_,
-                legion_physical_region_t image_[],
-                legion_field_id_t imageFields[],
-                int numImageFields,
-                legion_logical_region_t r_,
-                legion_logical_partition_t p_,
-                legion_field_id_t pFields[],
-                int numPFields,
-                Camera camera);
-
+  
+  
+  typedef struct {
+    float from[3];
+    float at[3];
+    float up[3];
+  } Camera;
+  
+  
+  void cxx_preinitialize(legion_mapper_id_t mapperID);
+  
+  typedef struct {
+    legion_index_space_t indexSpace;
+    legion_logical_region_t imageX;
+    legion_index_space_t colorSpace;
+    legion_logical_partition_t p_Image;
+    legion_field_id_t imageFields[6];
+  } RegionPartition;
+  
+  RegionPartition cxx_initialize(
+                                 legion_runtime_t runtime_,
+                                 legion_context_t ctx_,
+                                 legion_logical_partition_t partition_);
+  
+  void cxx_render(legion_runtime_t runtime_,
+                  legion_context_t ctx_,
+                  legion_physical_region_t image_[],
+                  legion_field_id_t imageFields[],
+                  int numImageFields,
+                  legion_logical_region_t r_,
+                  legion_logical_partition_t p_,
+                  legion_field_id_t pFields[],
+                  int numPFields,
+                  Camera camera);
+  
   void cxx_reduce(legion_context_t ctx_);
   
   void cxx_saveImage(legion_runtime_t runtime_,
-                  legion_context_t ctx_,
-                  const char* outDir
-                  );
+                     legion_context_t ctx_,
+                     const char* outDir
+                     );
   
-
-
+  // set this to 1 when debugging the renderer, 0 otherwise
+#define DEBUG_INDIVIDUAL_IMAGES 1
+  
+  void cxx_saveIndividualImages(legion_runtime_t runtime_,
+                                legion_context_t ctx_,
+                                const char* outDir
+                                );
+  
+  
+  void cxx_terminate();
+  
 #ifdef __cplusplus
 }
 #endif

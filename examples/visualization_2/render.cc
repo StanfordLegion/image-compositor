@@ -8,6 +8,7 @@
 #include "render.h"
 #include "legion_visualization.h"
 #include "image_reduction_mapper.h"
+#include "GL/osmesa.h"
 
 
 #ifdef __cplusplus
@@ -27,6 +28,12 @@ extern "C" {
   static int gImageHeight = 720;
   
   
+  void createGraphicsContext(OSMesaContext &mesaCtx,
+                             GLubyte* &rgbaBuffer,
+                             GLfloat* &depthBuffer,
+                             int width,
+                             int height);
+  
   void renderCube(Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer);
   
   static void render_task(const Task *task,
@@ -38,17 +45,21 @@ extern "C" {
     IndexSpace indexSpace = data.get_logical_region().get_index_space();
     Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
     char* argsPtr = (char*)task->args;
+    std::cout << "in render_task " << bounds << std::endl;
     
     // first task argument to render task must be an ImageDescriptor
     // or the mapper will complain
     
     ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
     Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
-    unsigned char* rgbaBuffer;
-    float* depthBuffer;
     
     // draw a cube in the center of the space
     
+    OSMesaContext mesaCtx;
+    unsigned char* rgbaBuffer;
+    float* depthBuffer;
+    createGraphicsContext(mesaCtx, rgbaBuffer, depthBuffer, imageDescriptor->width, imageDescriptor->height);
+
     renderCube(bounds, imageDescriptor, camera, rgbaBuffer, depthBuffer);
     
     // now copy the image data into the image logical region
@@ -78,6 +89,7 @@ extern "C" {
       index++;
     }
     
+    OSMesaDestroyContext(mesaCtx);
     delete [] rgbaBuffer;
     delete [] depthBuffer;
   }
@@ -90,6 +102,8 @@ extern "C" {
     ImageDescriptor* imageDescriptor = (ImageDescriptor*)(task->args);
     unsigned char* outDir = (unsigned char*)(task->args) + sizeof(ImageDescriptor);
     PhysicalRegion image = regions[0];
+    IndexSpace indexSpace = image.get_logical_region().get_index_space();
+    Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
     std::vector<legion_field_id_t> imageFields;
     image.get_fields(imageFields);
     
@@ -100,7 +114,7 @@ extern "C" {
     AccessorRO<ImageReduction::PixelField, 3> z(image, imageFields[4]);
     
     char filename[1024];
-    sprintf(filename, "%s/image.%05d.tga", outDir, gFrameNumber++);
+    sprintf(filename, "%s/image_%d_%d_%d.%05d.tga", outDir, (int)bounds.lo.x, (int)bounds.lo.y, (int)bounds.lo.z, gFrameNumber++);
     FILE* f = fopen(filename, "w");
     if(f == nullptr) {
       std::cerr << "could not create file " << filename << std::endl;
@@ -349,6 +363,40 @@ extern "C" {
   }
   
   
+  // this is provided for debugging the renderer
+  
+  void cxx_saveIndividualImages(legion_runtime_t runtime_,
+                                legion_context_t ctx_,
+                                const char* outDir
+                                ) {
+    Runtime *runtime = CObjectWrapper::unwrap(runtime_);
+    Context ctx = CObjectWrapper::unwrap(ctx_)->context();
+    
+    // save the image
+    Visualization::ImageReduction* compositor = gImageCompositor;
+    ImageDescriptor imageDescriptor = compositor->imageDescriptor();
+    ArgumentMap argMap;
+    size_t argLen = sizeof(ImageDescriptor) + strlen(outDir) + 1;
+    char args[argLen] = { 0 };
+    memcpy(args, &imageDescriptor, sizeof(imageDescriptor));
+    strcpy(args + sizeof(imageDescriptor), outDir);
+    IndexTaskLauncher saveImageLauncher(gSaveImageTaskID, compositor->everywhereDomain(), TaskArgument(args, argLen),
+                                     argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
+    RegionRequirement req(compositor->everywherePartition(), 0, READ_ONLY, EXCLUSIVE, compositor->sourceImage(), gImageReductionMapperID);
+    saveImageLauncher.add_region_requirement(req);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_R);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_G);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_B);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_A);
+    saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_Z);
+    FutureMap futures = runtime->execute_index_space(ctx, saveImageLauncher);
+    futures.wait_all_results();
+  }
+  
+  
+  void cxx_terminate() {
+    delete gImageCompositor;
+  }
   
 #ifdef __cplusplus
 }

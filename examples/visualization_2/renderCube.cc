@@ -26,7 +26,7 @@
 extern "C" {
 #endif
   
-  static void createGraphicsContext(OSMesaContext &mesaCtx,
+  void createGraphicsContext(OSMesaContext &mesaCtx,
                                     GLubyte* &rgbaBuffer,
                                     GLfloat* &depthBuffer,
                                     int width,
@@ -57,13 +57,6 @@ extern "C" {
       return;
     }
     
-    {
-      int z, s, a;
-      glGetIntegerv(GL_DEPTH_BITS, &z);
-      glGetIntegerv(GL_STENCIL_BITS, &s);
-      glGetIntegerv(GL_ACCUM_RED_BITS, &a);
-    }
-    
     /* Allocate the depth buffer. */
     depthBuffer = new GLfloat[width * height];
     if (!depthBuffer) {
@@ -72,32 +65,32 @@ extern "C" {
     }
   }
   
-  static void destroyGraphicsContext(OSMesaContext mesaCtx) {
-    /* destroy the context */
-    OSMesaDestroyContext(mesaCtx);
-  }
-  
   
   static void initializeRender(Camera* camera, int width, int height) {
+    GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 1.0};
+    GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 1.0};
+    GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 1.0};
+#if 0
     glClearColor( 0, 0, 0, 1 );
+#else
+    glClearColor( 1, 1, 1, 1 );
+#endif
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 1.0};
-    GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 1.0};
-    GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 1.0};
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glLightfv(GL_LIGHT0, GL_AMBIENT,  afPropertiesAmbient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE,  afPropertiesDiffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, afPropertiesSpecular);
     GLfloat lightPosition[] = { 1, 4, 1, 1 };
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
-    glViewport(0, 0, width, height);
+    glEnable(GL_LIGHT0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
@@ -113,9 +106,10 @@ extern "C" {
     gluLookAt(camera->from[0], camera->from[1], camera->from[2],
               camera->at[0], camera->at[1], camera->at[2],
               camera->up[0], camera->up[1], camera->up[2]);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   }
   
+  
+#if 0
   
   static void cube(float halfEdge) {
     glBegin(GL_QUADS);
@@ -165,27 +159,28 @@ extern "C" {
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
   }
   
+#endif
+  
   
   void renderCube(Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer) {
-    OSMesaContext mesaCtx;
-    createGraphicsContext(mesaCtx, rgbaBuffer, depthBuffer, imageDescriptor->width, imageDescriptor->height);
     initializeRender(camera, imageDescriptor->width, imageDescriptor->height);
+#if 1
+    glFinish();
+#else
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
     float center[3] = {
       (float)(bounds.lo.x + 0.5),
       (float)(bounds.lo.y + 0.5),
       (float)(bounds.lo.z + 0.5)
     };
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-#if 0
-    glTranslatef(1.0, 1.0, 1.0);
-#else
     glTranslatef(center[0], center[1], center[2]);
-#endif
     color(bounds.lo);
-    cube(0.5);
+    cube(0.25);
     glPopMatrix();
-    destroyGraphicsContext(mesaCtx);
+    glFinish();
+#endif
   }
   
 #ifdef __cplusplus

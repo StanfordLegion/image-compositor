@@ -87,9 +87,15 @@ task main()
       __fields(r),
       numPFields,
       camera)
-    render.cxx_reduce(__context())
-    render.cxx_saveImage(__runtime(), __context(), ".")
+    if render.DEBUG_INDIVIDUAL_IMAGES == 1 then
+      render.cxx_saveIndividualImages(__runtime(), __context(), ".")
+    else
+      render.cxx_reduce(__context())
+      render.cxx_saveImage(__runtime(), __context(), ".")
+    end
   end
+
+  render.cxx_terminate()
 end
 
 regentlib.saveobj(main, "visualization_2.so", "object", MAPPER.register_mappers)
