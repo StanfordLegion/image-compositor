@@ -348,7 +348,7 @@ namespace Legion {
       }
       
       std::cout << "image descriptor " << mImageDescriptor.width << " " << mImageDescriptor.height << " " << mImageDescriptor.numImageLayers << std::endl;
-      Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
+      Point<image_region_dimensions> numFragments(0, 0, mImageDescriptor.numImageLayers - 1);
       int numLeaves = 1;
       
       for(int level = 0; level < numTreeLevels; ++level) {
