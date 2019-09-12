@@ -10,7 +10,7 @@ ifndef IMAGE_COMPOSITOR_DIR
   $(error IMAGE_COMPOSITOR_DIR is not set)
 endif
 
-CXXFLAGS += -std=c++11 -ggdb -O0 -Wall -Werror -fno-strict-aliasing -I$(LEGION_DIR)/runtime -I$(LEGION_DIR)/runtime/legion -I$(IMAGE_COMPOSITOR_DIR)/include -I$(LEGION_DIR)/runtime/realm -march=native -DDEBUG_LEGION
+CXXFLAGS += -std=c++11 -ggdb -O0 -Wall -Werror -fno-strict-aliasing -I$(LEGION_DIR)/runtime -I$(LEGION_DIR)/runtime/legion -I$(IMAGE_COMPOSITOR_DIR)/include -I$(LEGION_DIR)/runtime/realm -march=native -DDEBUG_LEGION -DGLAPIENTRY=
 
 export INCLUDE_PATH := .;$(IMAGE_COMPOSITOR_DIR)/include;$(LEGION_DIR)/runtime/realm
 REGENT := $(LEGION_DIR)/language/regent.py -g
