@@ -70,11 +70,7 @@ extern "C" {
     GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 1.0};
     GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 1.0};
     GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 1.0};
-#if 0
     glClearColor( 0, 0, 0, 1 );
-#else
-    glClearColor( 1, 1, 1, 1 );
-#endif
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_BLEND);
@@ -109,7 +105,6 @@ extern "C" {
   }
   
   
-#if 0
   
   static void cube(float halfEdge) {
     glBegin(GL_QUADS);
@@ -159,17 +154,12 @@ extern "C" {
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
   }
   
-#endif
   
   
   void renderCube(Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer) {
     initializeRender(camera, imageDescriptor->width, imageDescriptor->height);
-#if 1
-    glFinish();
-#else
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glLoadIdentity();
     float center[3] = {
       (float)(bounds.lo.x + 0.5),
       (float)(bounds.lo.y + 0.5),
@@ -180,7 +170,6 @@ extern "C" {
     cube(0.25);
     glPopMatrix();
     glFinish();
-#endif
   }
   
 #ifdef __cplusplus
