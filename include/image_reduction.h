@@ -41,6 +41,7 @@
 #include <unistd.h>
 
 #include "legion_c_util.h"
+#include "../third_party/kdtree/kdtree.h"
 
 
 namespace Legion {
@@ -409,7 +410,6 @@ namespace Legion {
       static void createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers);
       
       
-      
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
       void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
@@ -426,6 +426,8 @@ namespace Legion {
       
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
       
+      static void buildKDTree(ImageDescriptor imageDescriptor);
+
       static void registerTasks();
       
       static void addImageFieldsToRequirement(RegionRequirement &req);
@@ -484,6 +486,7 @@ namespace Legion {
       static TaskID mInitialTaskID;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
+      static kdtree_t* mKDTree;
     };
     
   }

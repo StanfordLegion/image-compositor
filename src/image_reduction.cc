@@ -54,12 +54,14 @@ namespace Legion {
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
     MapperID gMapperID;
+    kdtree_t* mKDTree;
     
     
     ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.logicalPartition = partition;
       imageDescriptor.domain = domain;
+      imageDescriptor.hasPartition = true;
       imageDescriptor.numImageLayers = domain.get_volume();
       std::cout << __FUNCTION__ << " domain " << domain << std::endl;
       mImageDescriptor = imageDescriptor;
@@ -89,6 +91,7 @@ namespace Legion {
     }
     
     ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
+      imageDescriptor.hasPartition = false;
       mImageDescriptor = imageDescriptor;
       mRuntime = runtime;
       mDepthFunction = 0;
@@ -306,6 +309,16 @@ namespace Legion {
     }
     
     
+    void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor) {
+      mKDTree = kdtree_init(image_region_dimensions);
+      Rect<image_region_dimensions> rect = imageDescriptor.domain;
+      for (PointInRectIterator<image_region_dimensions> pir(rect); pir(); pir++) {
+        double coord[] = { (double)(*pir)[0], (double)(*pir)[1], (double)(*pir)[2] };
+        kdtree_insert(mKDTree, coord);
+      }
+      kdtree_rebuild(mKDTree);
+      kdtree_renumber(mKDTree);
+    }
     
     
     void ImageReduction::initial_task(const Task *task,
@@ -315,7 +328,7 @@ namespace Legion {
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
 #endif
-      
+      ImageDescriptor imageDescriptor = *((ImageDescriptor*)task->args);
       Processor processor = runtime->get_executing_processor(ctx);
       Machine::ProcessorQuery query(Machine::get_machine());
       query.only_kind(processor.kind());
@@ -327,6 +340,9 @@ namespace Legion {
         ImageDescriptor imageDescriptor = ((ImageDescriptor*)task->args)[0];
         storeMyNodeID(myNodeID, imageDescriptor.numImageLayers);
         createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
+      }
+      if(imageDescriptor.hasPartition) {
+        buildKDTree(imageDescriptor);
       }
     }
     
@@ -434,7 +450,16 @@ namespace Legion {
         memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
       }
       
-      IndexTaskLauncher everywhereLauncher(taskID, mEverywhereDomain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
+      // if imageDescriptor has a partition launch over the partition
+      // otherwise launch over the image everywhereDomain
+      Domain domain;
+      if(mImageDescriptor.hasPartition) {
+        domain = mImageDescriptor.domain;
+      } else {
+        domain = mEverywhereDomain;
+      }
+      
+      IndexTaskLauncher everywhereLauncher(taskID, domain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
       RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       everywhereLauncher.add_region_requirement(req);
