@@ -367,14 +367,20 @@ namespace Legion {
 
         virtual LogicalRegion project(LogicalPartition upper_bound, const DomainPoint &point, const Domain &launch_domain) {
           assert(false);
+          LogicalRegion result;
+          return result;
         }
 
         virtual LogicalRegion project(const Mappable *mappable, unsigned index, LogicalRegion upper_bound, const DomainPoint &point) {
           assert(false);
+          LogicalRegion result;
+          return result;
         }
 
         virtual LogicalRegion project(LogicalRegion upper_bound, const DomainPoint &point, const Domain &launch_domain) {
           assert(false);
+          LogicalRegion result;
+          return result;
         }
 
         
