@@ -46,6 +46,8 @@ public:
   
   void dump() const { dumpRecursive(mRoot); };
   
+  void colorMap(ElementType colorMap[]) const { colorMapRecursive(mRoot, colorMap); }
+  
 private:
   KDNode<N, DataType, ElementType>* mRoot;
   
@@ -106,6 +108,19 @@ private:
       dumpRecursive(node->mRight);
     }
   }
+  
+  void colorMapRecursive(KDNode<N, DataType, ElementType>* node, ElementType*& nextElement) const {
+    if(node->mIsLeaf) {
+      for(unsigned i = 0; i < N; ++i) {
+        (*nextElement)[i] = node->mValue[i];
+      }
+      nextElement++;
+    } else {
+      colorMapRecursive(node->mLeft, nextElement);
+      colorMapRecursive(node->mRight, nextElement);
+    }
+  }
+
   
 };
 

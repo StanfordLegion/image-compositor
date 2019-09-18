@@ -26,7 +26,11 @@ int main(int argc, char* argv[]) {
   }
   
   KDTree<3, int, ElementType> kdTree(elements, numElements);
-  kdTree.dump();
+  ElementType colorMap[numElements];
+  kdTree.colorMap(colorMap);
+  for(unsigned i = 0; i < numElements; ++i) {
+    std::cout << colorMap[i][0] << " " << colorMap[i][1] << " " << colorMap[i][2] << std::endl;
+  }
 }
 
 
