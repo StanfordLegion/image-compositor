@@ -48,6 +48,10 @@ public:
   
   void colorMap(ElementType colorMap[]) const { colorMapRecursive(mRoot, colorMap); }
   
+  KDNode<N, DataType, ElementType>* find(ElementType element) const {
+    return findRecursive(mRoot, element);
+  }
+  
 private:
   KDNode<N, DataType, ElementType>* mRoot;
   
@@ -121,6 +125,20 @@ private:
     }
   }
 
+  KDNode<N, DataType, ElementType>* findRecursive(KDNode<N, DataType, ElementType>* node,
+                                                  ElementType element) const {
+    if(node->mIsLeaf) {
+      for(unsigned i = 0; i < N; ++i) {
+        if(node->mValue[i] != element[i]) return nullptr;
+      }
+      return node;
+    }
+    KDNode<N, DataType, ElementType>* left = findRecursive(node->mLeft, element);
+    if(left != nullptr) return left;
+    KDNode<N, DataType, ElementType>* right = findRecursive(node->mRight, element);
+    if(right != nullptr) return right;
+    return nullptr;
+  }
   
 };
 

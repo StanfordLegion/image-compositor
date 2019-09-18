@@ -31,6 +31,16 @@ int main(int argc, char* argv[]) {
   for(unsigned i = 0; i < numElements; ++i) {
     std::cout << colorMap[i][0] << " " << colorMap[i][1] << " " << colorMap[i][2] << std::endl;
   }
+  
+  for(unsigned i = 0; i < numElements; ++i) {
+    KDNode<3, int, ElementType>* node = kdTree.find(elements[i]);
+    if(node == nullptr) {
+      std::cout << "could not find " << elements[i][0] << " " << elements[i][1] << " " << elements[i][2] << std::endl;
+    } else {
+      std::cout << elements[i][0] << " " << elements[i][1] << " " << elements[i][2] << " == ";
+      std::cout << node->mValue[0] << " " << node->mValue[1] << " " << node->mValue[2] << std::endl;
+    }
+  }
 }
 
 
