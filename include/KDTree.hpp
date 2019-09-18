@@ -14,22 +14,25 @@
 template<int N, typename SplitterType, typename ElementType>
 class KDNode {
 public:
-  KDNode() {
+  KDNode(KDNode<N, SplitterType, ElementType>* parent) {
     mIsLeaf = false;
     mLevel = 0;
     mLeft = mRight = nullptr;
+    mParent = parent;
   }
-  KDNode(ElementType element, unsigned level) {
+  KDNode(ElementType element, unsigned level, KDNode<N, SplitterType, ElementType>* parent) {
     mIsLeaf = true;
     memcpy(mValue, element, sizeof(ElementType));
     mLevel = level;
     mLeft = mRight = nullptr;
+    mParent = parent;
   }
   
   unsigned mLevel;
   SplitterType mSplitter;
   bool mIsLeaf;
   ElementType mValue;//only for leaf nodes
+  KDNode<N, SplitterType, ElementType>* mParent;
   KDNode<N, SplitterType, ElementType>* mLeft;
   KDNode<N, SplitterType, ElementType>* mRight;
 };
@@ -89,15 +92,21 @@ private:
     
   }
   
-  KDNode<N, DataType, ElementType>* buildKDTree(ElementType elements[], unsigned numElements, unsigned level) {
-    if(numElements == 1) return new KDNode<N, DataType, ElementType>(elements[0], level);
+  KDNode<N, DataType, ElementType>* buildKDTree(
+                                                ElementType elements[],
+                                                unsigned numElements,
+                                                unsigned level,
+                                                KDNode<N, DataType, ElementType>* parent = nullptr) {
+    if(numElements == 1) {
+      return new KDNode<N, DataType, ElementType>(elements[0], level, parent);
+    }
     sortElements(elements, numElements, level % N);
     unsigned medianIndex = numElements / 2;
-    KDNode<N, DataType, ElementType>* node = new KDNode<N, DataType, ElementType>();
+    KDNode<N, DataType, ElementType>* node = new KDNode<N, DataType, ElementType>(parent);
     node->mSplitter = elements[medianIndex][level % N];
     node->mLevel = level;
-    node->mLeft = buildKDTree(elements, medianIndex, level + 1);
-    node->mRight = buildKDTree(elements + medianIndex, medianIndex, level + 1);
+    node->mLeft = buildKDTree(elements, medianIndex, level + 1, node);
+    node->mRight = buildKDTree(elements + medianIndex, medianIndex, level + 1, node);
     return node;
   }
   
