@@ -16,6 +16,7 @@
 
 #include "legion_visualization.h"
 #include "image_reduction_composite.h"
+#include "image_reduction.h"
 
 #include "mappers/default_mapper.h"
 
@@ -23,6 +24,7 @@
 #include <fstream>
 #include <math.h>
 #include <stdlib.h>
+
 
 using namespace LegionRuntime::HighLevel;
 using namespace LegionRuntime::Accessor;
@@ -54,7 +56,7 @@ namespace Legion {
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
     MapperID gMapperID;
-    kdtree_t* mKDTree;
+    KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>* mKDTree;
     
     
     ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
@@ -80,7 +82,7 @@ namespace Legion {
       legion_field_id_t fieldID[6];
 
       createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
+      partitionImageByKDTree(mSourceImage, partition, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
       
       initializeNodes(runtime, context);
       
@@ -108,7 +110,7 @@ namespace Legion {
       legion_field_id_t fieldID[6];
 
       createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageEverywhere(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
+      partitionImageByImageDescriptor(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
 
       initializeNodes(runtime, context);
 
@@ -229,7 +231,7 @@ namespace Legion {
     }
     
     
-    void ImageReduction::partitionImageEverywhere(LogicalRegion image, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+    void ImageReduction::partitionImageByImageDescriptor(LogicalRegion image, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.numLayers() - Point<image_region_dimensions>::ONES();
@@ -250,6 +252,39 @@ namespace Legion {
       runtime->attach_name(partition, "everywherePartition");
       domain = runtime->get_index_space_domain(ctx, colorSpace);
     }
+    
+    void ImageReduction::partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+      buildKDTree(imageDescriptor, ctx);
+      ColorSpaceCoordinate sortedElements[mKDTree->size()];
+      mKDTree->colorMap(sortedElements);
+//      DomainColoring coloring;
+//      for(unsigned i = 0; i < mKDTree->size(); ++i) {
+//        coloring[i] = Domain::from_
+//      }
+      // our goal is to permute the image partition into
+      // KDTree traversal order
+      // stored the image coordinate in the KDTree leaves
+      // read them back out as the colorMap(sortedElements)
+      // now form a partition from these permuted colors
+      
+#if 0
+      IndexSpace is_parent = image.get_index_space();
+      Transform<image_region_dimensions, image_region_dimensions> identity;
+      for(unsigned i = 0; i < image_region_dimensions; ++i) {
+        for(unsigned j = 0; j < image_region_dimensions; ++j) identity[i][j] = 0;
+        identity[i][i] = 1;
+      }
+      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()
+      - Point<image_region_dimensions>::ONES();
+      Rect<image_region_dimensions> slice(p0, p2);
+      IndexPartition ip = runtime->create_partition_by_restriction(ctx,
+                                                                   is_parent, coloring, identity, slice);
+      partition = runtime->get_logical_partition(ctx, image, ip);
+      runtime->attach_name(partition, "everywherePartition");
+      domain = runtime->get_index_space_domain(ctx, colorSpace);
+#endif
+    }
+
     
     void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
       mNodeID = nodeID;
@@ -309,15 +344,23 @@ namespace Legion {
     }
     
     
-    void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor) {
-      mKDTree = kdtree_init(image_region_dimensions);
+    void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor,
+                                     Context ctx) {
       Rect<image_region_dimensions> rect = imageDescriptor.domain;
-      for (PointInRectIterator<image_region_dimensions> pir(rect); pir(); pir++) {
-        double coord[] = { (double)(*pir)[0], (double)(*pir)[1], (double)(*pir)[2] };
-        kdtree_insert(mKDTree, coord);
+      ColorSpaceCoordinate* elements = new ColorSpaceCoordinate[rect.volume()];
+      unsigned index = 0;
+      for(Domain::DomainPointIterator it(imageDescriptor.domain); it; it++) {
+        Point<image_region_dimensions> color(it);
+        for(unsigned j = 0; j < image_region_dimensions; ++j) {
+          elements[index][j] = color[j];
+        }
+        elements[index][image_region_dimensions] = index++;//store the partition order
       }
-      kdtree_rebuild(mKDTree);
-      kdtree_renumber(mKDTree);
+      
+      mKDTree = new KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>(elements, rect.volume());
+      delete [] elements;
+      char buffer[256];
+      std::cout << gethostname(buffer, sizeof(buffer)) << " pid " << getpid() << " built a KDTree and colormap with " << rect.volume() << " entries" << std::endl;
     }
     
     
@@ -342,7 +385,7 @@ namespace Legion {
         createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
       }
       if(imageDescriptor.hasPartition) {
-        buildKDTree(imageDescriptor);
+        buildKDTree(imageDescriptor, ctx);
       }
     }
     

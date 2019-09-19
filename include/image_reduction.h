@@ -41,12 +41,14 @@
 #include <unistd.h>
 
 #include "legion_c_util.h"
-#include "../third_party/kdtree/kdtree.h"
+#include "KDTree.hpp"
 
 
 namespace Legion {
   namespace Visualization {
     
+    typedef long int ColorSpaceCoordinate[image_region_dimensions + 1];
+
     
     class ImageReduction {
       
@@ -422,8 +424,8 @@ namespace Legion {
       FieldSpace imageFields(Context context);
       void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
-      void partitionImageEverywhere(LogicalRegion image, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
-      void partitionImageByFragment(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
+      void partitionImageByImageDescriptor(LogicalRegion image, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       
       FutureMap reduceAssociative(Context context);
       FutureMap reduceNonassociative(Context context);
@@ -432,7 +434,7 @@ namespace Legion {
       
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
       
-      static void buildKDTree(ImageDescriptor imageDescriptor);
+      static void buildKDTree(ImageDescriptor imageDescriptor, Context ctx);
 
       static void registerTasks();
       
@@ -492,7 +494,7 @@ namespace Legion {
       static TaskID mInitialTaskID;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
-      static kdtree_t* mKDTree;
+      static KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>* mKDTree;
     };
     
   }

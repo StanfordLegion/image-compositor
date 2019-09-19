@@ -43,6 +43,7 @@ class KDTree {
 public:
   KDTree(ElementType elements[], unsigned numElements) {
     mRoot = buildKDTree(elements, numElements, 0);
+    mNumElements = numElements;
   }
   
   KDNode<N, DataType, ElementType>* root() const{ return mRoot; }
@@ -55,8 +56,11 @@ public:
     return findRecursive(mRoot, element);
   }
   
+  unsigned size() const{ return mNumElements; }
+  
 private:
   KDNode<N, DataType, ElementType>* mRoot;
+  unsigned mNumElements;
   
   static int compare0(const void* element1, const void* element2) {
     ElementType* e1 = (ElementType*)element1;
@@ -124,9 +128,11 @@ private:
   
   void colorMapRecursive(KDNode<N, DataType, ElementType>* node, ElementType*& nextElement) const {
     if(node->mIsLeaf) {
-      for(unsigned i = 0; i < N; ++i) {
-        (*nextElement)[i] = node->mValue[i];
+      // return a permutation of the image subregions according to the KD tree order
+      for(unsigned i = 0; i < N - 1; ++i) {
+        (*nextElement)[i] = 0;
       }
+      (*nextElement)[N - 1] = node->mValue[N];//original position in partition order
       nextElement++;
     } else {
       colorMapRecursive(node->mLeft, nextElement);
