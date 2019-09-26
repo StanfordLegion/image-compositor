@@ -47,7 +47,7 @@
 namespace Legion {
   namespace Visualization {
     
-    typedef long int ColorSpaceCoordinate[image_region_dimensions + 1];
+    typedef long int ColorSpaceCoordinate[image_region_dimensions * 2 + 1];
 
     
     class ImageReduction {
@@ -147,7 +147,7 @@ namespace Legion {
        *
        * @param taskID ID of task that has previously been registered with the Legion runtime
        */
-      FutureMap launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void* args = NULL, int argLen = 0, bool blocking = false);
+      FutureMap launch_task_compositeImage(unsigned taskID, HighLevelRuntime* runtime, Context context, void* args = NULL, int argLen = 0, bool blocking = false);
       /**
        * Perform a tree reduction using an associative commutative operator.
        * Be sure to call either set_blend_func or set_depth_func first.
@@ -277,22 +277,40 @@ namespace Legion {
         return output.str();
       }
       /**
-       * obtain the everywhere domain, useful for index launches
+       * obtain the compositeImage domain, useful for index launches
        */
-      Domain everywhereDomain() const {
-        return mEverywhereDomain;
+      Domain compositeImageDomain() const {
+        return mCompositeImageDomain;
       }
       /*
-       * obtain the everywhere partition
+       * obtain the compositeImage partition
        */
-      LogicalPartition everywherePartition() const {
-        return mEverywherePartition;
+      LogicalPartition compositeImagePartition() const {
+        return mCompositeImagePartition;
       }
       /*
-       * obtain the everywhere color space
+       * obtain the compositeImage color space
        */
-      IndexSpace everywhereColorSpace() const {
-        return mEverywhereColorSpace;
+      IndexSpace compositeImageColorSpace() const {
+        return mCompositeImageColorSpace;
+      }
+      /**
+       * obtain the renderImage domain, useful for index launches
+       */
+      Domain renderImageDomain() const {
+        return mRenderImageDomain;
+      }
+      /**
+       * obtain the renderImage partition
+       */
+      LogicalPartition renderImagePartition() const {
+        return mRenderImagePartition;
+      }
+      /*
+       * obtain the renderImage color space
+       */
+      IndexSpace renderImageColorSpace() const {
+        return mRenderImageColorSpace;
       }
       /**
        * obtain the source image index space
@@ -422,10 +440,10 @@ namespace Legion {
       void initializeViewMatrix();
       void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       FieldSpace imageFields(Context context);
-      void createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
+      void createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
-      void partitionImageByImageDescriptor(LogicalRegion image, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
-      void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Domain &domain, LogicalPartition &partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageByImageDescriptor(LogicalRegion image, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       
       FutureMap reduceAssociative(Context context);
       FutureMap reduceNonassociative(Context context);
@@ -434,14 +452,14 @@ namespace Legion {
       
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
       
-      static void buildKDTree(ImageDescriptor imageDescriptor, Context ctx);
+      static void buildKDTree(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
 
       static void registerTasks();
       
       static void addImageFieldsToRequirement(RegionRequirement &req);
       
       
-      static void createImageFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
+      static void createImageRegionFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
                                           int fieldID,
                                           PixelField *&field,
                                           Rect<image_region_dimensions> imageBounds,
@@ -467,12 +485,14 @@ namespace Legion {
       LogicalRegion mSourceImage;
       FieldSpace mSourceImageFields;
       Domain mSourceImageDomain;
-      Domain mEverywhereDomain;
-      IndexSpace mEverywhereColorSpace;
-      Domain mCompositePipelineDomain;
+      Domain mCompositeImageDomain;
+      IndexSpace mCompositeImageColorSpace;
+      LogicalPartition mCompositeImagePartition;
+      Domain mRenderImageDomain;
+      IndexSpace mRenderImageColorSpace;
+      LogicalPartition mRenderImagePartition;
       Domain mDisplayDomain;
       Domain mSourceFragmentDomain;
-      LogicalPartition mEverywherePartition;
       GLenum mDepthFunction;
       int mAccessorFunctorID;
       MapperID mMapperID;

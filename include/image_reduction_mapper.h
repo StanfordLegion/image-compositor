@@ -16,33 +16,33 @@ public:
   ImageReductionMapper(MapperRuntime* rt, Machine machine, Processor local);
   
   virtual void slice_task(const MapperContext ctx,
-                          const Task& task,
+                          const Legion::Task& task,
                           const SliceTaskInput& input,
                           SliceTaskOutput& output);
   
   static void registerRenderTaskName(std::string name);
-  static bool isRenderTask(const Task& task);
-  static void clearPlacement(LogicalPartition partition);
+  static bool isRenderTask(const Legion::Task& task);
+  static void clearPlacement(Legion::LogicalPartition partition);
 
   
 private:
   
   Machine::ProcessorQuery getProcessorsFromTargetDomain(const MapperContext ctx,
-                                                        LogicalPartition partition,
+                                                        Legion::LogicalPartition partition,
                                                         Domain::DomainPointIterator it,
                                                         bool& result);
   
-  void sliceTaskOntoProcessor(Domain domain,
-                              Processor processor,
+  void sliceTaskOntoProcessor(Legion::Domain domain,
+                              Legion::Processor processor,
                               SliceTaskOutput& output);
   
   void sliceTaskAccordingToLogicalPartition(const MapperContext ctx,
-                                            const Task& task,
+                                            const Legion::Task& task,
                                             const SliceTaskInput& input,
                                             SliceTaskOutput& output);
   
   void sliceTaskAccordingToPreviousPartition(const MapperContext ctx,
-                                             const Task& task,
+                                             const Legion::Task& task,
                                              const SliceTaskInput& input,
                                              SliceTaskOutput& output);
 private:

@@ -26,8 +26,95 @@
 #include <stdlib.h>
 
 
-using namespace LegionRuntime::HighLevel;
 using namespace LegionRuntime::Accessor;
+
+/******************************************************************************
+ 
+ Theory of operation.
+ 
+ The image compositor maintains an Image 3D logical region.  This region is
+ partitioned in slices like a loaf of bread where each slice is an image.
+ 
+ The framework supports two constructors, an older constructor that is used
+ mainly for testing and a newer constructor that takes a simulation logical
+ partition as an argument.  We expect that applications will use the newer
+ constructor.
+ 
+ An application simulates, renders, and composites.  The framework is not
+ involved with the simulation.  The framework provides access to the necessary
+ logical partitions to index launch render operations, but those operations and
+ the corresponding render tasks are written by the simulation developer.  See
+ the README for a documented example.  After rendering is complete the
+ application requests the framework to composite the resulting images.
+ 
+ In order to ensure that compositing produces a correct result in the presence
+ of non-commutative blending operations the following algorithm is followed.
+ If the newer constructor is used this algorithm is followed regardless of the
+ type of compositing operator, as it is valid for commutative depth comparisons
+ as well as for blending.
+ 
+ The framework constructs a new logical partition of the Image region that will
+ be used only during the render step.  Call this the render image partition.
+ The render image partition has a permuted color space which has the effect of
+ permuting the individual images in the image logical region.  As a result of
+ this the render tasks will write their output into the image region in a
+ permuted order.
+ 
+ In order to construct the render image partition the framework inserts all of
+ the subregions from the simulation logical partition into a KD tree.  Each KD
+ tree entry is indexed by the simulation coordinates.  Each entry also stores
+ the coordinates of the corresponding subregion of the image region in linear
+ order from front to back.  To construct the rendering image partition the
+ framework traverses the KD tree in its natural order and retrieves the
+ coordinates of the corresponding image region.  These coordinates are used to
+ populate a new rendering color space which is a permutation of the original
+ image color space.  The framework uses this new color space to create a
+ render image partition in which the subregions are ordered by KD tree traversal
+ order rather than by the original linear order.
+ 
+ The framework also constructs a composite logical partition that is used for
+ the index task launch of the composite step.  This partition orders the images
+ linearly as in the loaf of bread analogy.  The composite projection functors
+ composite these images in a binary tree structure.  Since the images have been
+ written to the image region by the render step in correct compositing order
+ the resulting composite will be correct even in the present of blending
+ operators.
+ 
+ Note that is the first constructor is used then the framework will use the
+ composite logical partition for both rendering and compositing.  This is only
+ correct for commutative compositing operators like depth comparison.
+ 
+ 
+ 
+ @aheirich I've not read the text above yet, but please work out an example on paper using a 2-d grid with integer coordinates, an image plane volume with 3-d coordinates, a source partition color space using roman letters as color names (i.e. 'a', 'b', 'c', 'd') and a compositing partition color space using greek letters (i.e. alpha, beta, gamma, ...)
+ 
+ the goal is to produce a partition of the image plane volume with a color space made up of roman letters that is consistent with the compositing space partition (e.g. if subvolumes S4 and S12 are the first two leaves of the k-d tree and their colors in the source partition color space are 'b' and 'e', then the image plane colored 'b' in the synthesized partition must be the same image plane colored 'alpha' in the compositing partitiong, and the image plane colored 'e' in the syntheisized partition must be the same image plane colored 'beta' in hte compositing partition
+ e.g. if S4 and S12 are simulation subregions corresponding to the first two leaves of the KD tree;
+ the colors of S4 and S12 are b and d;
+ the render image partition has subregions I1, I2 with colors b and d;
+ renderImage[b] is the same subregion as compositeImage[alpha]
+ renderImage[d] is the same subregion as compositeImage[beta]
+ I think
+ 
+ there are at least two ways to achieve this based on a traversal of the k-d tree
+ and as is often the case in a strongly-typed world, if you can even construct a partition with the right types (i.e. colors that are roman letters and subvolumes that are image planes), you're most of the way there
+ 
+ Simulation logical region, index space in 2D = { 0,0 0,1 1,0 1,1 }
+ Image logical region, index space in 3D { 0,0,0 0,0,1 0,0,2 0,0,3 }
+ Simulation partition, color space { a, b, c, d }
+ Image compositing partition, color space { alpha, beta, gamma, delta }
+ 
+ constructing renderImage:
+ put the simulation coordinates in the KD tree.  For simplicity assume the simulation
+ coordinates are the same as the index space coordinates.  WLOG assume the KD tree
+ orders the coordinates { 0,1 1,1 0,0 1,0 }.  This corresponds to an ordering of the
+ simulation partition color space { b, d, a, c }.
+ now construct a renderImage partition where { b, d, a, c } corresponds to
+ { alpha, beta, gamma, delta } in compositeImage[].  How?
+ 
+ 
+ 
+ ******************************************************************************/
 
 
 namespace Legion {
@@ -59,6 +146,9 @@ namespace Legion {
     KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>* mKDTree;
     
     
+    /**
+     * Use this constructor with your simulation partition.
+     **/
     ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.logicalPartition = partition;
@@ -81,8 +171,9 @@ namespace Legion {
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
 
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageByKDTree(mSourceImage, partition, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
+      createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+      partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
+      partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
       
       initializeNodes(runtime, context);
       
@@ -92,6 +183,9 @@ namespace Legion {
       
     }
     
+    /**
+     * use this constructor for testing and applications that don't have a simulation partition.
+     **/
     ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       imageDescriptor.hasPartition = false;
       mImageDescriptor = imageDescriptor;
@@ -109,8 +203,11 @@ namespace Legion {
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
 
-      createImage(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-      partitionImageByImageDescriptor(mSourceImage, mEverywhereDomain, mEverywherePartition, mEverywhereColorSpace, context, runtime, imageDescriptor);
+      createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+      partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
+      mRenderImageColorSpace = mCompositeImageColorSpace;
+      mRenderImageDomain = mCompositeImageDomain;
+      mRenderImagePartition = mCompositeImagePartition;
 
       initializeNodes(runtime, context);
 
@@ -214,7 +311,7 @@ namespace Legion {
     }
     
     
-    void ImageReduction::createImage(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context) {
+    void ImageReduction::createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context) {
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> imageBounds(p0, p1);
@@ -231,12 +328,12 @@ namespace Legion {
     }
     
     
-    void ImageReduction::partitionImageByImageDescriptor(LogicalRegion image, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+    void ImageReduction::partitionImageByImageDescriptor(LogicalRegion image, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       Point<image_region_dimensions> p0;
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.numLayers() - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> color_bounds(p0, p1);
-      colorSpace = runtime->create_index_space(ctx, color_bounds);
+      mCompositeImageColorSpace = runtime->create_index_space(ctx, color_bounds);
       IndexSpace is_parent = image.get_index_space();
       Transform<image_region_dimensions, image_region_dimensions> identity;
       for(unsigned i = 0; i < image_region_dimensions; ++i) {
@@ -247,17 +344,53 @@ namespace Legion {
       - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> slice(p0, p2);
       IndexPartition ip = runtime->create_partition_by_restriction(ctx,
-                           is_parent, colorSpace, identity, slice);
-      partition = runtime->get_logical_partition(ctx, image, ip);
-      runtime->attach_name(partition, "everywherePartition");
-      domain = runtime->get_index_space_domain(ctx, colorSpace);
+                           is_parent, mCompositeImageColorSpace, identity, slice);
+      mCompositeImagePartition = runtime->get_logical_partition(ctx, image, ip);
+      runtime->attach_name(mCompositeImagePartition, "compositeImagePartition");
+      mCompositeImageDomain = runtime->get_index_space_domain(ctx, mCompositeImageColorSpace);
     }
     
-    void ImageReduction::partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Domain& domain, LogicalPartition& partition, IndexSpace& colorSpace, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
-      buildKDTree(imageDescriptor, ctx);
-      ColorSpaceCoordinate sortedElements[mKDTree->size()];
-      mKDTree->colorMap(sortedElements);
-//      DomainColoring coloring;
+    /*
+     * KDTree-based compositing
+     
+     Note: can we stop returning legion data structures from the init and make them all accessible through the image-compositor?
+     
+     
+     Case 1: no partition
+     Construct old linear image partition
+     Copy it to render partition
+     Create an accessor for the render partition
+     Change the name of the existing accessor to “CompositePartition”
+     
+     Case 2: partition
+     Construct old linear image partition
+     Construct new resorted render partition
+     
+     Modify render.cc to access new compositor and render partitions
+     In example_2 and soleil-x
+     
+     To construct the new render partition do this
+     The goal is to construct a partition with a permuted color map so that the rendered results will be placed into the correct positions in the compositor region.
+     We reorder the simulation subregions according to a KD Tree.
+     This gives a reordered color space according to the KD Tree traversal.
+     (We form a new partition of the image region using the source partition's color space and the position of the simulation volume within the kd tree to determine which image plane that volume does its volume rendering to.)
+     We reorder the entries of the source partition color space so that they correspond to the KDTree traversal order.   Then we repartition the image plane using that color space.  This will make the render tasks write to the permuted image region, so they are in correct compositing order.
+     sean: "the kd-tree is actually defining a mapping from image plane number -> color in simulation volume, but what we are capturing in this second image plane partition is the inverse: color in simulation volume back to image plane number"
+     
+     When we index launch the render tasks we launch them in order according to the simulation partition.
+     We make a region requirement for the simulation subdomain, and another for the image render subdomain.
+     The image render partition is ordered according to the KD Tree traversal.
+     The simulation partition still has its original ordering so each render task will read from a successive simulation subdomain, but will write to a permuted location in the image region.
+     After rendering we launch the composite task, using the old image partition, and the existing projection functors.
+     The projection functors know how to work with this partition.
+
+     */
+    
+    void ImageReduction::partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+      mRenderImageColorSpace = runtime->create_index_space(ctx, imageDescriptor.domain);
+      buildKDTree(imageDescriptor, ctx, runtime);
+      //DomainColoring coloring;
+      //mKDTree->colorMap(coloring, imageDescriptor);
 //      for(unsigned i = 0; i < mKDTree->size(); ++i) {
 //        coloring[i] = Domain::from_
 //      }
@@ -280,7 +413,7 @@ namespace Legion {
       IndexPartition ip = runtime->create_partition_by_restriction(ctx,
                                                                    is_parent, coloring, identity, slice);
       partition = runtime->get_logical_partition(ctx, image, ip);
-      runtime->attach_name(partition, "everywherePartition");
+      runtime->attach_name(partition, "compositeImagePartition");
       domain = runtime->get_index_space_domain(ctx, colorSpace);
 #endif
     }
@@ -345,16 +478,21 @@ namespace Legion {
     
     
     void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor,
-                                     Context ctx) {
+                                     Context ctx,
+                                     HighLevelRuntime *runtime) {
       Rect<image_region_dimensions> rect = imageDescriptor.domain;
       ColorSpaceCoordinate* elements = new ColorSpaceCoordinate[rect.volume()];
       unsigned index = 0;
       for(Domain::DomainPointIterator it(imageDescriptor.domain); it; it++) {
         Point<image_region_dimensions> color(it);
+        IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.logicalPartition.get_index_partition(), color);
+        Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
+        LegionRuntime::Arrays::Rect<image_region_dimensions> rect = subdomain.get_rect<image_region_dimensions>();
         for(unsigned j = 0; j < image_region_dimensions; ++j) {
-          elements[index][j] = color[j];
+          elements[index][j] = rect.lo[j];
+          elements[index][j + image_region_dimensions] = rect.hi[j];
         }
-        elements[index][image_region_dimensions] = index++;//store the partition order
+        elements[index][2 * image_region_dimensions] = index++;//store the partition order
       }
       
       mKDTree = new KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>(elements, rect.volume());
@@ -385,13 +523,13 @@ namespace Legion {
         createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
       }
       if(imageDescriptor.hasPartition) {
-        buildKDTree(imageDescriptor, ctx);
+        buildKDTree(imageDescriptor, ctx, runtime);
       }
     }
     
     
     void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
-      launch_task_everywhere(mInitialTaskID, runtime, context, NULL, 0, true);
+      launch_task_compositeImage(mInitialTaskID, runtime, context, NULL, 0, true);
     }
     
     
@@ -483,7 +621,7 @@ namespace Legion {
     }
     
     
-    FutureMap ImageReduction::launch_task_everywhere(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
+    FutureMap ImageReduction::launch_task_compositeImage(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
       
       ArgumentMap argMap;
       int totalArgLen = sizeof(mImageDescriptor) + argLen;
@@ -494,20 +632,20 @@ namespace Legion {
       }
       
       // if imageDescriptor has a partition launch over the partition
-      // otherwise launch over the image everywhereDomain
+      // otherwise launch over the image compositeImageDomain
       Domain domain;
       if(mImageDescriptor.hasPartition) {
         domain = mImageDescriptor.domain;
       } else {
-        domain = mEverywhereDomain;
+        domain = mCompositeImageDomain;
       }
       
-      IndexTaskLauncher everywhereLauncher(taskID, domain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
-      RegionRequirement req(mEverywherePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
+      IndexTaskLauncher compositeImageLauncher(taskID, domain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
+      RegionRequirement req(mCompositeImagePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
-      everywhereLauncher.add_region_requirement(req);
+      compositeImageLauncher.add_region_requirement(req);
       
-      FutureMap futures = runtime->execute_index_space(context, everywhereLauncher);
+      FutureMap futures = runtime->execute_index_space(context, compositeImageLauncher);
       
       if(blocking) {
         futures.wait_all_results();
@@ -606,7 +744,7 @@ namespace Legion {
       int maxTreeLevel = numTreeLevels(mImageDescriptor);
       if(maxTreeLevel > 0) {
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
-                                   mCompositeTaskID, mEverywherePartition, mSourceImage,
+                                   mCompositeTaskID, mCompositeImagePartition, mSourceImage,
                                    mRuntime, context, mNodeID, maxTreeLevel);
       } else {
         return FutureMap();
@@ -852,7 +990,7 @@ namespace Legion {
       DisplayArguments args = { mImageDescriptor, t };
       TaskLauncher taskLauncher(mDisplayTaskID, TaskArgument(&args, sizeof(args)));
       DomainPoint origin = DomainPoint(Point<image_region_dimensions>::ZEROES());
-      LogicalRegion displayPlane = mRuntime->get_logical_subregion_by_color(mEverywherePartition, origin);
+      LogicalRegion displayPlane = mRuntime->get_logical_subregion_by_color(mCompositeImagePartition, origin);
       RegionRequirement req(displayPlane, READ_ONLY, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       taskLauncher.add_region_requirement(req);

@@ -11,6 +11,11 @@
 #include <cstring>
 #include <iostream>
 
+#include "legion_visualization.h"
+
+using namespace Legion::Visualization;
+using namespace LegionRuntime::HighLevel;
+
 template<int N, typename SplitterType, typename ElementType>
 class KDNode {
 public:
@@ -50,7 +55,11 @@ public:
   
   void dump() const { dumpRecursive(mRoot); };
   
-  void colorMap(ElementType colorMap[]) const { colorMapRecursive(mRoot, colorMap); }
+  void colorMap(int coloring[], ImageDescriptor imageDescriptor) {
+    unsigned zero = 0;
+    colorMapRecursive(mRoot, coloring, zero, imageDescriptor);
+    
+  }
   
   KDNode<N, DataType, ElementType>* find(ElementType element) const {
     return findRecursive(mRoot, element);
@@ -126,17 +135,20 @@ private:
     }
   }
   
-  void colorMapRecursive(KDNode<N, DataType, ElementType>* node, ElementType*& nextElement) const {
+  void colorMapRecursive(KDNode<N, DataType,
+                         ElementType>* node, int coloring[],
+                         unsigned& index,
+                         ImageDescriptor imageDescriptor) {
     if(node->mIsLeaf) {
       // return a permutation of the image subregions according to the KD tree order
-      for(unsigned i = 0; i < N - 1; ++i) {
-        (*nextElement)[i] = 0;
-      }
-      (*nextElement)[N - 1] = node->mValue[N];//original position in partition order
-      nextElement++;
+      int imageIndex = node->mValue[2 * image_region_dimensions];
+      Point<image_region_dimensions> p0(0, 0, imageIndex);
+      Point<image_region_dimensions> p1(imageDescriptor.width, imageDescriptor.height, imageIndex);
+      Rect<image_region_dimensions> rect(p0, p1);
+      coloring[index++] = imageIndex; // Domain::from_rect<image_region_dimensions>(rect);
     } else {
-      colorMapRecursive(node->mLeft, nextElement);
-      colorMapRecursive(node->mRight, nextElement);
+      colorMapRecursive(node->mLeft, coloring, index, imageDescriptor);
+      colorMapRecursive(node->mRight, coloring, index, imageDescriptor);;
     }
   }
 
