@@ -47,9 +47,6 @@
 namespace Legion {
   namespace Visualization {
     
-    typedef long int ColorSpaceCoordinate[image_region_dimensions * 2 + 1];
-
-    
     class ImageReduction {
       
     private:
@@ -291,7 +288,7 @@ namespace Legion {
       /*
        * obtain the compositeImage color space
        */
-      IndexSpace compositeImageColorSpace() const {
+      Domain compositeImageColorSpace() const {
         return mCompositeImageColorSpace;
       }
       /**
@@ -309,7 +306,7 @@ namespace Legion {
       /*
        * obtain the renderImage color space
        */
-      IndexSpace renderImageColorSpace() const {
+      Domain renderImageColorSpace() const {
         return mRenderImageColorSpace;
       }
       /**
@@ -486,10 +483,10 @@ namespace Legion {
       FieldSpace mSourceImageFields;
       Domain mSourceImageDomain;
       Domain mCompositeImageDomain;
-      IndexSpace mCompositeImageColorSpace;
+      Domain mCompositeImageColorSpace;
       LogicalPartition mCompositeImagePartition;
       Domain mRenderImageDomain;
-      IndexSpace mRenderImageColorSpace;
+      Domain mRenderImageColorSpace;
       LogicalPartition mRenderImagePartition;
       Domain mDisplayDomain;
       Domain mSourceFragmentDomain;
@@ -514,7 +511,7 @@ namespace Legion {
       static TaskID mInitialTaskID;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
-      static KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>* mKDTree;
+      static KDTree<image_region_dimensions, long long int>* mKDTree;
     };
     
   }

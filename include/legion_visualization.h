@@ -28,10 +28,10 @@ namespace Legion {
       int width;
       int height;
       int numImageLayers;
-      LogicalPartition logicalPartition;
-      Domain domain;
+      LogicalPartition simulationLogicalPartition;
+      Domain simulationDomain;
+      Domain simulationColorSpace;
       bool hasPartition;
-      
       
       int pixelsPerLayer() const{ return width * height; }
       

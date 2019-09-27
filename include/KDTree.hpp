@@ -12,22 +12,29 @@
 #include <iostream>
 
 #include "legion_visualization.h"
+#include "legion.h"
 
 using namespace Legion::Visualization;
 using namespace LegionRuntime::HighLevel;
 
-template<int N, typename SplitterType, typename ElementType>
+typedef struct {
+  Rect<image_region_dimensions> extent;
+  Legion::DomainPoint color;
+} KDTreeValue;
+
+
+template<int N, typename SplitterType>
 class KDNode {
 public:
-  KDNode(KDNode<N, SplitterType, ElementType>* parent) {
+  KDNode(KDNode<N, SplitterType>* parent) {
     mIsLeaf = false;
     mLevel = 0;
     mLeft = mRight = nullptr;
     mParent = parent;
   }
-  KDNode(ElementType element, unsigned level, KDNode<N, SplitterType, ElementType>* parent) {
+  KDNode(KDTreeValue element, unsigned level, KDNode<N, SplitterType>* parent) {
     mIsLeaf = true;
-    memcpy(mValue, element, sizeof(ElementType));
+    mValue = element;
     mLevel = level;
     mLeft = mRight = nullptr;
     mParent = parent;
@@ -36,94 +43,93 @@ public:
   unsigned mLevel;
   SplitterType mSplitter;
   bool mIsLeaf;
-  ElementType mValue;//only for leaf nodes
-  KDNode<N, SplitterType, ElementType>* mParent;
-  KDNode<N, SplitterType, ElementType>* mLeft;
-  KDNode<N, SplitterType, ElementType>* mRight;
+  KDTreeValue mValue;//only for leaf nodes
+  KDNode<N, SplitterType>* mParent;
+  KDNode<N, SplitterType>* mLeft;
+  KDNode<N, SplitterType>* mRight;
 };
 
 
-template<unsigned N, typename DataType, typename ElementType>
+template<unsigned N, typename DataType>
 class KDTree {
 public:
-  KDTree(ElementType elements[], unsigned numElements) {
+  KDTree(KDTreeValue elements[], unsigned numElements) {
     mRoot = buildKDTree(elements, numElements, 0);
     mNumElements = numElements;
   }
   
-  KDNode<N, DataType, ElementType>* root() const{ return mRoot; }
+  KDNode<N, DataType>* root() const{ return mRoot; }
   
   void dump() const { dumpRecursive(mRoot); };
   
-  void colorMap(int coloring[], ImageDescriptor imageDescriptor) {
+  void getColorMap(Legion::DomainPoint* coloring) {
     unsigned zero = 0;
-    colorMapRecursive(mRoot, coloring, zero, imageDescriptor);
-    
+    getColorMapRecursive(mRoot, coloring, zero);
   }
   
-  KDNode<N, DataType, ElementType>* find(ElementType element) const {
+  KDNode<N, DataType>* find(KDTreeValue element) const {
     return findRecursive(mRoot, element);
   }
   
-  unsigned size() const{ return mNumElements; }
+  int size() const{ return mNumElements; }
   
 private:
-  KDNode<N, DataType, ElementType>* mRoot;
-  unsigned mNumElements;
+  KDNode<N, DataType>* mRoot;
+  int mNumElements;
   
   static int compare0(const void* element1, const void* element2) {
-    ElementType* e1 = (ElementType*)element1;
-    ElementType* e2 = (ElementType*)element2;
-    if(*e1[0] < *e2[0]) return -1;
-    if(*e1[0] > *e2[0]) return +1;
+    KDTreeValue* e1 = (KDTreeValue*)element1;
+    KDTreeValue* e2 = (KDTreeValue*)element2;
+    if(e1->extent.lo[0] < e2->extent.lo[0]) return -1;
+    if(e1->extent.lo[0] > e2->extent.lo[0]) return +1;
     return 0;
   }
   static int compare1(const void* element1, const void* element2) {
-    ElementType* e1 = (ElementType*)element1;
-    ElementType* e2 = (ElementType*)element2;
-    if(*e1[1] < *e2[1]) return -1;
-    if(*e1[1] > *e2[1]) return +1;
+    KDTreeValue* e1 = (KDTreeValue*)element1;
+    KDTreeValue* e2 = (KDTreeValue*)element2;
+    if(e1->extent.lo[1] < e2->extent.lo[1]) return -1;
+    if(e1->extent.lo[1] > e2->extent.lo[1]) return +1;
     return 0;
   }
   static int compare2(const void* element1, const void* element2) {
-    ElementType* e1 = (ElementType*)element1;
-    ElementType* e2 = (ElementType*)element2;
-    if(*e1[2] < *e2[2]) return -1;
-    if(*e1[2] > *e2[2]) return +1;
+    KDTreeValue* e1 = (KDTreeValue*)element1;
+    KDTreeValue* e2 = (KDTreeValue*)element2;
+    if(e1->extent.lo[2] < e2->extent.lo[2]) return -1;
+    if(e1->extent.lo[2] > e2->extent.lo[2]) return +1;
     return 0;
   }
-
-  void sortElements(ElementType elements[], unsigned numElements, unsigned index) {
+  
+  void sortElements(KDTreeValue elements[], unsigned numElements, unsigned index) {
     switch(index) {
-      case 0: qsort(elements, numElements, sizeof(ElementType), compare0);
+      case 0: qsort(elements, numElements, sizeof(KDTreeValue), compare0);
         break;
-      case 1: qsort(elements, numElements, sizeof(ElementType), compare1);
+      case 1: qsort(elements, numElements, sizeof(KDTreeValue), compare1);
         break;
-      case 2: qsort(elements, numElements, sizeof(ElementType), compare2);
+      case 2: qsort(elements, numElements, sizeof(KDTreeValue), compare2);
         break;
     }
     
   }
   
-  KDNode<N, DataType, ElementType>* buildKDTree(
-                                                ElementType elements[],
-                                                unsigned numElements,
-                                                unsigned level,
-                                                KDNode<N, DataType, ElementType>* parent = nullptr) {
+  KDNode<N, DataType>* buildKDTree(
+                                   KDTreeValue elements[],
+                                   unsigned numElements,
+                                   unsigned level,
+                                   KDNode<N, DataType>* parent = nullptr) {
     if(numElements == 1) {
-      return new KDNode<N, DataType, ElementType>(elements[0], level, parent);
+      return new KDNode<N, DataType>(elements[0], level, parent);
     }
     sortElements(elements, numElements, level % N);
     unsigned medianIndex = numElements / 2;
-    KDNode<N, DataType, ElementType>* node = new KDNode<N, DataType, ElementType>(parent);
-    node->mSplitter = elements[medianIndex][level % N];
+    KDNode<N, DataType>* node = new KDNode<N, DataType>(parent);
+    node->mSplitter = elements[medianIndex].extent.lo[level % N];
     node->mLevel = level;
     node->mLeft = buildKDTree(elements, medianIndex, level + 1, node);
     node->mRight = buildKDTree(elements + medianIndex, medianIndex, level + 1, node);
     return node;
   }
   
-  void dumpRecursive(KDNode<N, DataType, ElementType>* node) const {
+  void dumpRecursive(KDNode<N, DataType>* node) const {
     if(node->mIsLeaf) {
       for(unsigned i = 0; i < N; ++i) {
         std::cout << node->mValue[i] << " ";
@@ -135,34 +141,32 @@ private:
     }
   }
   
-  void colorMapRecursive(KDNode<N, DataType,
-                         ElementType>* node, int coloring[],
-                         unsigned& index,
-                         ImageDescriptor imageDescriptor) {
+  void getColorMapRecursive(KDNode<N, DataType>* node,
+                            Legion::DomainPoint* coloring,
+                            unsigned& index) {
     if(node->mIsLeaf) {
       // return a permutation of the image subregions according to the KD tree order
-      int imageIndex = node->mValue[2 * image_region_dimensions];
-      Point<image_region_dimensions> p0(0, 0, imageIndex);
-      Point<image_region_dimensions> p1(imageDescriptor.width, imageDescriptor.height, imageIndex);
-      Rect<image_region_dimensions> rect(p0, p1);
-      coloring[index++] = imageIndex; // Domain::from_rect<image_region_dimensions>(rect);
+      for(unsigned i = 0; i < image_region_dimensions; ++i) {
+        coloring[index] = node->mValue.color;
+      }
+      index++;
     } else {
-      colorMapRecursive(node->mLeft, coloring, index, imageDescriptor);
-      colorMapRecursive(node->mRight, coloring, index, imageDescriptor);;
+      getColorMapRecursive(node->mLeft, coloring, index);
+      getColorMapRecursive(node->mRight, coloring, index);
     }
   }
-
-  KDNode<N, DataType, ElementType>* findRecursive(KDNode<N, DataType, ElementType>* node,
-                                                  ElementType element) const {
+  
+  KDNode<N, DataType>* findRecursive(KDNode<N, DataType>* node,
+                                     KDTreeValue element) const {
     if(node->mIsLeaf) {
       for(unsigned i = 0; i < N; ++i) {
-        if(node->mValue[i] != element[i]) return nullptr;
+        if(node->mValue[i].extent != element.extent) return nullptr;
       }
       return node;
     }
-    KDNode<N, DataType, ElementType>* left = findRecursive(node->mLeft, element);
+    KDNode<N, DataType>* left = findRecursive(node->mLeft, element);
     if(left != nullptr) return left;
-    KDNode<N, DataType, ElementType>* right = findRecursive(node->mRight, element);
+    KDNode<N, DataType>* right = findRecursive(node->mRight, element);
     if(right != nullptr) return right;
     return nullptr;
   }

@@ -143,7 +143,7 @@ namespace Legion {
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
     MapperID gMapperID;
-    KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>* mKDTree;
+    KDTree<image_region_dimensions, long long int>* mKDTree;
     
     
     /**
@@ -151,8 +151,10 @@ namespace Legion {
      **/
     ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
-      imageDescriptor.logicalPartition = partition;
-      imageDescriptor.domain = domain;
+      imageDescriptor.simulationLogicalPartition = partition;
+      imageDescriptor.simulationColorSpace = 
+        runtime->get_index_partition_color_space(context, partition.get_index_partition());
+      imageDescriptor.simulationDomain = domain;
       imageDescriptor.hasPartition = true;
       imageDescriptor.numImageLayers = domain.get_volume();
       std::cout << __FUNCTION__ << " domain " << domain << std::endl;
@@ -333,7 +335,7 @@ namespace Legion {
       p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.numLayers() - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> color_bounds(p0, p1);
-      mCompositeImageColorSpace = runtime->create_index_space(ctx, color_bounds);
+      IndexSpace colorIndexSpace = runtime->create_index_space(ctx, color_bounds);
       IndexSpace is_parent = image.get_index_space();
       Transform<image_region_dimensions, image_region_dimensions> identity;
       for(unsigned i = 0; i < image_region_dimensions; ++i) {
@@ -344,10 +346,10 @@ namespace Legion {
       - Point<image_region_dimensions>::ONES();
       Rect<image_region_dimensions> slice(p0, p2);
       IndexPartition ip = runtime->create_partition_by_restriction(ctx,
-                           is_parent, mCompositeImageColorSpace, identity, slice);
+                           is_parent, colorIndexSpace, identity, slice);
       mCompositeImagePartition = runtime->get_logical_partition(ctx, image, ip);
       runtime->attach_name(mCompositeImagePartition, "compositeImagePartition");
-      mCompositeImageDomain = runtime->get_index_space_domain(ctx, mCompositeImageColorSpace);
+      mCompositeImageDomain = runtime->get_index_space_domain(ctx, colorIndexSpace);
     }
     
     /*
@@ -387,35 +389,17 @@ namespace Legion {
      */
     
     void ImageReduction::partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
-      mRenderImageColorSpace = runtime->create_index_space(ctx, imageDescriptor.domain);
+      mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
       buildKDTree(imageDescriptor, ctx, runtime);
-      //DomainColoring coloring;
-      //mKDTree->colorMap(coloring, imageDescriptor);
-//      for(unsigned i = 0; i < mKDTree->size(); ++i) {
-//        coloring[i] = Domain::from_
-//      }
-      // our goal is to permute the image partition into
-      // KDTree traversal order
-      // stored the image coordinate in the KDTree leaves
-      // read them back out as the colorMap(sortedElements)
-      // now form a partition from these permuted colors
-      
-#if 0
-      IndexSpace is_parent = image.get_index_space();
-      Transform<image_region_dimensions, image_region_dimensions> identity;
-      for(unsigned i = 0; i < image_region_dimensions; ++i) {
-        for(unsigned j = 0; j < image_region_dimensions; ++j) identity[i][j] = 0;
-        identity[i][i] = 1;
+      Legion::DomainPoint *coloring = new Legion::DomainPoint[mKDTree->size()];
+      mKDTree->getColorMap(coloring);
+      DomainColoring domainColoring;
+      for(unsigned i = 0; i < mKDTree->size(); ++i) {
+        domainColoring[i] = coloring[i];
       }
-      Point<image_region_dimensions> p2 = imageDescriptor.layerSize()
-      - Point<image_region_dimensions>::ONES();
-      Rect<image_region_dimensions> slice(p0, p2);
-      IndexPartition ip = runtime->create_partition_by_restriction(ctx,
-                                                                   is_parent, coloring, identity, slice);
-      partition = runtime->get_logical_partition(ctx, image, ip);
-      runtime->attach_name(partition, "compositeImagePartition");
-      domain = runtime->get_index_space_domain(ctx, colorSpace);
-#endif
+      delete [] coloring;
+      IndexPartition ip = runtime->create_index_partition(ctx, mSourceImage.get_index_space(), mSourceImageDomain, domainColoring, true);
+      LogicalPartition mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, ip);
     }
 
     
@@ -480,22 +464,19 @@ namespace Legion {
     void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor,
                                      Context ctx,
                                      HighLevelRuntime *runtime) {
-      Rect<image_region_dimensions> rect = imageDescriptor.domain;
-      ColorSpaceCoordinate* elements = new ColorSpaceCoordinate[rect.volume()];
+      Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
+      KDTreeValue* elements = new KDTreeValue[rect.volume()];
       unsigned index = 0;
-      for(Domain::DomainPointIterator it(imageDescriptor.domain); it; it++) {
-        Point<image_region_dimensions> color(it);
-        IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.logicalPartition.get_index_partition(), color);
+      for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
+        DomainPoint color(it);
+        IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
         Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
         LegionRuntime::Arrays::Rect<image_region_dimensions> rect = subdomain.get_rect<image_region_dimensions>();
-        for(unsigned j = 0; j < image_region_dimensions; ++j) {
-          elements[index][j] = rect.lo[j];
-          elements[index][j + image_region_dimensions] = rect.hi[j];
-        }
-        elements[index][2 * image_region_dimensions] = index++;//store the partition order
+        KDTreeValue value = { rect, color };
+        elements[index++] = value;
       }
       
-      mKDTree = new KDTree<image_region_dimensions, long int, ColorSpaceCoordinate>(elements, rect.volume());
+      mKDTree = new KDTree<image_region_dimensions, long long int>(elements, rect.volume());
       delete [] elements;
       char buffer[256];
       std::cout << gethostname(buffer, sizeof(buffer)) << " pid " << getpid() << " built a KDTree and colormap with " << rect.volume() << " entries" << std::endl;
@@ -635,7 +616,7 @@ namespace Legion {
       // otherwise launch over the image compositeImageDomain
       Domain domain;
       if(mImageDescriptor.hasPartition) {
-        domain = mImageDescriptor.domain;
+        domain = mImageDescriptor.simulationDomain;
       } else {
         domain = mCompositeImageDomain;
       }

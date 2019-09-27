@@ -107,8 +107,8 @@ void ImageReductionMapper::sliceTaskAccordingToLogicalPartition(const MapperCont
                                                                 SliceTaskOutput& output) {
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)task.args;
   Legion::Domain sourceDomain = input.domain;
-  Legion::Domain targetDomain = imageDescriptor->domain;
-  Legion::LogicalPartition targetPartition = imageDescriptor->logicalPartition;
+  Legion::Domain targetDomain = imageDescriptor->simulationDomain;
+  Legion::LogicalPartition targetPartition = imageDescriptor->simulationLogicalPartition;
   Domain::DomainPointIterator targetIt(targetDomain);
   
   const int dim = 3;
@@ -144,7 +144,7 @@ void ImageReductionMapper::sliceTaskAccordingToPreviousPartition(const MapperCon
                                                                  const SliceTaskInput& input,
                                                                  SliceTaskOutput& output) {
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)task.args;
-  Legion::LogicalPartition targetPartition = imageDescriptor->logicalPartition;
+  Legion::LogicalPartition targetPartition = imageDescriptor->simulationLogicalPartition;
 
   unsigned counter = 0;
   for(std::vector<Placement>::iterator procIt = gPlacement[targetPartition].begin();
