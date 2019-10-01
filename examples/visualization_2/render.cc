@@ -234,8 +234,8 @@ extern "C" {
     RegionPartition result;
     result.indexSpace = CObjectWrapper::wrap(compositor->sourceIndexSpace());
     result.imageX = CObjectWrapper::wrap(compositor->sourceImage());
-    result.colorSpace = CObjectWrapper::wrap(compositor->everywhereColorSpace());
-    result.p_Image = CObjectWrapper::wrap(compositor->everywherePartition());
+    result.colorSpace = CObjectWrapper::wrap(compositor->compositeImageColorSpace());
+    result.p_Image = CObjectWrapper::wrap(compositor->compositeImagePartition());
     compositor->sourceImageFields(ctx, result.imageFields);
     return result;
   }
@@ -274,9 +274,9 @@ extern "C" {
     
     Visualization::ImageReduction* compositor = gImageCompositor;
     if(firstTime) {
-      ImageReductionProjectionFunctor* functor0 = new ImageReductionProjectionFunctor(compositor->everywhereDomain(), p);
+      ImageReductionProjectionFunctor* functor0 = new ImageReductionProjectionFunctor(compositor->compositeImageDomain(), p);
       runtime->register_projection_functor(1, functor0);
-      ImageReductionProjectionFunctor* functor1 = new ImageReductionProjectionFunctor(compositor->everywhereDomain(), compositor->everywherePartition());
+      ImageReductionProjectionFunctor* functor1 = new ImageReductionProjectionFunctor(compositor->compositeImageDomain(), compositor->compositeImagePartition());
       runtime->register_projection_functor(2, functor1);
     }
     
@@ -289,7 +289,7 @@ extern "C" {
     // ImageDescriptor must be the first argument to the render task
     memcpy(args, (char*)&imageDescriptor, sizeof(ImageDescriptor));
     memcpy(args + sizeof(ImageDescriptor), (char*)&camera, sizeof(camera));
-    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->everywhereDomain(), TaskArgument(args, argSize),
+    IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->compositeImageDomain(), TaskArgument(args, argSize),
                                      argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
     
     RegionRequirement req0(p, 1, READ_ONLY, EXCLUSIVE, r, gImageReductionMapperID);
@@ -298,7 +298,7 @@ extern "C" {
     }
     renderLauncher.add_region_requirement(req0);
     
-    RegionRequirement req1(compositor->everywherePartition(), 2, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
+    RegionRequirement req1(compositor->renderImagePartition(), 2, WRITE_DISCARD, EXCLUSIVE, image->get_logical_region(), gImageReductionMapperID);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_R);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_G);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_B);
@@ -323,13 +323,13 @@ extern "C" {
   
   
   
-  void cxx_reduce(legion_context_t ctx_) {
+  void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) {
     
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_depth_func(GL_LESS);
     //FutureMap futures = compositor->reduce_associative_noncommutative(ctx);
-    FutureMap futures = compositor->reduce_associative_commutative(ctx);
+    FutureMap futures = compositor->reduceImages(ctx, cameraAt);
     futures.wait_all_results();
   }
   
@@ -350,7 +350,7 @@ extern "C" {
     strcpy(args + sizeof(imageDescriptor), outDir);
     TaskLauncher saveImageLauncher(gSaveImageTaskID, TaskArgument(args, argLen), Predicate::TRUE_PRED, gImageReductionMapperID);
     DomainPoint slice0 = Point<3>::ZEROES();
-    LogicalRegion imageSlice0 = runtime->get_logical_subregion_by_color(compositor->everywherePartition(), slice0);
+    LogicalRegion imageSlice0 = runtime->get_logical_subregion_by_color(compositor->compositeImagePartition(), slice0);
     RegionRequirement req(imageSlice0, READ_ONLY, EXCLUSIVE, compositor->sourceImage());
     saveImageLauncher.add_region_requirement(req);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_R);
@@ -380,9 +380,9 @@ extern "C" {
     char args[argLen] = { 0 };
     memcpy(args, &imageDescriptor, sizeof(imageDescriptor));
     strcpy(args + sizeof(imageDescriptor), outDir);
-    IndexTaskLauncher saveImageLauncher(gSaveImageTaskID, compositor->everywhereDomain(), TaskArgument(args, argLen),
+    IndexTaskLauncher saveImageLauncher(gSaveImageTaskID, compositor->compositeImageDomain(), TaskArgument(args, argLen),
                                      argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
-    RegionRequirement req(compositor->everywherePartition(), 0, READ_ONLY, EXCLUSIVE, compositor->sourceImage(), gImageReductionMapperID);
+    RegionRequirement req(compositor->compositeImagePartition(), 0, READ_ONLY, EXCLUSIVE, compositor->sourceImage(), gImageReductionMapperID);
     saveImageLauncher.add_region_requirement(req);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_R);
     saveImageLauncher.add_field(0/*idx*/, Visualization::ImageReduction::FID_FIELD_G);

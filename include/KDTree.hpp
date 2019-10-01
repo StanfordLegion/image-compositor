@@ -18,8 +18,8 @@ using namespace Legion::Visualization;
 using namespace LegionRuntime::HighLevel;
 
 typedef struct {
-  Rect<image_region_dimensions> extent;
-  Legion::DomainPoint color;
+  Legion::Rect<image_region_dimensions> extent;
+  Legion::Point<image_region_dimensions> color;
 } KDTreeValue;
 
 
@@ -39,7 +39,7 @@ public:
     mLeft = mRight = nullptr;
     mParent = parent;
   }
-  
+
   unsigned mLevel;
   SplitterType mSplitter;
   bool mIsLeaf;
@@ -57,26 +57,26 @@ public:
     mRoot = buildKDTree(elements, numElements, 0);
     mNumElements = numElements;
   }
-  
+
   KDNode<N, DataType>* root() const{ return mRoot; }
-  
+
   void dump() const { dumpRecursive(mRoot); };
-  
-  void getColorMap(Legion::DomainPoint* coloring) {
+
+  void getColorMap(Legion::Point<image_region_dimensions>* coloring) {
     unsigned zero = 0;
     getColorMapRecursive(mRoot, coloring, zero);
   }
-  
+
   KDNode<N, DataType>* find(KDTreeValue element) const {
     return findRecursive(mRoot, element);
   }
-  
+
   int size() const{ return mNumElements; }
-  
+
 private:
   KDNode<N, DataType>* mRoot;
   int mNumElements;
-  
+
   static int compare0(const void* element1, const void* element2) {
     KDTreeValue* e1 = (KDTreeValue*)element1;
     KDTreeValue* e2 = (KDTreeValue*)element2;
@@ -98,7 +98,7 @@ private:
     if(e1->extent.lo[2] > e2->extent.lo[2]) return +1;
     return 0;
   }
-  
+
   void sortElements(KDTreeValue elements[], unsigned numElements, unsigned index) {
     switch(index) {
       case 0: qsort(elements, numElements, sizeof(KDTreeValue), compare0);
@@ -108,9 +108,9 @@ private:
       case 2: qsort(elements, numElements, sizeof(KDTreeValue), compare2);
         break;
     }
-    
+
   }
-  
+
   KDNode<N, DataType>* buildKDTree(
                                    KDTreeValue elements[],
                                    unsigned numElements,
@@ -128,7 +128,7 @@ private:
     node->mRight = buildKDTree(elements + medianIndex, medianIndex, level + 1, node);
     return node;
   }
-  
+
   void dumpRecursive(KDNode<N, DataType>* node) const {
     if(node->mIsLeaf) {
       for(unsigned i = 0; i < N; ++i) {
@@ -140,9 +140,9 @@ private:
       dumpRecursive(node->mRight);
     }
   }
-  
+
   void getColorMapRecursive(KDNode<N, DataType>* node,
-                            Legion::DomainPoint* coloring,
+                            Legion::Point<image_region_dimensions>* coloring,
                             unsigned& index) {
     if(node->mIsLeaf) {
       // return a permutation of the image subregions according to the KD tree order
@@ -155,12 +155,12 @@ private:
       getColorMapRecursive(node->mRight, coloring, index);
     }
   }
-  
+
   KDNode<N, DataType>* findRecursive(KDNode<N, DataType>* node,
                                      KDTreeValue element) const {
     if(node->mIsLeaf) {
       for(unsigned i = 0; i < N; ++i) {
-        if(node->mValue[i].extent != element.extent) return nullptr;
+        if(node->mValue.extent != element.extent) return nullptr;
       }
       return node;
     }
@@ -170,7 +170,7 @@ private:
     if(right != nullptr) return right;
     return nullptr;
   }
-  
+
 };
 
 #endif // __KDTREE_HPP__
