@@ -17,6 +17,9 @@
 using namespace Legion::Visualization;
 using namespace LegionRuntime::HighLevel;
 
+namespace Legion{
+  namespace Visualization{
+
 typedef struct {
   Legion::Rect<image_region_dimensions> extent;
   Legion::Point<image_region_dimensions> color;
@@ -172,5 +175,9 @@ private:
   }
 
 };
+
+}
+}
+
 
 #endif // __KDTREE_HPP__

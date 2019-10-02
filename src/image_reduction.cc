@@ -134,7 +134,7 @@ namespace Legion {
     TaskID ImageReduction::mInitialTaskID;
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
-    ImageReduction::KDTree<image_region_dimensions, long long int>* ImageReduction::mKDTree = nullptr;
+    KDTree<image_region_dimensions, long long int>* ImageReduction::mKDTree = nullptr;
 
     MapperID gMapperID;
 
