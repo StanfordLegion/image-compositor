@@ -125,7 +125,7 @@ namespace Legion {
 
     int ImageReduction::mNodeID;
     std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = NULL;
-    std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = NULL;
+    std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = nullptr;
     GLfloat ImageReduction::mGlViewTransform[numMatrixElements4x4];
     ImageReduction::PixelField ImageReduction::mGlConstantColor[numPixelFields];
     GLenum ImageReduction::mGlBlendEquation;
@@ -134,16 +134,29 @@ namespace Legion {
     TaskID ImageReduction::mInitialTaskID;
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
+    ImageReduction::KDTree<image_region_dimensions, long long int>* ImageReduction::mKDTree = nullptr;
+
     MapperID gMapperID;
-    KDTree<image_region_dimensions, long long int>* mKDTree;
 
 
     /**
      * Use this constructor with your simulation partition.
      **/
-    ImageReduction::ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
+    ImageReduction::ImageReduction(
+      LogicalRegion region,
+      LogicalPartition partition,
+      legion_field_id_t pFields[],
+      int numPFields,
+      ImageDescriptor imageDescriptor,
+      Context context,
+      HighLevelRuntime *runtime,
+      MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
+      imageDescriptor.simulationLogicalRegion = region;
       imageDescriptor.simulationLogicalPartition = partition;
+      imageDescriptor.numPFields = numPFields;
+      assert(numPFields <= Legion::Visualization::max_pFields);
+      memcpy(imageDescriptor.pFields, pFields, numPFields * sizeof(legion_field_id_t));
       imageDescriptor.simulationColorSpace =
         runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.simulationDomain = domain;
@@ -353,7 +366,8 @@ namespace Legion {
 
      */
 
-    void ImageReduction::partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+    void ImageReduction::partitionImageByKDTree(LogicalRegion image,
+      LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
       buildKDTree(imageDescriptor, ctx, runtime);
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];

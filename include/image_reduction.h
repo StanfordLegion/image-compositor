@@ -128,7 +128,14 @@ namespace Legion {
        * @param ctx Legion context
        * @param runtime  Legion runtime
        */
-      ImageReduction(LogicalPartition partition, ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime, MapperID mapperID=0);
+       ImageReduction(LogicalRegion region,
+       LogicalPartition partition,
+       legion_field_id_t pFields[],
+       int numPFields,
+       ImageDescriptor imageDescriptor,
+       Context context,
+       HighLevelRuntime *runtime,
+       MapperID mapperID);
 
       /**
        * Destroy an instance of an image reduction framework.

@@ -25,7 +25,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
+
   void createGraphicsContext(OSMesaContext &mesaCtx,
                                     GLubyte* &rgbaBuffer,
                                     GLfloat* &depthBuffer,
@@ -41,8 +41,8 @@ extern "C" {
       printf("OSMesaCreateContext failed!\n");
       return;
     }
-    
-    
+
+
     /* Allocate the image buffer */
     const int fieldsPerPixel = 4;
     rgbaBuffer = new GLubyte[width * height * fieldsPerPixel];
@@ -50,13 +50,13 @@ extern "C" {
       printf("Alloc image buffer failed!\n");
       return;
     }
-    
+
     /* Bind the buffer to the context and make it current */
     if (!OSMesaMakeCurrent(mesaCtx, rgbaBuffer, GL_UNSIGNED_BYTE, width, height)) {
       printf("OSMesaMakeCurrent failed!\n");
       return;
     }
-    
+
     /* Allocate the depth buffer. */
     depthBuffer = new GLfloat[width * height];
     if (!depthBuffer) {
@@ -64,8 +64,8 @@ extern "C" {
       return;
     }
   }
-  
-  
+
+
   static void initializeRender(Camera* camera, int width, int height) {
     GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 1.0};
     GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 1.0};
@@ -85,7 +85,7 @@ extern "C" {
     glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
     glEnable(GL_LIGHT0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -95,7 +95,7 @@ extern "C" {
     GLfloat near = 0.0;
     GLfloat far = 10.0;
     gluPerspective(fovy, aspect, near, far);
-    
+
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -103,9 +103,9 @@ extern "C" {
               camera->at[0], camera->at[1], camera->at[2],
               camera->up[0], camera->up[1], camera->up[2]);
   }
-  
-  
-  
+
+
+
   static void cube(float halfEdge) {
     glBegin(GL_QUADS);
     glVertex3f( halfEdge, halfEdge,-halfEdge);    // Top Right Of The Quad (Top)
@@ -134,7 +134,7 @@ extern "C" {
     glVertex3f( halfEdge,-halfEdge,-halfEdge);    // Bottom Right Of The Quad (Right)
     glEnd();
   }
-  
+
   static GLfloat const alpha = 0.5;
   static GLfloat colorTable[8][4] = {
     { 1.0, 0.0, 0.0, alpha }, // red
@@ -146,17 +146,17 @@ extern "C" {
     { (102.0 / 255.0), 1.0, (102.0 / 255.0), alpha }, // light green
     { 1.0, 1.0, 1.0, alpha } // white
   };
-  
-  
-  static void color(Point<3> lo) {
+
+
+  static void setColor(Legion::Point<3> lo) {
     int index = lo.z + 2 * lo.y + 4 * lo.x;
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTable[index]);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
   }
-  
-  
-  
-  void renderCube(Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer) {
+
+
+
+  void renderCube(Legion::Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer) {
     initializeRender(camera, imageDescriptor->width, imageDescriptor->height);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -166,12 +166,12 @@ extern "C" {
       (float)(bounds.lo.z + 0.5)
     };
     glTranslatef(center[0], center[1], center[2]);
-    color(bounds.lo);
+    setColor(bounds.lo);
     cube(0.25);
     glPopMatrix();
     glFinish();
   }
-  
+
 #ifdef __cplusplus
 }
 #endif
