@@ -151,6 +151,7 @@ namespace Legion {
       Context context,
       HighLevelRuntime *runtime,
       MapperID mapperID) {
+        __TRACE
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.simulationLogicalRegion = region;
       imageDescriptor.simulationLogicalPartition = partition;
@@ -177,17 +178,19 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
-
+__TRACE
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+__TRACE
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
+__TRACE
       partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
-
+__TRACE
       initializeNodes(runtime, context);
-
+__TRACE
       assert(mNodeID != -1);
       initializeViewMatrix();
       createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
-
+__TRACE
     }
 
     /**
@@ -369,8 +372,10 @@ namespace Legion {
     void ImageReduction::partitionImageByKDTree(LogicalRegion image,
       LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
+      __TRACE
       buildKDTree(imageDescriptor, ctx, runtime);
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
+__TRACE
       mKDTree->getColorMap(coloring);
 
       /*
@@ -387,7 +392,7 @@ namespace Legion {
       // create_partition-by_field
       // see circuitinit.cc example
       //LogicalPartition mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, ip);
-
+__TRACE
       // create a logical region to hold the coloring
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
@@ -400,7 +405,7 @@ namespace Legion {
       FieldID fidColor = coloringAllocator.allocate_field(sizeof(Point<image_region_dimensions>), FID_FIELD_COLOR);
       assert(fidColor == FID_FIELD_COLOR);
       LogicalRegion coloringRegion = mRuntime->create_logical_region(ctx, coloringIndexSpace, coloringFields);
-
+__TRACE
       // write the color values into the coloring region
       RegionRequirement coloringReq(coloringRegion, WRITE_DISCARD, EXCLUSIVE, coloringRegion);
       coloringReq.add_field(FID_FIELD_COLOR);
@@ -414,13 +419,13 @@ namespace Legion {
       for(unsigned i = 0; i < mKDTree->size(); ++i) {
         colorPtr[i] = coloring[i];
       }
-
+__TRACE
       // partition the coloring region by field
       IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
         coloringRegion, coloringRegion, FID_FIELD_COLOR, coloringIndexSpace);
       LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringRegion, coloringIP);
 
-
+__TRACE
       // create a logical region to hold the image extents
       Domain extentDomain = Domain(imageBounds);
       IndexSpace extentIndexSpace = mRuntime->create_index_space(ctx, extentDomain);
@@ -430,7 +435,7 @@ namespace Legion {
       FieldID fidExtent = extentAllocator.allocate_field(sizeof(Rect<image_region_dimensions>), FID_FIELD_EXTENT);
       assert(fidExtent == FID_FIELD_EXTENT);
       LogicalRegion extentRegion = mRuntime->create_logical_region(ctx, extentIndexSpace, extentFields);
-
+__TRACE
       // write the image extents into the extent region
       RegionRequirement extentReq(extentRegion, WRITE_DISCARD, EXCLUSIVE, extentRegion);
       extentReq.add_field(FID_FIELD_EXTENT);
@@ -471,7 +476,7 @@ IndexPartition create_partition_by_image_range(Context ctx,
                                          Color color = AUTO_GENERATE_ID,
                                 MapperID id = 0, MappingTagID tag = 0);
 */
-
+__TRACE
       IndexSpace handle = mSourceIndexSpace;
       LogicalPartition projection = coloringPartition;
       LogicalRegion parent = extentRegion;

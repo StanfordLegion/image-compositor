@@ -11,6 +11,8 @@
 #include "GL/osmesa.h"
 
 
+#define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -177,6 +179,7 @@ extern "C" {
 
   // Called from mapper before runtime has started
   void cxx_preinitialize(legion_mapper_id_t mapperID) {
+    _T
     Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
 
     // allocate physical regions contiguously in memory
@@ -227,6 +230,7 @@ extern "C" {
                      int numPFields
                      )
   {
+    _T
     Runtime *runtime = CObjectWrapper::unwrap(runtime_);
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     LogicalRegion region = CObjectWrapper::unwrap(region_);
@@ -234,6 +238,7 @@ extern "C" {
 
     // Initialize an image compositor
 
+_T
     Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
 
     gImageCompositor = new Visualization::ImageReduction(region, partition,
@@ -263,7 +268,7 @@ extern "C" {
                   legion_context_t ctx_,
                   Camera camera
                   ) {
-
+_T
     static bool firstTime = true;
 
     // Unwrap objects
@@ -293,7 +298,7 @@ extern "C" {
     }
 
     // Setup the render task launch with region requirements
-
+_T
     ArgumentMap argMap;
     ImageDescriptor imageDescriptor = compositor->imageDescriptor();
     size_t argSize = sizeof(ImageDescriptor) + sizeof(camera);
@@ -326,7 +331,7 @@ extern "C" {
     ImageReductionMapper::clearPlacement(imageDescriptor.simulationLogicalPartition);
 
     // Launch the render task
-
+_T
     FutureMap futures = runtime->execute_index_space(ctx, renderLauncher);
     futures.wait_all_results();
     firstTime = false;
@@ -338,7 +343,7 @@ extern "C" {
 
 
   void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) {
-
+_T
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_depth_func(GL_LESS);
@@ -352,6 +357,7 @@ extern "C" {
                      legion_context_t ctx_,
                      const char* outDir
                      ) {
+                       _T
     Runtime *runtime = CObjectWrapper::unwrap(runtime_);
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
 
