@@ -151,7 +151,6 @@ namespace Legion {
       Context context,
       HighLevelRuntime *runtime,
       MapperID mapperID) {
-        __TRACE
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.simulationLogicalRegion = region;
       imageDescriptor.simulationLogicalPartition = partition;
@@ -178,19 +177,13 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
-__TRACE
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
-__TRACE
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
-__TRACE
       partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
-__TRACE
       initializeNodes(runtime, context);
-__TRACE
       assert(mNodeID != -1);
       initializeViewMatrix();
       createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
-__TRACE
     }
 
     /**
@@ -372,26 +365,10 @@ __TRACE
     void ImageReduction::partitionImageByKDTree(LogicalRegion image,
       LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
-      __TRACE
       buildKDTree(imageDescriptor, ctx, runtime);
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
-__TRACE
       mKDTree->getColorMap(coloring);
 
-      /*
-      InlineLauncher launcher(RegionRequirement(alloc_lr,
-					    WRITE_DISCARD,
-					    EXCLUSIVE,
-					    my_lr,
-					    DefaultMapper::EXACT_REGION)
-			  .add_field(FID_DATA));
-  PhysicalRegion pr = runtime->map_region(ctx, launcher);
-      */
-      // write these points into regions, use InlineMappers to get access to PhysicalRegions
-      // index launch the compositor partition fora  copy operqtion
-      // create_partition-by_field
-      // see circuitinit.cc example
-      //LogicalPartition mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, ip);
 __TRACE
       // create a logical region to hold the coloring
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
@@ -408,14 +385,20 @@ __TRACE
 __TRACE
       // write the color values into the coloring region
       RegionRequirement coloringReq(coloringRegion, WRITE_DISCARD, EXCLUSIVE, coloringRegion);
+__TRACE
       coloringReq.add_field(FID_FIELD_COLOR);
+__TRACE
       InlineLauncher coloringLauncher(coloringReq);
+__TRACE
       PhysicalRegion coloringPhysicalRegion = mRuntime->map_region(ctx, coloringLauncher);
+__TRACE
       const FieldAccessor<WRITE_DISCARD, Point<image_region_dimensions>,
         image_region_dimensions, long long int,
         Realm::AffineAccessor<Point<image_region_dimensions>, image_region_dimensions, long long int> >
         acc_color(coloringPhysicalRegion, FID_FIELD_COLOR);
+__TRACE
       Point<image_region_dimensions>* colorPtr = acc_color.ptr(Point<image_region_dimensions>::ZEROES());
+__TRACE
       for(unsigned i = 0; i < mKDTree->size(); ++i) {
         colorPtr[i] = coloring[i];
       }
@@ -480,10 +463,19 @@ __TRACE
       IndexSpace handle = mSourceIndexSpace;
       LogicalPartition projection = coloringPartition;
       LogicalRegion parent = extentRegion;
+__TRACE
+std::cout << "handle " << handle << std::endl;
+std::cout << "projection " << projection << std::endl;
+std::cout << "parent " << parent << std::endl;
+std::cout << "coloringIndexSpace " << coloringIndexSpace << std::endl;
+std::cout << "ctx " << ctx << " mRuntime " << mRuntime << std::endl;
       IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
         ctx, handle, projection, parent, FID_FIELD_COLOR, coloringIndexSpace);
+__TRACE
       mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
+__TRACE
       mRuntime->attach_name(mRenderImagePartition, "render image partition");
+__TRACE
     }
 
 
@@ -549,15 +541,21 @@ __TRACE
                                      Context ctx,
                                      HighLevelRuntime *runtime) {
       Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
+std::cout<<"rect.volume="<<rect.volume()<<std::endl;
       KDTreeValue* elements = new KDTreeValue[rect.volume()];
       unsigned index = 0;
       for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
-        DomainPoint color(it);
+        DomainPoint color(it.p);
+std::cout << "color " << color << std::endl;
         IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
+__TRACE
         Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
+__TRACE
         Legion::Rect<image_region_dimensions> rect =
           (Legion::Rect<image_region_dimensions>)subdomain;
+__TRACE
         KDTreeValue value = { rect, color };
+std::cout<<"KDTree element "<<rect.lo<<"..."<<rect.hi<<" color "<<color<<std::endl;
         elements[index++] = value;
       }
 

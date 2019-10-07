@@ -58,17 +58,14 @@ end
 
 
 
-
-
-task main()
-
-  -- logical region and partition
-
-  var r = region(ispace(int3d, {2, 2, 2}, {0, 0, 0}), float)
-  var colors = ispace(int3d, {2, 2, 2}, {0, 0, 0})
-  var p = partition(equal, r, colors)
-  fill(r, 0.0)
-
+__forbid(__inner)
+task renderLoop(
+  r : region(ispace(int3d), float),
+  colors : ispace(int3d),
+  p : partition(disjoint, r, colors)
+)
+where reads(r)
+do
   render.cxx_initialize(__runtime(), __context(), __raw(r), __raw(p),
     __fields(r), 1)
 
@@ -82,7 +79,19 @@ task main()
     render.cxx_reduce(__context(), direction)
     render.cxx_saveImage(__runtime(), __context(), ".")
   end
+end
 
+
+
+task main()
+
+  -- logical region and partition
+
+  var r = region(ispace(int3d, {2, 2, 2}, {0, 0, 0}), float)
+  var colors = ispace(int3d, {2, 2, 2}, {0, 0, 0})
+  var p = partition(equal, r, colors)
+  fill(r, 0.0)
+  renderLoop(r, colors, p)
   render.cxx_terminate()
 end
 
