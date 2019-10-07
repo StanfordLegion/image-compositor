@@ -120,7 +120,12 @@ if(Legion_USE_PACKAGE_REGISTRY)
 endif()
 export(PACKAGE Legion)
 
-include_directories(${LG_RT_DIR}/legion ${LG_RT_DIR}/realm)
+message("LEGION_DIR is $ENV{LEGION_DIR}")
+
+include_directories( $ENV{LEGION_DIR}/bindings/regent )
+include_directories( $ENV{LEGION_DIR}/runtime/legion )
+include_directories( $ENV{LEGION_DIR}/runtime/realm )
+include_directories( include )
 
 add_subdirectory(src)
 
