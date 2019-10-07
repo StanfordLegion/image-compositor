@@ -373,6 +373,7 @@ __TRACE
       // create a logical region to hold the coloring
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
+      p0[0] = p0[1] = p1[0] = p1[1] = 0;
       Rect<image_region_dimensions> imageBounds(p0, p1);
       Domain coloringDomain = Domain(imageBounds);
       IndexSpace coloringIndexSpace = mRuntime->create_index_space(ctx, coloringDomain);
@@ -470,7 +471,7 @@ std::cout << "parent " << parent << std::endl;
 std::cout << "coloringIndexSpace " << coloringIndexSpace << std::endl;
 std::cout << "ctx " << ctx << " mRuntime " << mRuntime << std::endl;
       IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
-        ctx, handle, projection, parent, FID_FIELD_COLOR, coloringIndexSpace);
+        ctx, handle, projection, parent, FID_FIELD_EXTENT, coloringIndexSpace);
 __TRACE
       mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
 __TRACE
