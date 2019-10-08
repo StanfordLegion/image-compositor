@@ -172,7 +172,7 @@ namespace Legion {
       mMapperID = mapperID;
       gMapperID = mapperID;
       mRenderImageDomain = imageDescriptor.simulationDomain;
-      
+
       mGlBlendEquation = GL_FUNC_ADD;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
@@ -180,8 +180,8 @@ namespace Legion {
       legion_field_id_t fieldID[6];
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
-      partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
       initializeNodes(runtime, context);
+      partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
       assert(mNodeID != -1);
       initializeViewMatrix();
       createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
@@ -366,7 +366,7 @@ namespace Legion {
     void ImageReduction::partitionImageByKDTree(LogicalRegion image,
       LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
-      buildKDTree(imageDescriptor, ctx, runtime);
+      //buildKDTree(imageDescriptor, ctx, runtime);
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
       mKDTree->getColorMap(coloring);
 
