@@ -171,7 +171,8 @@ namespace Legion {
       mNodeID = -1;
       mMapperID = mapperID;
       gMapperID = mapperID;
-
+      mRenderImageDomain = imageDescriptor.simulationDomain;
+      
       mGlBlendEquation = GL_FUNC_ADD;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
@@ -369,7 +370,6 @@ namespace Legion {
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
       mKDTree->getColorMap(coloring);
 
-__TRACE
       // create a logical region to hold the coloring
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
@@ -386,22 +386,16 @@ __TRACE
       assert(fidExtent == FID_FIELD_EXTENT);
 
       LogicalRegion coloringExtentRegion = mRuntime->create_logical_region(ctx, coloringIndexSpace, coloringFields);
-__TRACE
       // write the color and extent values into the region
       RegionRequirement coloringReq(coloringExtentRegion, WRITE_DISCARD, EXCLUSIVE, coloringExtentRegion);
-__TRACE
       coloringReq.add_field(FID_FIELD_COLOR);
       coloringReq.add_field(FID_FIELD_EXTENT);
-__TRACE
       InlineLauncher coloringLauncher(coloringReq);
-__TRACE
       PhysicalRegion coloringPhysicalRegion = mRuntime->map_region(ctx, coloringLauncher);
-__TRACE
       const FieldAccessor<WRITE_DISCARD, Point<image_region_dimensions>,
         image_region_dimensions, long long int,
         Realm::AffineAccessor<Point<image_region_dimensions>, image_region_dimensions, long long int> >
         acc_color(coloringPhysicalRegion, FID_FIELD_COLOR);
-__TRACE
       Point<image_region_dimensions>* colorPtr = acc_color.ptr(Point<image_region_dimensions>::ZEROES());
       const FieldAccessor<WRITE_DISCARD, Rect<image_region_dimensions>,
         image_region_dimensions, long long int,
@@ -409,7 +403,6 @@ __TRACE
         acc_extent(coloringPhysicalRegion, FID_FIELD_EXTENT);
       Rect<image_region_dimensions>* extentPtr = acc_extent.ptr(Point<image_region_dimensions>::ZEROES());
 
-__TRACE
       Rect<image_region_dimensions> rect = imageBounds;
 
       for(unsigned i = 0; i < mKDTree->size(); ++i) {
@@ -418,83 +411,17 @@ __TRACE
         extentPtr[i] = rect;
 
       }
-__TRACE
       // partition the coloring region by field
       IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
         coloringExtentRegion, coloringExtentRegion, FID_FIELD_COLOR, coloringIndexSpace);
       LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringExtentRegion, coloringIP);
-
-
-#if 0
-__TRACE
-      // create a logical region to hold the image extents
-      Domain extentDomain = Domain(imageBounds);
-      IndexSpace extentIndexSpace = mRuntime->create_index_space(ctx, extentDomain);
-      FieldSpace extentFields = mRuntime->create_field_space(ctx);
-      mRuntime->attach_name(extentFields, "render image extent fields");
-      FieldAllocator extentAllocator = mRuntime->create_field_allocator(ctx, extentFields);
-      FieldID fidExtent = extentAllocator.allocate_field(sizeof(Rect<image_region_dimensions>), FID_FIELD_EXTENT);
-      assert(fidExtent == FID_FIELD_EXTENT);
-      LogicalRegion extentRegion = mRuntime->create_logical_region(ctx, extentIndexSpace, extentFields);
-__TRACE
-      // write the image extents into the extent region
-      RegionRequirement extentReq(extentRegion, WRITE_DISCARD, EXCLUSIVE, extentRegion);
-      extentReq.add_field(FID_FIELD_EXTENT);
-      InlineLauncher extentLauncher(extentReq);
-      PhysicalRegion extentPhysicalRegion = mRuntime->map_region(ctx, extentLauncher);
-      const FieldAccessor<WRITE_DISCARD, Rect<image_region_dimensions>,
-        image_region_dimensions, long long int,
-        Realm::AffineAccessor<Rect<image_region_dimensions>, image_region_dimensions, long long int> >
-        acc_extent(extentPhysicalRegion, FID_FIELD_EXTENT);
-      Rect<image_region_dimensions>* extentPtr = acc_extent.ptr(Point<image_region_dimensions>::ZEROES());
-      Rect<image_region_dimensions> rect = imageBounds;
-      for(unsigned i = 0; i < mKDTree->size(); ++i) {
-        rect.lo.z = rect.hi.z = i;
-        extentPtr[i] = rect;
-      }
-#endif
-
-      // apply the imaging operator to produce render Image Partition
-      /* Create partition by image creates a new index partition from an
-* existing field that represents an enumerated function from
-* pointers into the color logical region containing the field FID_FIELD_COLOR
-* to pointers in the 'handle' (extent) index space. The function the field
-* represents therefore has type ptr_t@projection -> ptr_t@handle.
-* We can therefore create a new index partition of 'handle' by
-* mapping each of the pointers in the index subspaces in the
-* index partition of the 'projection' logical partition to get
-* pointers into the 'handle' index space and assigning them to
-* a corresponding index subspace. The runtime will automatically
-* compute if the resulting partition is disjoint or not. The
-* user can give the new partition a color by specifying the
-* 'color' argument.
-IndexPartition create_partition_by_image_range(Context ctx,
-                                         IndexSpace handle,
-                                         LogicalPartition projection,
-                                         LogicalRegion parent,
-                                         FieldID fid,
-                                         IndexSpace color_space,
-                                PartitionKind part_kind = COMPUTE_KIND,
-                                         Color color = AUTO_GENERATE_ID,
-                                MapperID id = 0, MappingTagID tag = 0);
-*/
-__TRACE
       IndexSpace handle = mSourceIndexSpace;
       LogicalPartition projection = coloringPartition;
       LogicalRegion parent = coloringExtentRegion;
-__TRACE
-std::cout << "handle " << handle << std::endl;
-std::cout << "projection " << projection << std::endl;
-std::cout << "parent " << parent << std::endl;
-std::cout << "coloringIndexSpace " << coloringIndexSpace << std::endl;
-std::cout << "ctx " << ctx << " mRuntime " << mRuntime << std::endl;
       IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
         ctx, handle, projection, parent, FID_FIELD_EXTENT, coloringIndexSpace);
-__TRACE
       mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
-__TRACE
       mRuntime->attach_name(mRenderImagePartition, "render image partition");
-__TRACE
     }
 
 
