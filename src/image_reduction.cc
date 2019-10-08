@@ -180,7 +180,7 @@ namespace Legion {
       legion_field_id_t fieldID[6];
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
-      initializeNodes(runtime, context);
+      initializeNodes(mRuntime, context);
       partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
       assert(mNodeID != -1);
       initializeViewMatrix();
@@ -209,13 +209,11 @@ namespace Legion {
 
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
+      initializeNodes(mRuntime, context);
       mRenderImageColorSpace = mCompositeImageColorSpace;
       mRenderImageDomain = mCompositeImageDomain;
       mRenderImagePartition = mCompositeImagePartition;
 
-      initializeNodes(runtime, context);
-
-      assert(mNodeID != -1);
       initializeViewMatrix();
       createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
     }
@@ -296,12 +294,24 @@ namespace Legion {
       indexSpace = mRuntime->create_index_space(context, domain);
       fields = imageFields(context);
       region = mRuntime->create_logical_region(context, indexSpace, fields);
+      mRuntime->attach_name(region, "sourceImage");
       fieldID[0] = FID_FIELD_R;
       fieldID[1] = FID_FIELD_G;
       fieldID[2] = FID_FIELD_B;
       fieldID[3] = FID_FIELD_A;
       fieldID[4] = FID_FIELD_Z;
       fieldID[5] = FID_FIELD_USERDATA;
+      // fill the region initially with ZEROES
+      PixelField zero = 0;
+      TaskArgument arg(&zero, sizeof(zero));
+      FillLauncher fillLauncher(region, region, arg);
+      fillLauncher.add_field(FID_FIELD_R);
+      fillLauncher.add_field(FID_FIELD_G);
+      fillLauncher.add_field(FID_FIELD_B);
+      fillLauncher.add_field(FID_FIELD_A);
+      fillLauncher.add_field(FID_FIELD_Z);
+      fillLauncher.add_field(FID_FIELD_USERDATA);
+      mRuntime->fill_fields(context, fillLauncher);
     }
 
 
