@@ -245,16 +245,6 @@ _T
       pFields, numPFields, imageDescriptor, ctx, runtime, gImageReductionMapperID);
     ImageReductionMapper::registerRenderTaskName("render_task");
 
-    /*
-    Visualization::ImageReduction* compositor = gImageCompositor;
-    RegionPartition result;
-    result.indexSpace = CObjectWrapper::wrap(compositor->sourceIndexSpace());
-    result.imageX = CObjectWrapper::wrap(compositor->sourceImage());
-    result.colorSpace = CObjectWrapper::wrap(compositor->compositeImageColorSpace());
-    result.p_Image = CObjectWrapper::wrap(compositor->compositeImagePartition());
-    compositor->sourceImageFields(ctx, result.imageFields);
-    return result;
-    */
   }
 
 
@@ -268,7 +258,6 @@ _T
                   legion_context_t ctx_,
                   Camera camera
                   ) {
-_T
     static bool firstTime = true;
 
     // Unwrap objects
@@ -298,12 +287,15 @@ _T
     }
 
     // Setup the render task launch with region requirements
-_T
     ArgumentMap argMap;
     ImageDescriptor imageDescriptor = compositor->imageDescriptor();
     size_t argSize = sizeof(ImageDescriptor) + sizeof(camera);
     char args[argSize];
     // ImageDescriptor must be the first argument to the render task
+std::cout << "compositor->renderImageDomain " << compositor->renderImageDomain() << std::endl;
+std::cout << "imageDescriptor.simulationDomain " << imageDescriptor.simulationDomain << std::endl;
+std::cout << "compositor->renderImagePartition " << compositor->renderImagePartition() << std::endl;
+std::cout << "imageDescriptor.simulationLogicalPartition " << imageDescriptor.simulationLogicalPartition << std::endl;
     memcpy(args, (char*)&imageDescriptor, sizeof(ImageDescriptor));
     memcpy(args + sizeof(ImageDescriptor), (char*)&camera, sizeof(camera));
     IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->renderImageDomain(), TaskArgument(args, argSize),
@@ -333,6 +325,7 @@ _T
     // Launch the render task
 _T
     FutureMap futures = runtime->execute_index_space(ctx, renderLauncher);
+_T
     futures.wait_all_results();
     firstTime = false;
   }

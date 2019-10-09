@@ -497,21 +497,15 @@ namespace Legion {
                                      Context ctx,
                                      HighLevelRuntime *runtime) {
       Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
-std::cout<<"rect.volume="<<rect.volume()<<std::endl;
       KDTreeValue* elements = new KDTreeValue[rect.volume()];
       unsigned index = 0;
       for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
         DomainPoint color(it.p);
-std::cout << "color " << color << std::endl;
         IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
-__TRACE
         Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
-__TRACE
         Legion::Rect<image_region_dimensions> rect =
           (Legion::Rect<image_region_dimensions>)subdomain;
-__TRACE
         KDTreeValue value = { rect, color };
-std::cout<<"KDTree element "<<rect.lo<<"..."<<rect.hi<<" color "<<color<<std::endl;
         elements[index++] = value;
       }
 
