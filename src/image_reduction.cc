@@ -380,7 +380,7 @@ namespace Legion {
       Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
       mKDTree->getColorMap(coloring);
 
-      // create a logical region to hold the coloring
+      // create a logical region to hold the coloring and extent
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
       Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
       p0[0] = p0[1] = p1[0] = p1[1] = 0;
@@ -396,6 +396,7 @@ namespace Legion {
       assert(fidExtent == FID_FIELD_EXTENT);
 
       LogicalRegion coloringExtentRegion = mRuntime->create_logical_region(ctx, coloringIndexSpace, coloringFields);
+
       // write the color and extent values into the region
       RegionRequirement coloringReq(coloringExtentRegion, WRITE_DISCARD, EXCLUSIVE, coloringExtentRegion);
       coloringReq.add_field(FID_FIELD_COLOR);
@@ -419,7 +420,7 @@ namespace Legion {
         colorPtr[i] = coloring[i];
         rect.lo.z = rect.hi.z = i;
         extentPtr[i] = rect;
-
+std::cout << "KDTree leaf extent " << rect << " color " << coloring[i] << std::endl;
       }
       // partition the coloring region by field
       IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,

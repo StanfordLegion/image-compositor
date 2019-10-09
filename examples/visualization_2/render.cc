@@ -48,7 +48,13 @@ extern "C" {
     IndexSpace indexSpace = data.get_logical_region().get_index_space();
     Legion::Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
     char* argsPtr = (char*)task->args;
-    std::cout << "in render_task " << bounds << std::endl;
+    {
+      IndexSpace is = image.get_logical_region().get_index_space();
+      Legion::Rect<3> b = runtime->get_index_space_domain(ctx, is);
+      char buffer[1024];
+      gethostname(buffer, sizeof(buffer));
+      std::cout <<  buffer << " pid " << getpid() << " in render_task, simulation bounds " << bounds << " image bounds " << b << std::endl;
+    }
 
     // first task argument to render task must be an ImageDescriptor
     // or the mapper will complain
