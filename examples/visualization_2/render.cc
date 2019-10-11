@@ -273,13 +273,6 @@ _T
     Runtime *runtime = CObjectWrapper::unwrap(runtime_);
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
 
-    /*
-    PhysicalRegion* image = CObjectWrapper::unwrap(image_[0]);
-    LogicalRegion r = CObjectWrapper::unwrap(r_);
-    LogicalPartition p = CObjectWrapper::unwrap(p_);
-    */
-
-
     // Create projection functors
 
     Visualization::ImageReduction* compositor = gImageCompositor;
@@ -309,14 +302,14 @@ std::cout << "imageDescriptor.simulationLogicalPartition " << imageDescriptor.si
     IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->renderImageDomain(), TaskArgument(args, argSize),
                                      argMap, Predicate::TRUE_PRED, false, gImageReductionMapperID);
 
-    RegionRequirement req0(imageDescriptor.simulationLogicalPartition, 1, READ_ONLY, EXCLUSIVE,
+    RegionRequirement req0(imageDescriptor.simulationLogicalPartition, 0, READ_ONLY, EXCLUSIVE,
       imageDescriptor.simulationLogicalRegion, gImageReductionMapperID);
     for(int i = 0; i < imageDescriptor.numPFields; ++i) {
       req0.add_field(imageDescriptor.pFields[i]);
     }
     renderLauncher.add_region_requirement(req0);
 
-    RegionRequirement req1(compositor->renderImagePartition(), 2, WRITE_DISCARD, EXCLUSIVE,
+    RegionRequirement req1(compositor->renderImagePartition(), 0, WRITE_DISCARD, EXCLUSIVE,
       compositor->sourceImage(), gImageReductionMapperID);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_R);
     req1.add_field(Visualization::ImageReduction::FID_FIELD_G);

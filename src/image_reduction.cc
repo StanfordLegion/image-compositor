@@ -411,7 +411,8 @@ namespace Legion {
 std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       }
       // partition the coloring region by field
-      IndexPartition coloringIP = mRuntime->create_equal_partition(ctx, coloringIndexSpace, coloringIndexSpace);
+      IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
+        coloringExtentRegion, coloringExtentRegion, FID_FIELD_COLOR, coloringIndexSpace);
       LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringExtentRegion, coloringIP);
       IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
         ctx, mSourceIndexSpace, coloringPartition, coloringExtentRegion, FID_FIELD_EXTENT, coloringIndexSpace);
