@@ -420,7 +420,7 @@ namespace Legion {
         colorPtr[i] = coloring[i];
         rect.lo.z = rect.hi.z = i;
         extentPtr[i] = rect;
-std::cout << "KDTree leaf extent " << rect << " color " << coloring[i] << std::endl;
+std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       }
       // partition the coloring region by field
       IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
