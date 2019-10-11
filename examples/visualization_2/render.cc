@@ -53,7 +53,9 @@ extern "C" {
       Legion::Rect<3> b = runtime->get_index_space_domain(ctx, is);
       char buffer[1024];
       gethostname(buffer, sizeof(buffer));
-      std::cout <<  buffer << " pid " << getpid() << " in render_task, simulation bounds " << bounds << " image bounds " << b << std::endl;
+      std::cout <<  buffer << " pid " << getpid();
+      std::cout << " in render_task, at point " << task->index_point;
+      std::cout << " simulation bounds " << bounds << " image bounds " << b << std::endl;
     }
 
     // first task argument to render task must be an ImageDescriptor

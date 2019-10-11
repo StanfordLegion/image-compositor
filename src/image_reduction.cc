@@ -429,10 +429,8 @@ std::cout << "KDTree leaf extent " << rect << " color " << coloring[i] << std::e
       IndexSpace handle = mSourceIndexSpace;
       LogicalPartition projection = coloringPartition;
       LogicalRegion parent = coloringExtentRegion;
-      //IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
-      //  ctx, handle, projection, parent, FID_FIELD_EXTENT, coloringIndexSpace);
       IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
-        ctx, handle, projection, parent, FID_FIELD_EXTENT, imageDescriptor.simulationColorSpace);
+        ctx, handle, projection, parent, FID_FIELD_EXTENT, coloringIndexSpace);
       mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
       mRuntime->attach_name(mRenderImagePartition, "render image partition");
     }
