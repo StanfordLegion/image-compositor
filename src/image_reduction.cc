@@ -755,8 +755,10 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
 
 
     FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, int treeLevel,
-                                                  GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
-                                                  int compositeTaskID, LogicalPartition sourcePartition, LogicalRegion image,
+                                                  GLenum depthFunc, GLenum blendFuncSource,
+                                                  GLenum blendFuncDestination, GLenum blendEquation,
+                                                  int compositeTaskID, LogicalPartition sourcePartition,
+                                                  LogicalRegion image,
                                                   Runtime* runtime, Context context,
                                                   int nodeID, int maxTreeLevel,
                                                   float cameraAt[image_region_dimensions]) {
@@ -773,7 +775,8 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       args.blendFunctionDestination = blendFuncDestination;
       args.blendEquation = blendEquation;
       memcpy(args.cameraAt, cameraAt, sizeof(args.cameraAt));
-      IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain, TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false, gMapperID);
+      IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
+        TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false, gMapperID);
 
       RegionRequirement req0(sourcePartition, functor0->id(), READ_WRITE, EXCLUSIVE, image);
       addImageFieldsToRequirement(req0);
@@ -787,7 +790,9 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
 
       if(treeLevel > 1) {
 
-        futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID, sourcePartition, image, runtime, context, nodeID, maxTreeLevel, cameraAt);
+        futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc,
+          blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID,
+          sourcePartition, image, runtime, context, nodeID, maxTreeLevel, cameraAt);
       }
 
       return futures;
@@ -799,9 +804,10 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
     FutureMap ImageReduction::reduceImages(Context context, float cameraAt[]) {
       int maxTreeLevel = numTreeLevels(mImageDescriptor);
       if(maxTreeLevel > 0) {
-        return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction, mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
-                                   mCompositeTaskID, mCompositeImagePartition, mSourceImage,
-                                   mRuntime, context, mNodeID, maxTreeLevel, cameraAt);
+        return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction,
+          mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
+          mCompositeTaskID, mCompositeImagePartition, mSourceImage, mRuntime,
+          context, mNodeID, maxTreeLevel, cameraAt);
       } else {
         return FutureMap();
       }

@@ -278,8 +278,8 @@ _T
     Visualization::ImageReduction* compositor = gImageCompositor;
     if(firstTime) {
       ImageReductionProjectionFunctor* functor0 =
-        new ImageReductionProjectionFunctor(compositor->compositeImageDomain(),
-        compositor->compositeImagePartition());
+        new ImageReductionProjectionFunctor(compositor->renderImageDomain(),
+        compositor->renderImagePartition());
       runtime->register_projection_functor(1, functor0);
       ImageReductionProjectionFunctor* functor1 =
         new ImageReductionProjectionFunctor(compositor->compositeImageDomain(),
@@ -293,10 +293,6 @@ _T
     size_t argSize = sizeof(ImageDescriptor) + sizeof(camera);
     char args[argSize];
     // ImageDescriptor must be the first argument to the render task
-std::cout << "compositor->renderImageDomain " << compositor->renderImageDomain() << std::endl;
-std::cout << "imageDescriptor.simulationDomain " << imageDescriptor.simulationDomain << std::endl;
-std::cout << "compositor->renderImagePartition " << compositor->renderImagePartition() << std::endl;
-std::cout << "imageDescriptor.simulationLogicalPartition " << imageDescriptor.simulationLogicalPartition << std::endl;
     memcpy(args, (char*)&imageDescriptor, sizeof(ImageDescriptor));
     memcpy(args + sizeof(ImageDescriptor), (char*)&camera, sizeof(camera));
     IndexTaskLauncher renderLauncher(gRenderTaskID, compositor->renderImageDomain(), TaskArgument(args, argSize),
@@ -324,9 +320,7 @@ std::cout << "imageDescriptor.simulationLogicalPartition " << imageDescriptor.si
     ImageReductionMapper::clearPlacement(imageDescriptor.simulationLogicalPartition);
 
     // Launch the render task
-_T
     FutureMap futures = runtime->execute_index_space(ctx, renderLauncher);
-_T
     futures.wait_all_results();
     firstTime = false;
   }
