@@ -17,16 +17,11 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion)
 
-include_directories(../include $ENV{LG_RT_DIR} $ENV{LG_RT_DIR}/legion $ENV{LG_RT_DIR}/realm)
+include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime/legion $ENV{LEGION_DIR}/runtime/realm)
 
-# Legion runtime
-list(APPEND LEGION_SRC
+list(APPEND FRAMEWORK_SRC
   image_reduction.cc
   image_reduction_composite.cc
-  image_reduction_mapper.cc
-  image_reduction_projection_functor.cc
 )
 
-add_library(ImageCompositor ${LEGION_SRC})
-
-
+add_library(ImageCompositor ${FRAMEWORK_SRC})

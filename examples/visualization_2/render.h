@@ -10,7 +10,7 @@ extern "C" {
 
   typedef struct { float from[3]; float at[3]; float up[3]; } Camera;
 
-  void cxx_preinitialize(legion_mapper_id_t mapperID);
+  void cxx_preinitialize();
 
   void cxx_initialize( legion_runtime_t runtime_, legion_context_t ctx_,
   legion_logical_region_t region, legion_logical_partition_t partition_,

@@ -134,9 +134,8 @@ namespace Legion {
     TaskID ImageReduction::mInitialTaskID;
     TaskID ImageReduction::mCompositeTaskID;
     TaskID ImageReduction::mDisplayTaskID;
-    KDTree<image_region_dimensions, long long int>* ImageReduction::mKDTree = nullptr;
-
-    MapperID gMapperID;
+    KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
+    KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
 
 
     /**
@@ -149,8 +148,7 @@ namespace Legion {
       int numPFields,
       ImageDescriptor imageDescriptor,
       Context context,
-      HighLevelRuntime *runtime,
-      MapperID mapperID) {
+      HighLevelRuntime *runtime) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.simulationLogicalRegion = region;
       imageDescriptor.simulationLogicalPartition = partition;
@@ -169,8 +167,6 @@ namespace Legion {
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
       mNodeID = -1;
-      mMapperID = mapperID;
-      gMapperID = mapperID;
       mRenderImageDomain = imageDescriptor.simulationDomain;
 
       mGlBlendEquation = GL_FUNC_ADD;
@@ -190,7 +186,7 @@ namespace Legion {
     /**
      * use this constructor for testing and applications that don't have a simulation partition.
      **/
-    ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime, MapperID mapperID) {
+    ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime) {
       imageDescriptor.hasPartition = false;
       mImageDescriptor = imageDescriptor;
       mRuntime = runtime;
@@ -198,8 +194,6 @@ namespace Legion {
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
       mNodeID = -1;
-      mMapperID = mapperID;
-      gMapperID = mapperID;
 
       mGlBlendEquation = GL_FUNC_ADD;
       mGlBlendFunctionSource = 0;
@@ -242,12 +236,12 @@ namespace Legion {
     // its purpose is to register tasks with the same id on all nodes
 
     void ImageReduction::registerTasks() {
-
       {
         mInitialTaskID = Legion::HighLevelRuntime::generate_static_task_id();
         TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
         registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
         Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
+  std::cout << "mInitialTaskID = " << mInitialTaskID << std::endl;
       }
       {
         mCompositeTaskID = Legion::HighLevelRuntime::generate_static_task_id();
@@ -376,8 +370,8 @@ namespace Legion {
     void ImageReduction::partitionImageByKDTree(LogicalRegion image,
       LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
       mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
-      Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mKDTree->size()];
-      mKDTree->getColorMap(coloring);
+      Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
+      mSimulationKDTree->getColorMap(coloring);
 
       // create a logical region to hold the coloring and extent
       Point<image_region_dimensions> p0 = mImageDescriptor.origin();
@@ -413,11 +407,10 @@ namespace Legion {
 
       Rect<image_region_dimensions> rect = imageBounds;
 
-      for(unsigned i = 0; i < mKDTree->size(); ++i) {
+      for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
         rect.lo.z = rect.hi.z = i;
         acc_extent[coloring[i]] = rect;
         acc_color[coloring[i]] = coloring[i];
-std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       }
       // partition the coloring region by field
       IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
@@ -488,27 +481,53 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
     }
 
 
-    void ImageReduction::buildKDTree(ImageDescriptor imageDescriptor,
+    void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
                                      Context ctx,
                                      HighLevelRuntime *runtime) {
       Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
-      KDTreeValue* elements = new KDTreeValue[rect.volume()];
+      KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
       unsigned index = 0;
+      Point<image_region_dimensions> p0 = Point<image_region_dimensions>::ZEROES();
+      Rect<image_region_dimensions> zeroRect(p0, p0);
+
       for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
         DomainPoint color(it.p);
-        IndexSpace subregion = runtime->get_index_subspace(ctx, imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
+        IndexSpace subregion = runtime->get_index_subspace(ctx,
+          imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
         Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
-        Legion::Rect<image_region_dimensions> rect =
+        Legion::Rect<image_region_dimensions> simulationRect =
           (Legion::Rect<image_region_dimensions>)subdomain;
-        KDTreeValue value = { rect, color };
-  std::cout << "KDTree leaf " << rect << " " << color << std::endl;
-        elements[index++] = value;
+        KDTreeValue simulationValue;
+        simulationValue.extent = simulationRect;
+        simulationValue.color = color;
+        simulationValue.extent2 = zeroRect;
+        simulationElements[index] = simulationValue;
+        index++;
       }
 
-      mKDTree = new KDTree<image_region_dimensions, long long int>(elements, rect.volume());
-      delete [] elements;
-      char buffer[256];
-      std::cout << gethostname(buffer, sizeof(buffer)) << " pid " << getpid() << " built a KDTree and colormap with " << rect.volume() << " entries" << std::endl;
+      mSimulationKDTree = new KDTree<image_region_dimensions, long long int>(simulationElements, rect.volume());
+      delete [] simulationElements;
+
+      Rect<image_region_dimensions>* simulationExtents = new Rect<image_region_dimensions>[rect.volume()];
+      mSimulationKDTree->getExtent(simulationExtents);
+      KDTreeValue* imageElements = new KDTreeValue[rect.volume()];
+
+      for(unsigned i = 0; i < rect.volume(); ++i) {
+        Point<image_region_dimensions> p0(0, 0, i);
+        Point<image_region_dimensions> p1 = imageDescriptor.upperBound() -
+          Point<image_region_dimensions>::ONES();
+        p1[image_region_dimensions - 1] = i;
+        Rect<image_region_dimensions> imageRect(p0, p1);
+        KDTreeValue imageElement;
+        imageElement.extent = imageRect;
+        imageElement.color = Point<image_region_dimensions>::ZEROES();
+        imageElement.extent2 = simulationExtents[i];
+        imageElements[i] = imageElement;
+      }
+
+      delete [] simulationExtents;
+      mImageKDTree = new KDTree<image_region_dimensions, long long int>(imageElements, rect.volume());
+      delete [] imageElements;
     }
 
 
@@ -533,7 +552,7 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
         createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
       }
       if(imageDescriptor.hasPartition) {
-        buildKDTree(imageDescriptor, ctx, runtime);
+        buildKDTrees(imageDescriptor, ctx, runtime);
       }
     }
 
@@ -554,7 +573,6 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
         mHierarchicalTreeDomain = new std::vector<Domain>();
       }
 
-      std::cout << "image descriptor " << mImageDescriptor.width << " " << mImageDescriptor.height << " " << mImageDescriptor.numImageLayers << std::endl;
       Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
       int numLeaves = 1;
 
@@ -613,12 +631,18 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
         userdata = acc_userdata.ptr(rect, stride[5]);
 
       } else {
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_r(region, FID_FIELD_R);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_g(region, FID_FIELD_G);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_b(region, FID_FIELD_B);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_a(region, FID_FIELD_A);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_z(region, FID_FIELD_Z);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_userdata(region, FID_FIELD_USERDATA);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_r(region, FID_FIELD_R);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_g(region, FID_FIELD_G);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_b(region, FID_FIELD_B);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_a(region, FID_FIELD_A);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_z(region, FID_FIELD_Z);
+        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
+        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_userdata(region, FID_FIELD_USERDATA);
         r = (PixelField*)acc_r.ptr(rect, stride[0]);
         g = (PixelField*)acc_g.ptr(rect, stride[1]);
         b = (PixelField*)acc_b.ptr(rect, stride[2]);
@@ -631,7 +655,8 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
     }
 
 
-    FutureMap ImageReduction::launch_task_composite_domain(unsigned taskID, HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
+    FutureMap ImageReduction::launch_task_composite_domain(unsigned taskID,
+      HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
 
       ArgumentMap argMap;
       int totalArgLen = sizeof(mImageDescriptor) + argLen;
@@ -649,14 +674,14 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       } else {
         domain = mCompositeImageDomain;
       }
+std::cout << __FUNCTION__ << " index launch task id " << taskID << std::endl;
 
-      IndexTaskLauncher compositeImageLauncher(taskID, domain, TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false, mMapperID);
+      IndexTaskLauncher compositeImageLauncher(taskID, domain,
+        TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
       RegionRequirement req(mCompositeImagePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       compositeImageLauncher.add_region_requirement(req);
-
       FutureMap futures = runtime->execute_index_space(context, compositeImageLauncher);
-
       if(blocking) {
         futures.wait_all_results();
       }
@@ -677,14 +702,20 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
     }
 #endif
 
-    KDNode<image_region_dimensions, long long int>* ImageReduction::findFragmentInKDTree(PhysicalRegion fragment) {
-      Legion::DomainT<image_region_dimensions, long long int> domain = fragment.get_bounds<image_region_dimensions, long long int>();
+    KDNode<image_region_dimensions, long long int>*
+    ImageReduction::findFragmentInKDTree(PhysicalRegion fragment) {
+      Legion::DomainT<image_region_dimensions, long long int> domain =
+      fragment.get_bounds<image_region_dimensions, long long int>();
       //Legion::Rect<image_region_dimensions> rect = domain.Rect<image_region_dimensions, long long int>();
       Legion::Rect<image_region_dimensions> rect = (Domain)domain;
       KDTreeValue value;
       value.extent = rect;
-      return mKDTree->find(value);
+      KDNode<image_region_dimensions, long long int>* imageNode = mImageKDTree->find(value);
+      value.extent = imageNode->mValue.extent2;
+      KDNode<image_region_dimensions, long long int>* simulationNode = mSimulationKDTree->find(value);
+      return simulationNode;
     }
+
 
     bool ImageReduction::flipRegions(PhysicalRegion fragment0,
                                      PhysicalRegion fragment1,
@@ -735,16 +766,18 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       ImageReductionComposite::CompositeFunction* compositeFunction;
       //      UsecTimer composite("composite time:");
       //      composite.start();
+      compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
+      create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
+      create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
+
       if(flipRegions(fragment0, fragment1, args.cameraAt)) {
-        create_image_field_pointers(args.imageDescriptor, fragment1, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
-        create_image_field_pointers(args.imageDescriptor, fragment0, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
+        compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
+          r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride1, stride0);
       } else {
-        create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
-        create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
+        compositeFunction(r0, g0, b0, a0, z0, userdata0, r0, g0, b0, a0, z0, userdata0,
+          r1, g1, b1, a1, z1, userdata1, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       }
 
-      compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
-      compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       //      composite.stop();
       //      std::cout << composite.to_string() << std::endl;
 
@@ -776,7 +809,7 @@ std::cout << "extent " << rect << " color " << coloring[i] << std::endl;
       args.blendEquation = blendEquation;
       memcpy(args.cameraAt, cameraAt, sizeof(args.cameraAt));
       IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
-        TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false, gMapperID);
+        TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false);
 
       RegionRequirement req0(sourcePartition, functor0->id(), READ_WRITE, EXCLUSIVE, image);
       addImageFieldsToRequirement(req0);

@@ -23,6 +23,7 @@ namespace Legion{
 typedef struct {
   Legion::Rect<image_region_dimensions> extent;
   Legion::Point<image_region_dimensions> color;
+  Legion::Rect<image_region_dimensions> extent2;
 } KDTreeValue;
 
 
@@ -68,6 +69,11 @@ public:
   void getColorMap(Legion::Point<image_region_dimensions>* coloring) {
     unsigned zero = 0;
     getColorMapRecursive(mRoot, coloring, zero);
+  }
+
+  void getExtent(Legion::Rect<image_region_dimensions>* extents) {
+    unsigned zero = 0;
+    getExtentRecursive(mRoot, extents, zero);
   }
 
   KDNode<N, DataType>* find(KDTreeValue element) const {
@@ -134,10 +140,7 @@ private:
 
   void dumpRecursive(KDNode<N, DataType>* node) const {
     if(node->mIsLeaf) {
-      for(unsigned i = 0; i < N; ++i) {
-        std::cout << node->mValue[i] << " ";
-      }
-      std::cout << std::endl;
+      std::cout << node->mValue.extent << " " << node->mValue.color << " " << node->mValue.extent2 << std::endl;
     } else {
       dumpRecursive(node->mLeft);
       dumpRecursive(node->mRight);
@@ -148,24 +151,29 @@ private:
                             Legion::Point<image_region_dimensions>* coloring,
                             unsigned& index) {
     if(node->mIsLeaf) {
-      // return a permutation of the image subregions according to the KD tree order
-      for(unsigned i = 0; i < image_region_dimensions; ++i) {
-        coloring[index] = node->mValue.color;
-      }
-      index++;
+      coloring[index++] = node->mValue.color;
     } else {
       getColorMapRecursive(node->mLeft, coloring, index);
       getColorMapRecursive(node->mRight, coloring, index);
     }
   }
 
+  void getExtentRecursive(KDNode<N, DataType>* node,
+                            Legion::Rect<image_region_dimensions>* extents,
+                            unsigned& index) {
+    if(node->mIsLeaf) {
+      extents[index++] = node->mValue.extent;
+    } else {
+      getExtentRecursive(node->mLeft, extents, index);
+      getExtentRecursive(node->mRight, extents, index);
+    }
+  }
+
   KDNode<N, DataType>* findRecursive(KDNode<N, DataType>* node,
                                      KDTreeValue element) const {
     if(node->mIsLeaf) {
-      for(unsigned i = 0; i < N; ++i) {
-        if(node->mValue.extent != element.extent) return nullptr;
-      }
-      return node;
+      if(node->mValue.extent == element.extent) return node;
+      return nullptr;
     }
     KDNode<N, DataType>* left = findRecursive(node->mLeft, element);
     if(left != nullptr) return left;

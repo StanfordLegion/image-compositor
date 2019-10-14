@@ -27,17 +27,17 @@ clean:
 	rm -f image.*.tga
 
 
-visualization_2.exec: visualization_2.so render.o renderCube.o visualization_2_mapper.o
+visualization_2.exec: visualization_2.so render.o renderCube.o
 	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lOSMesa
 
 visualization_2.so: visualization_2.rg
 	$(REGENT) visualization_2.rg $(REGENT_FLAGS)
 
-render.o: render.cc render.h 
+render.o: render.cc render.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-renderCube.o: renderCube.cc render.h 
+renderCube.o: renderCube.cc render.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-visualization_2_mapper.o: visualization_2_mapper.cc visualization_2_mapper.h 
+visualization_2_mapper.o: visualization_2_mapper.cc visualization_2_mapper.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

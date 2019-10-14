@@ -16,7 +16,7 @@ public:
   Visualization_2_Mapper(Runtime* rt, Machine machine, Processor local)
     : DefaultMapper(rt->get_mapper_runtime(), machine, local, "visualization_2_mapper")
     { }
-  
+
 };
 
 
@@ -35,18 +35,20 @@ static void create_mappers(Machine machine,
                            const std::set<Processor>& local_procs) {
   for (Processor proc : local_procs) {
     rt->replace_default_mapper(new Visualization_2_Mapper(rt, machine, proc), proc);
+#if 0
     ImageReductionMapper* irMapper =
     new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
     rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
+#endif
   }
 }
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  
+
   void cxx_preinitialize(legion_mapper_id_t);
-  
+
 #ifdef __cplusplus
 }
 #endif

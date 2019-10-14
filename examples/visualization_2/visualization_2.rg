@@ -7,8 +7,6 @@
 
 import "regent"
 c = regentlib.c
-local MAPPER = terralib.includec("visualization_2_mapper.h")
-
 
 
 -------------------------------------------------------------------------------
@@ -86,7 +84,6 @@ end
 task main()
 
   -- logical region and partition
-
   var r = region(ispace(int3d, {2, 2, 2}, {0, 0, 0}), float)
   var colors = ispace(int3d, {2, 2, 2}, {0, 0, 0})
   var p = partition(equal, r, colors)
@@ -95,4 +92,4 @@ task main()
   render.cxx_terminate()
 end
 
-regentlib.saveobj(main, "visualization_2.so", "object", MAPPER.register_mappers)
+regentlib.saveobj(main, "visualization_2.so", "object", render.cxx_preinitialize)

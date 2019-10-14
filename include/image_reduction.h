@@ -119,7 +119,7 @@ namespace Legion {
        * @param ctx Legion context
        * @param runtime  Legion runtime
        */
-      ImageReduction(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime, MapperID mapperID=0);
+      ImageReduction(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
       /**
        * Construct an image reduction framework based on an existing partition.
        *
@@ -134,8 +134,7 @@ namespace Legion {
        int numPFields,
        ImageDescriptor imageDescriptor,
        Context context,
-       HighLevelRuntime *runtime,
-       MapperID mapperID);
+       HighLevelRuntime *runtime);
 
       /**
        * Destroy an instance of an image reduction framework.
@@ -254,6 +253,7 @@ namespace Legion {
         char hostname[128] = { 0 };
         if(hostname[0] == '\0') gethostname(hostname, sizeof(hostname));
         std::ostringstream output;
+        output << hostname << " ";
         output << task->get_task_name() << " "
         << task->task_id << " "
         << task->get_unique_id()
@@ -438,7 +438,7 @@ namespace Legion {
 
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
 
-      static void buildKDTree(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
+      static void buildKDTrees(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
 
       static void registerTasks();
 
@@ -493,7 +493,8 @@ namespace Legion {
       static TaskID mInitialTaskID;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
-      static KDTree<image_region_dimensions, long long int>* mKDTree;
+      static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
+      static KDTree<image_region_dimensions, long long int>* mImageKDTree;
     };
 
   }
