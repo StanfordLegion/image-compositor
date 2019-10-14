@@ -45,9 +45,9 @@ terra configureCamera(angle : float)
   camera.up[0] = 0
   camera.up[1] = 1
   camera.up[2] = 0
-  camera.from[0] = c.cos(angle) * 4
+  camera.from[0] = c.cos(angle) * 6
   camera.from[1] = 1.5
-  camera.from[2] = c.sin(angle) * 4
+  camera.from[2] = c.sin(angle) * 6
   camera.at[0] = 1
   camera.at[1] = 1
   camera.at[2] = 1

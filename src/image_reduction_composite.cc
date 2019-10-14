@@ -17,15 +17,15 @@
 
 namespace Legion {
   namespace Visualization {
-    
+
     // declare static data
     ImageReductionComposite::ScaleFunction ImageReductionComposite::mScaleFunctionSource;
     ImageReductionComposite::ScaleFunction ImageReductionComposite::mScaleFunctionDestination;
     GLenum ImageReductionComposite::mGlBlendFunctionSource;
     GLenum ImageReductionComposite::mGlBlendFunctionDestination;
     GLenum ImageReductionComposite::mBlendEquation;
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsNever(ImageReduction::PixelField *r0,
                                                               ImageReduction::PixelField *g0,
                                                               ImageReduction::PixelField *b0,
@@ -47,7 +47,7 @@ namespace Legion {
                                                               int numPixels,
                                                               Legion::Visualization::ImageReduction::Stride stride0,
                                                               Legion::Visualization::ImageReduction::Stride stride1) {
-            
+
       for(int i = 0; i < numPixels; ++i) {
         *rOut = *r1; *gOut = *g1; *bOut = *b1; *aOut = *a1; *zOut = *z1; *userdataOut = *userdata1;
         increment(r0, g0, b0, a0, z0, userdata0, stride0);
@@ -55,11 +55,11 @@ namespace Legion {
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
     }
-    
-    
+
+
     /// depth composite functions
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsLess(ImageReduction::PixelField *r0,
                                                              ImageReduction::PixelField *g0,
                                                              ImageReduction::PixelField *b0,
@@ -81,7 +81,7 @@ namespace Legion {
                                                              int numPixels,
                                                              Legion::Visualization::ImageReduction::Stride stride0,
                                                              Legion::Visualization::ImageReduction::Stride stride1){
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 < *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -92,10 +92,10 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsEqual(ImageReduction::PixelField *r0,
                                                               ImageReduction::PixelField *g0,
                                                               ImageReduction::PixelField *b0,
@@ -117,7 +117,7 @@ namespace Legion {
                                                               int numPixels,
                                                               Legion::Visualization::ImageReduction::Stride stride0,
                                                               Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 == *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -128,10 +128,10 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsLEqual(ImageReduction::PixelField *r0,
                                                                ImageReduction::PixelField *g0,
                                                                ImageReduction::PixelField *b0,
@@ -153,7 +153,7 @@ namespace Legion {
                                                                int numPixels,
                                                                Legion::Visualization::ImageReduction::Stride stride0,
                                                                Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 <= *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -164,10 +164,10 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsGreater(ImageReduction::PixelField *r0,
                                                                 ImageReduction::PixelField *g0,
                                                                 ImageReduction::PixelField *b0,
@@ -189,7 +189,7 @@ namespace Legion {
                                                                 int numPixels,
                                                                 Legion::Visualization::ImageReduction::Stride stride0,
                                                                 Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 > *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -200,9 +200,9 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
+
     inline void ImageReductionComposite::compositePixelsNotEqual(ImageReduction::PixelField *r0,
                                                                  ImageReduction::PixelField *g0,
                                                                  ImageReduction::PixelField *b0,
@@ -224,7 +224,7 @@ namespace Legion {
                                                                  int numPixels,
                                                                  Legion::Visualization::ImageReduction::Stride stride0,
                                                                  Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 != *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -235,10 +235,10 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
-    
+
+
     inline void ImageReductionComposite::compositePixelsGEqual(ImageReduction::PixelField *r0,
                                                                ImageReduction::PixelField *g0,
                                                                ImageReduction::PixelField *b0,
@@ -260,7 +260,7 @@ namespace Legion {
                                                                int numPixels,
                                                                Legion::Visualization::ImageReduction::Stride stride0,
                                                                Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
         if(*z0 >= *z1) {
           *rOut = *r0; *gOut = *g0; *bOut = *b0; *aOut = *a0; *zOut = *z0; *userdataOut = *userdata0;
@@ -271,9 +271,9 @@ namespace Legion {
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
+
     }
-    
+
     inline void ImageReductionComposite::compositePixelsAlways(ImageReduction::PixelField *r0,
                                                                ImageReduction::PixelField *g0,
                                                                ImageReduction::PixelField *b0,
@@ -295,13 +295,13 @@ namespace Legion {
                                                                int numPixels,
                                                                Legion::Visualization::ImageReduction::Stride stride0,
                                                                Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       // no change */
     }
-    
-    
+
+
     /// blending scale functions
-    
+
     static inline void gl_zero(
                                ImageReduction::PixelField *rSource0,
                                ImageReduction::PixelField *gSource0,
@@ -315,9 +315,9 @@ namespace Legion {
                                ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 0;
     }
-    
-    
-    
+
+
+
     static inline void gl_one(
                               ImageReduction::PixelField *rSource0,
                               ImageReduction::PixelField *gSource0,
@@ -331,9 +331,9 @@ namespace Legion {
                               ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1;
     }
-    
-    
-    
+
+
+
     static inline void gl_src_color(
                                     ImageReduction::PixelField *rSource0,
                                     ImageReduction::PixelField *gSource0,
@@ -350,9 +350,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = *bSource0;
       factors[ImageReduction::FID_FIELD_A] = *aSource0;
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_src_color(
                                               ImageReduction::PixelField *rSource0,
                                               ImageReduction::PixelField *gSource0,
@@ -368,11 +368,11 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_G] = 1.0f - *gSource0;
       factors[ImageReduction::FID_FIELD_B] = 1.0f - *bSource0;
       factors[ImageReduction::FID_FIELD_A] = 1.0f - *aSource0;
-      
+
     }
-    
-    
-    
+
+
+
     static inline void gl_dst_color(
                                     ImageReduction::PixelField *rSource0,
                                     ImageReduction::PixelField *gSource0,
@@ -389,9 +389,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = *bDestination0;
       factors[ImageReduction::FID_FIELD_A] = *aDestination0;
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_dst_color(
                                               ImageReduction::PixelField *rSource0,
                                               ImageReduction::PixelField *gSource0,
@@ -408,9 +408,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = 1.0f - *bDestination0;
       factors[ImageReduction::FID_FIELD_A] = 1.0f - *aDestination0;
     }
-    
-    
-    
+
+
+
     static inline void gl_src_alpha(
                                     ImageReduction::PixelField *rSource0,
                                     ImageReduction::PixelField *gSource0,
@@ -424,9 +424,9 @@ namespace Legion {
                                     ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aSource0;
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_src_alpha(
                                               ImageReduction::PixelField *rSource0,
                                               ImageReduction::PixelField *gSource0,
@@ -440,9 +440,9 @@ namespace Legion {
                                               ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aSource0;
     }
-    
-    
-    
+
+
+
     static inline void gl_dst_alpha(
                                     ImageReduction::PixelField *rSource0,
                                     ImageReduction::PixelField *gSource0,
@@ -456,9 +456,9 @@ namespace Legion {
                                     ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aDestination0;
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_dst_alpha(
                                               ImageReduction::PixelField *rSource0,
                                               ImageReduction::PixelField *gSource0,
@@ -472,9 +472,9 @@ namespace Legion {
                                               ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aDestination0;
     }
-    
-    
-    
+
+
+
     static inline void gl_constant_color(
                                          ImageReduction::PixelField *rSource0,
                                          ImageReduction::PixelField *gSource0,
@@ -491,9 +491,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_B];
       factors[ImageReduction::FID_FIELD_A] = ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_constant_color(
                                                    ImageReduction::PixelField *rSource0,
                                                    ImageReduction::PixelField *gSource0,
@@ -509,11 +509,11 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_G] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_G];
       factors[ImageReduction::FID_FIELD_B] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_B];
       factors[ImageReduction::FID_FIELD_A] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
-      
+
     }
-    
-    
-    
+
+
+
     static inline void gl_constant_alpha(
                                          ImageReduction::PixelField *rSource0,
                                          ImageReduction::PixelField *gSource0,
@@ -531,9 +531,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
       factors[ImageReduction::FID_FIELD_A] = ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
     }
-    
-    
-    
+
+
+
     static inline void gl_one_minus_constant_alpha(
                                                    ImageReduction::PixelField *rSource0,
                                                    ImageReduction::PixelField *gSource0,
@@ -551,9 +551,9 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
       factors[ImageReduction::FID_FIELD_A] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
     }
-    
-    
-    
+
+
+
     static inline void gl_src_alpha_saturate(
                                              ImageReduction::PixelField *rSource0,
                                              ImageReduction::PixelField *gSource0,
@@ -571,13 +571,13 @@ namespace Legion {
       factors[ImageReduction::FID_FIELD_B] = i;
       factors[ImageReduction::FID_FIELD_A] = 1;
     }
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
     ImageReductionComposite::ScaleFunction ImageReductionComposite::getScaleFunction(GLenum blendFunction) {
       switch(blendFunction) {
         case GL_ZERO: return &gl_zero;
@@ -604,18 +604,18 @@ namespace Legion {
           //        case GL_ONE_MINUS_SRC1_ALPHA: return &gl_one_minus_src1_alpha;
         default: return NULL;
       }
-      
+
     }
-    
-    
+
+
     /// blend composite function for all blend operators
-    
-    
+
+
     // this is named "slowly" becaues it requires function calls on each pixel.
     // a fast version would require that we implement a function for each element
     //   of the cross product of blendFunctionSource X blendFunctionDestination.
     //   that is just too much coding for now, do this if performance becomes a problem.
-    
+
     inline void ImageReductionComposite::blendPixelsSlowly(ImageReduction::PixelField *r0,
                                                            ImageReduction::PixelField *g0,
                                                            ImageReduction::PixelField *b0,
@@ -637,14 +637,14 @@ namespace Legion {
                                                            int numPixels,
                                                            Legion::Visualization::ImageReduction::Stride stride0,
                                                            Legion::Visualization::ImageReduction::Stride stride1) {
-      
+
       for(int i = 0; i < numPixels; ++i) {
-        
+
         ImageReduction::PixelField sourceFactor[4];
         mScaleFunctionSource(r0, g0, b0, a0, r1, g1, b1, a1, sourceFactor);
         ImageReduction::PixelField destinationFactor[4];
         mScaleFunctionDestination(r0, g0, b0, a0, r1, g1, b1, a1, destinationFactor);
-        
+
         ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = *g0 * sourceFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bSource = *b0 * sourceFactor[ImageReduction::FID_FIELD_B];
@@ -653,7 +653,7 @@ namespace Legion {
         ImageReduction::PixelField gDestination = *g1 * destinationFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bDestination = *b1 * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = *a1 * destinationFactor[ImageReduction::FID_FIELD_A];
-        
+
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
             *rOut = rSource + rDestination;
@@ -687,23 +687,24 @@ namespace Legion {
             break;
           default: assert(false);//should never happen
         }
-        
+
         // clamp the result
         *rOut = std::min(1.0f, std::max(0.0f, *rOut));
         *gOut = std::min(1.0f, std::max(0.0f, *gOut));
         *bOut = std::min(1.0f, std::max(0.0f, *bOut));
         *aOut = std::min(1.0f, std::max(0.0f, *aOut));
-        
+
         increment(r0, g0, b0, a0, z0, userdata0, stride0);
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
         increment(rOut, gOut, bOut, aOut, zOut, userdataOut, stride0);
       }
-      
-      
+
+
     }
-    
-    
-    ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFunctionPointer(GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation) {
+
+
+    ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFunctionPointer(
+      GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation) {
       if(depthFunction != 0) {
         switch(depthFunction) {
           case GL_NEVER: return compositePixelsNever;
@@ -714,7 +715,7 @@ namespace Legion {
           case GL_NOTEQUAL: return compositePixelsNotEqual;
           case GL_GEQUAL: return compositePixelsGEqual;
           case GL_ALWAYS: return compositePixelsAlways;
-            
+
         }
       } else {
         mScaleFunctionSource = getScaleFunction(blendFunctionSource);
@@ -728,7 +729,6 @@ namespace Legion {
       }
       return NULL;
     }
-    
+
   }
 }
-

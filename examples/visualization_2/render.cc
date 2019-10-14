@@ -289,8 +289,7 @@ _T
   void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) {
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
-    compositor->set_depth_func(GL_LESS);
-    //FutureMap futures = compositor->reduce_associative_noncommutative(ctx);
+    compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     FutureMap futures = compositor->reduceImages(ctx, cameraAt);
     futures.wait_all_results();
   }
