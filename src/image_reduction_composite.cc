@@ -638,12 +638,24 @@ namespace Legion {
                                                            Legion::Visualization::ImageReduction::Stride stride0,
                                                            Legion::Visualization::ImageReduction::Stride stride1) {
 
+unsigned nonzeroCount = 0;
+bool show = false;
+
       for(int i = 0; i < numPixels; ++i) {
 
         ImageReduction::PixelField sourceFactor[4];
         mScaleFunctionSource(r0, g0, b0, a0, r1, g1, b1, a1, sourceFactor);
         ImageReduction::PixelField destinationFactor[4];
         mScaleFunctionDestination(r0, g0, b0, a0, r1, g1, b1, a1, destinationFactor);
+
+show = false;
+if(*r0 != 0 || *r1 != 0) {
+  if(nonzeroCount < 8) {
+    __TRACE
+    std::cout << nonzeroCount++ << " " << *r0 << " " << *r2 << " = ";
+    show = true;
+  }
+}
 
         ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = *g0 * sourceFactor[ImageReduction::FID_FIELD_G];
@@ -693,6 +705,10 @@ namespace Legion {
         *gOut = std::min(1.0f, std::max(0.0f, *gOut));
         *bOut = std::min(1.0f, std::max(0.0f, *bOut));
         *aOut = std::min(1.0f, std::max(0.0f, *aOut));
+
+if(show) {
+  std::cout << *rout << std::endl;
+}
 
         increment(r0, g0, b0, a0, z0, userdata0, stride0);
         increment(r1, g1, b1, a1, z1, userdata1, stride1);
