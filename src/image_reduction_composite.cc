@@ -652,7 +652,7 @@ show = false;
 if(*r0 != 0 || *r1 != 0) {
   if(nonzeroCount < 8) {
     __TRACE
-    std::cout << nonzeroCount++ << " " << *r0 << " " << *r2 << " = ";
+    std::cout << nonzeroCount++ << " " << *r0 << " " << *r1 << " = ";
     show = true;
   }
 }
@@ -707,7 +707,7 @@ if(*r0 != 0 || *r1 != 0) {
         *aOut = std::min(1.0f, std::max(0.0f, *aOut));
 
 if(show) {
-  std::cout << *rout << std::endl;
+  std::cout << *rOut << std::endl;
 }
 
         increment(r0, g0, b0, a0, z0, userdata0, stride0);

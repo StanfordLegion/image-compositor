@@ -290,6 +290,7 @@ _T
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    compositor->set_blend_equation(GL_FUNC_ADD);
     FutureMap futures = compositor->reduceImages(ctx, cameraAt);
     futures.wait_all_results();
   }
