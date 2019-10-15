@@ -438,7 +438,8 @@ namespace Legion {
                                               ImageReduction::PixelField *aDestination0,
                                               ImageReduction::PixelField factors[4]
                                               ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aSource0;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aSource0;
     }
 
 
@@ -454,7 +455,8 @@ namespace Legion {
                                     ImageReduction::PixelField *aDestination0,
                                     ImageReduction::PixelField factors[4]
                                     ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aDestination0;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aDestination0;
     }
 
 
@@ -648,14 +650,6 @@ bool show = false;
         ImageReduction::PixelField destinationFactor[4];
         mScaleFunctionDestination(r0, g0, b0, a0, r1, g1, b1, a1, destinationFactor);
 
-show = false;
-if(*r0 != 0 || *r1 != 0) {
-  if(nonzeroCount < 8) {
-    __TRACE
-    std::cout << nonzeroCount++ << " " << *r0 << " " << *r1 << " = ";
-    show = true;
-  }
-}
 
         ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = *g0 * sourceFactor[ImageReduction::FID_FIELD_G];
@@ -665,6 +659,17 @@ if(*r0 != 0 || *r1 != 0) {
         ImageReduction::PixelField gDestination = *g1 * destinationFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bDestination = *b1 * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = *a1 * destinationFactor[ImageReduction::FID_FIELD_A];
+
+        show = false;
+        if(*r0 != 0 || *r1 != 0) {
+          if(nonzeroCount < 8) {
+            __TRACE
+            std::cout << nonzeroCount++ << " " << "a0 " << *a0 << " r0 " << *r0 << " a1 "
+            << *a1 << " r1 " << *r1 << " rSource " << *rSource << " rDest " << *rDestination << " = ";
+            show = true;
+          }
+        }
+
 
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
