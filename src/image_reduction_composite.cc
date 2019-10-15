@@ -307,13 +307,10 @@ namespace Legion {
                                ImageReduction::PixelField *gSource0,
                                ImageReduction::PixelField *bSource0,
                                ImageReduction::PixelField *aSource0,
-                               ImageReduction::PixelField *rDestination0,
-                               ImageReduction::PixelField *gDestination0,
-                               ImageReduction::PixelField *bDestination0,
-                               ImageReduction::PixelField *aDestination0,
                                ImageReduction::PixelField factors[4]
                                ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 0;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 0;
     }
 
 
@@ -323,13 +320,10 @@ namespace Legion {
                               ImageReduction::PixelField *gSource0,
                               ImageReduction::PixelField *bSource0,
                               ImageReduction::PixelField *aSource0,
-                              ImageReduction::PixelField *rDestination0,
-                              ImageReduction::PixelField *gDestination0,
-                              ImageReduction::PixelField *bDestination0,
-                              ImageReduction::PixelField *aDestination0,
                               ImageReduction::PixelField factors[4]
                               ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1;
     }
 
 
@@ -339,10 +333,6 @@ namespace Legion {
                                     ImageReduction::PixelField *gSource0,
                                     ImageReduction::PixelField *bSource0,
                                     ImageReduction::PixelField *aSource0,
-                                    ImageReduction::PixelField *rDestination0,
-                                    ImageReduction::PixelField *gDestination0,
-                                    ImageReduction::PixelField *bDestination0,
-                                    ImageReduction::PixelField *aDestination0,
                                     ImageReduction::PixelField factors[4]
                                     ) {
       factors[ImageReduction::FID_FIELD_R] = *rSource0;
@@ -358,10 +348,6 @@ namespace Legion {
                                               ImageReduction::PixelField *gSource0,
                                               ImageReduction::PixelField *bSource0,
                                               ImageReduction::PixelField *aSource0,
-                                              ImageReduction::PixelField *rDestination0,
-                                              ImageReduction::PixelField *gDestination0,
-                                              ImageReduction::PixelField *bDestination0,
-                                              ImageReduction::PixelField *aDestination0,
                                               ImageReduction::PixelField factors[4]
                                               ) {
       factors[ImageReduction::FID_FIELD_R] = 1.0f - *rSource0;
@@ -374,10 +360,6 @@ namespace Legion {
 
 
     static inline void gl_dst_color(
-                                    ImageReduction::PixelField *rSource0,
-                                    ImageReduction::PixelField *gSource0,
-                                    ImageReduction::PixelField *bSource0,
-                                    ImageReduction::PixelField *aSource0,
                                     ImageReduction::PixelField *rDestination0,
                                     ImageReduction::PixelField *gDestination0,
                                     ImageReduction::PixelField *bDestination0,
@@ -393,10 +375,6 @@ namespace Legion {
 
 
     static inline void gl_one_minus_dst_color(
-                                              ImageReduction::PixelField *rSource0,
-                                              ImageReduction::PixelField *gSource0,
-                                              ImageReduction::PixelField *bSource0,
-                                              ImageReduction::PixelField *aSource0,
                                               ImageReduction::PixelField *rDestination0,
                                               ImageReduction::PixelField *gDestination0,
                                               ImageReduction::PixelField *bDestination0,
@@ -416,13 +394,10 @@ namespace Legion {
                                     ImageReduction::PixelField *gSource0,
                                     ImageReduction::PixelField *bSource0,
                                     ImageReduction::PixelField *aSource0,
-                                    ImageReduction::PixelField *rDestination0,
-                                    ImageReduction::PixelField *gDestination0,
-                                    ImageReduction::PixelField *bDestination0,
-                                    ImageReduction::PixelField *aDestination0,
                                     ImageReduction::PixelField factors[4]
                                     ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aSource0;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aSource0;
     }
 
 
@@ -432,10 +407,6 @@ namespace Legion {
                                               ImageReduction::PixelField *gSource0,
                                               ImageReduction::PixelField *bSource0,
                                               ImageReduction::PixelField *aSource0,
-                                              ImageReduction::PixelField *rDestination0,
-                                              ImageReduction::PixelField *gDestination0,
-                                              ImageReduction::PixelField *bDestination0,
-                                              ImageReduction::PixelField *aDestination0,
                                               ImageReduction::PixelField factors[4]
                                               ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
@@ -445,10 +416,6 @@ namespace Legion {
 
 
     static inline void gl_dst_alpha(
-                                    ImageReduction::PixelField *rSource0,
-                                    ImageReduction::PixelField *gSource0,
-                                    ImageReduction::PixelField *bSource0,
-                                    ImageReduction::PixelField *aSource0,
                                     ImageReduction::PixelField *rDestination0,
                                     ImageReduction::PixelField *gDestination0,
                                     ImageReduction::PixelField *bDestination0,
@@ -462,17 +429,14 @@ namespace Legion {
 
 
     static inline void gl_one_minus_dst_alpha(
-                                              ImageReduction::PixelField *rSource0,
-                                              ImageReduction::PixelField *gSource0,
-                                              ImageReduction::PixelField *bSource0,
-                                              ImageReduction::PixelField *aSource0,
                                               ImageReduction::PixelField *rDestination0,
                                               ImageReduction::PixelField *gDestination0,
                                               ImageReduction::PixelField *bDestination0,
                                               ImageReduction::PixelField *aDestination0,
                                               ImageReduction::PixelField factors[4]
                                               ) {
-      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] = factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aDestination0;
+      factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
+      factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aDestination0;
     }
 
 
@@ -482,10 +446,6 @@ namespace Legion {
                                          ImageReduction::PixelField *gSource0,
                                          ImageReduction::PixelField *bSource0,
                                          ImageReduction::PixelField *aSource0,
-                                         ImageReduction::PixelField *rDestination0,
-                                         ImageReduction::PixelField *gDestination0,
-                                         ImageReduction::PixelField *bDestination0,
-                                         ImageReduction::PixelField *aDestination0,
                                          ImageReduction::PixelField factors[4]
                                          ) {
       factors[ImageReduction::FID_FIELD_R] = ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_R];
@@ -501,10 +461,6 @@ namespace Legion {
                                                    ImageReduction::PixelField *gSource0,
                                                    ImageReduction::PixelField *bSource0,
                                                    ImageReduction::PixelField *aSource0,
-                                                   ImageReduction::PixelField *rDestination0,
-                                                   ImageReduction::PixelField *gDestination0,
-                                                   ImageReduction::PixelField *bDestination0,
-                                                   ImageReduction::PixelField *aDestination0,
                                                    ImageReduction::PixelField factors[4]
                                                    ) {
       factors[ImageReduction::FID_FIELD_R] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_R];
@@ -521,10 +477,6 @@ namespace Legion {
                                          ImageReduction::PixelField *gSource0,
                                          ImageReduction::PixelField *bSource0,
                                          ImageReduction::PixelField *aSource0,
-                                         ImageReduction::PixelField *rDestination0,
-                                         ImageReduction::PixelField *gDestination0,
-                                         ImageReduction::PixelField *bDestination0,
-                                         ImageReduction::PixelField *aDestination0,
                                          ImageReduction::PixelField factors[4]
                                          ) {
       //TODO make this a local var to be consistent
@@ -541,10 +493,6 @@ namespace Legion {
                                                    ImageReduction::PixelField *gSource0,
                                                    ImageReduction::PixelField *bSource0,
                                                    ImageReduction::PixelField *aSource0,
-                                                   ImageReduction::PixelField *rDestination0,
-                                                   ImageReduction::PixelField *gDestination0,
-                                                   ImageReduction::PixelField *bDestination0,
-                                                   ImageReduction::PixelField *aDestination0,
                                                    ImageReduction::PixelField factors[4]
                                                    ) {
       //TODO make this a local var to be consistent
@@ -557,14 +505,10 @@ namespace Legion {
 
 
     static inline void gl_src_alpha_saturate(
-                                             ImageReduction::PixelField *rSource0,
-                                             ImageReduction::PixelField *gSource0,
-                                             ImageReduction::PixelField *bSource0,
                                              ImageReduction::PixelField *aSource0,
-                                             ImageReduction::PixelField *rDestination0,
-                                             ImageReduction::PixelField *gDestination0,
-                                             ImageReduction::PixelField *bDestination0,
                                              ImageReduction::PixelField *aDestination0,
+                                             ImageReduction::PixelField *dummy0,
+                                             ImageReduction::PixelField *dummy1,
                                              ImageReduction::PixelField factors[4]
                                              ) {
       ImageReduction::PixelField i = std::min(*aSource0, 1.0f - *aDestination0);
@@ -646,9 +590,17 @@ bool show = false;
       for(int i = 0; i < numPixels; ++i) {
 
         ImageReduction::PixelField sourceFactor[4];
-        mScaleFunctionSource(r0, g0, b0, a0, r1, g1, b1, a1, sourceFactor);
+        if(mGlBlendFunctionSource == GL_SRC_ALPHA_SATURATE) {
+          mScaleFunctionSource(a0, a1, a0, a0, sourceFactor);
+        } else {
+          mScaleFunctionSource(r0, g0, b0, a0, sourceFactor);
+        }
         ImageReduction::PixelField destinationFactor[4];
-        mScaleFunctionDestination(r0, g0, b0, a0, r1, g1, b1, a1, destinationFactor);
+        if(mGlBlendFunctionDestination == GL_SRC_ALPHA_SATURATE) {
+          mScaleFunctionDestination(a0, a1, a0, a0, destinationFactor);
+        } else {
+          mScaleFunctionDestination(r1, g1, b1, a1, destinationFactor);
+        }
 
 
         ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
@@ -665,7 +617,7 @@ bool show = false;
           if(nonzeroCount < 8) {
             __TRACE
             std::cout << nonzeroCount++ << " " << "a0 " << *a0 << " r0 " << *r0 << " a1 "
-            << *a1 << " r1 " << *r1 << " rSource " << *rSource << " rDest " << *rDestination << " = ";
+            << *a1 << " r1 " << *r1 << " rSource " << rSource << " rDest " << rDestination << " = ";
             show = true;
           }
         }

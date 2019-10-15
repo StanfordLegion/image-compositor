@@ -31,11 +31,11 @@
 
 namespace Legion {
   namespace Visualization {
-    
-    
+
+
     class ImageReductionComposite {
     public:
-      
+
       typedef void(CompositeFunction)
       (ImageReduction::PixelField*,
        ImageReduction::PixelField*,
@@ -58,10 +58,10 @@ namespace Legion {
        int,
        ImageReduction::Stride stride0,
        ImageReduction::Stride stride1);
-      
+
       static CompositeFunction* compositeFunctionPointer(GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation);
-      
-      
+
+
       static CompositeFunction compositePixelsNever;
       static CompositeFunction compositePixelsLess;
       static CompositeFunction compositePixelsEqual;
@@ -71,7 +71,7 @@ namespace Legion {
       static CompositeFunction compositePixelsGEqual;
       static CompositeFunction compositePixelsAlways;
       static CompositeFunction blendPixelsSlowly;
-      
+
       static inline void increment(ImageReduction::PixelField *&r,
                                    ImageReduction::PixelField *&g,
                                    ImageReduction::PixelField *&b,
@@ -79,7 +79,7 @@ namespace Legion {
                                    ImageReduction::PixelField *&z,
                                    ImageReduction::PixelField *&userdata,
                                    Legion::Visualization::ImageReduction::Stride stride) {
-        
+
         ////DEBUG
         //        ImageReduction::PixelField* rr = r;
         //        ImageReduction::PixelField* gg = g;
@@ -88,15 +88,15 @@ namespace Legion {
         //        ImageReduction::PixelField* zz = z;
         //        ImageReduction::PixelField* uu = userdata;
         ////DEBUG
-        
+
         r += stride[ImageReduction::FID_FIELD_R][0];
         g += stride[ImageReduction::FID_FIELD_G][0];
         b += stride[ImageReduction::FID_FIELD_B][0];
         a += stride[ImageReduction::FID_FIELD_A][0];
         z += stride[ImageReduction::FID_FIELD_Z][0];
         userdata += stride[ImageReduction::FID_FIELD_USERDATA][0];
-        
-        
+
+
         ////DEBUG
         //        std::cout << "increment" << std::endl;
         //        std::cout << "r " << rr << " + " << (r - rr) << " = " << r << std::endl;
@@ -107,23 +107,19 @@ namespace Legion {
         //        std::cout << "u " << uu << " + " << (userdata - uu) << " = " << userdata << std::endl;
         ////DEBUG
       }
-      
-      
+
+
       typedef void (*ScaleFunction)(
                                     ImageReduction::PixelField *rSource0,
                                     ImageReduction::PixelField *gSource0,
                                     ImageReduction::PixelField *bSource0,
                                     ImageReduction::PixelField *aSource0,
-                                    ImageReduction::PixelField *rDestination0,
-                                    ImageReduction::PixelField *gDestination0,
-                                    ImageReduction::PixelField *bDestination0,
-                                    ImageReduction::PixelField *aDestination0,
                                     ImageReduction::PixelField factors[4]
                                     );
-      
+
       static ScaleFunction getScaleFunction(GLenum blendFunction);
-      
-      
+
+
       // because these are static we will only be able to support one blend
       //  operation per Legion runtime instance at a time
       //  TODO remove this limitation by dynamically registering these in an array
@@ -133,7 +129,7 @@ namespace Legion {
       static GLenum mGlBlendFunctionDestination;
       static GLenum mBlendEquation;
     };
-    
+
   }
 }
 
