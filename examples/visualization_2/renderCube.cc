@@ -67,14 +67,14 @@ extern "C" {
 
 
   static void initializeRender(Camera* camera, int width, int height) {
-    GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 1.0};
-    GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 1.0};
-    GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 1.0};
+    GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 0.5};
+    GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 0.5};
+    GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 0.5};
     glClearColor( 0, 0, 0, 1 );
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
     glEnable(GL_LIGHTING);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glLightfv(GL_LIGHT0, GL_AMBIENT,  afPropertiesAmbient);

@@ -60,6 +60,22 @@ extern "C" {
 
     renderCube(bounds, imageDescriptor, camera, rgbaBuffer, depthBuffer);
 
+#if 1
+{
+  for(unsigned i = 0; i < 1280 * 720; ++i) {
+    unsigned char r = rgbaBuffer[i * 4 + 0];
+    unsigned char g = rgbaBuffer[i * 4 + 1];
+    unsigned char b = rgbaBuffer[i * 4 + 2];
+    unsigned char alpha = rgbaBuffer[i * 4 + 3];
+    char buffer[256];
+    if(r != 0 || g != 0 || b != 0) {
+      sprintf(buffer, "%d RGBA %d %d %d %d\n", i, r, g, b, alpha);
+      std::cout << buffer;
+    }
+  }
+}
+#endif
+
     // now copy the image data into the image logical region
 
     glReadPixels(0, 0, imageDescriptor->width, imageDescriptor->height,
@@ -289,7 +305,7 @@ _T
   void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) {
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
-    compositor->set_blend_func(GL_SRC_ALPHA, GL_SRC_ALPHA);
+    compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     compositor->set_blend_equation(GL_FUNC_ADD);
     FutureMap futures = compositor->reduceImages(ctx, cameraAt);
     futures.wait_all_results();

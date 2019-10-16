@@ -674,7 +674,6 @@ namespace Legion {
       } else {
         domain = mCompositeImageDomain;
       }
-std::cout << __FUNCTION__ << " index launch task id " << taskID << std::endl;
 
       IndexTaskLauncher compositeImageLauncher(taskID, domain,
         TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);

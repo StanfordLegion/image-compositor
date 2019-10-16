@@ -69,7 +69,7 @@ do
   render.cxx_initialize(__runtime(), __context(), __raw(r), __raw(p),
     __fields(r), 1)
 
-  var stepsPerAngle = 100
+  var stepsPerAngle = 1 -- 100
   for angle = 0, 1 * stepsPerAngle do 
     var camera = configureCamera(angle * (1.0 / stepsPerAngle))
     render.cxx_render(__runtime(), __context(), camera)
