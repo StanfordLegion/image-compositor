@@ -110,21 +110,32 @@ namespace Legion {
 
 
       typedef void (*ScaleFunction)(
-                                    ImageReduction::PixelField *rSource0,
-                                    ImageReduction::PixelField *gSource0,
-                                    ImageReduction::PixelField *bSource0,
-                                    ImageReduction::PixelField *aSource0,
-                                    ImageReduction::PixelField factors[4]
+        ImageReduction::PixelField *rSource,
+        ImageReduction::PixelField *gSource,
+        ImageReduction::PixelField *bSource,
+        ImageReduction::PixelField *aSource,
+        ImageReduction::PixelField *rDestination,
+        ImageReduction::PixelField *gDestination,
+        ImageReduction::PixelField *bDestination,
+        ImageReduction::PixelField *aDestination,
+        ImageReduction::PixelField factors[4]
                                     );
 
-      static ScaleFunction getScaleFunction(GLenum blendFunction);
+      static void callScaleFunction(GLenum blendFunction,
+        ImageReduction::PixelField *rSource,
+        ImageReduction::PixelField *gSource,
+        ImageReduction::PixelField *bSource,
+        ImageReduction::PixelField *aSource,
+        ImageReduction::PixelField *rDestination,
+        ImageReduction::PixelField *gDestination,
+        ImageReduction::PixelField *bDestination,
+        ImageReduction::PixelField *aDestination,
+        ImageReduction::PixelField factors[4]);
 
 
       // because these are static we will only be able to support one blend
       //  operation per Legion runtime instance at a time
       //  TODO remove this limitation by dynamically registering these in an array
-      static ScaleFunction mScaleFunctionSource;
-      static ScaleFunction mScaleFunctionDestination;
       static GLenum mGlBlendFunctionSource;
       static GLenum mGlBlendFunctionDestination;
       static GLenum mBlendEquation;
