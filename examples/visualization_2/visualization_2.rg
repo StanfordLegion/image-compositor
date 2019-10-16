@@ -42,6 +42,8 @@ struct Image_columns {
 
 terra configureCamera(angle : float)
   var camera : render.Camera
+  if angle < -180 then angle = angle + 360 end
+  if angle > 180 then angle = angle - 360 end
   camera.up[0] = 0
   camera.up[1] = 1
   camera.up[2] = 0
@@ -67,8 +69,9 @@ do
   render.cxx_initialize(__runtime(), __context(), __raw(r), __raw(p),
     __fields(r), 1)
 
-  for angle = 0, 1 do -- 360 do
-    var camera = configureCamera(angle)
+  var stepsPerAngle = 100
+  for angle = 0, 1 * stepsPerAngle do 
+    var camera = configureCamera(angle * (1.0 / stepsPerAngle))
     render.cxx_render(__runtime(), __context(), camera)
     var direction : float[3]
     for i = 0, 3 do

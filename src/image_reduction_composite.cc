@@ -584,8 +584,6 @@ namespace Legion {
                                                            Legion::Visualization::ImageReduction::Stride stride0,
                                                            Legion::Visualization::ImageReduction::Stride stride1) {
 
-unsigned nonzeroCount = 0;
-bool show = false;
 
       for(int i = 0; i < numPixels; ++i) {
 
@@ -611,17 +609,6 @@ bool show = false;
         ImageReduction::PixelField gDestination = *g1 * destinationFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bDestination = *b1 * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = *a1 * destinationFactor[ImageReduction::FID_FIELD_A];
-
-        show = false;
-        if(*r0 != 0 || *r1 != 0) {
-          if(nonzeroCount < 8) {
-            __TRACE
-            std::cout << nonzeroCount++ << " " << "a0 " << *a0 << " r0 " << *r0 << " a1 "
-            << *a1 << " r1 " << *r1 << " rSource " << rSource << " rDest " << rDestination << " = ";
-            show = true;
-          }
-        }
-
 
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
@@ -662,10 +649,6 @@ bool show = false;
         *gOut = std::min(1.0f, std::max(0.0f, *gOut));
         *bOut = std::min(1.0f, std::max(0.0f, *bOut));
         *aOut = std::min(1.0f, std::max(0.0f, *aOut));
-
-if(show) {
-  std::cout << *rOut << std::endl;
-}
 
         increment(r0, g0, b0, a0, z0, userdata0, stride0);
         increment(r1, g1, b1, a1, z1, userdata1, stride1);

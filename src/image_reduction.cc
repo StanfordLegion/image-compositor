@@ -745,6 +745,7 @@ std::cout << __FUNCTION__ << " index launch task id " << taskID << std::endl;
     }
 
 
+
     void ImageReduction::composite_task(const Task *task,
                                         const std::vector<PhysicalRegion> &regions,
                                         Context ctx, HighLevelRuntime *runtime) {
