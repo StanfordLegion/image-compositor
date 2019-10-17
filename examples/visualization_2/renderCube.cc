@@ -106,32 +106,32 @@ extern "C" {
 
 
 
-  static void cube(float halfEdge) {
+  static void cube(float edgeHalfSize) {
     glBegin(GL_QUADS);
-    glVertex3f( halfEdge, halfEdge,-halfEdge);    // Top Right Of The Quad (Top)
-    glVertex3f(-halfEdge, halfEdge,-halfEdge);    // Top Left Of The Quad (Top)
-    glVertex3f(-halfEdge, halfEdge, halfEdge);    // Bottom Left Of The Quad (Top)
-    glVertex3f( halfEdge, halfEdge, halfEdge);    // Bottom Right Of The Quad (Top)
-    glVertex3f( halfEdge,-halfEdge, halfEdge);    // Top Right Of The Quad (Bottom)
-    glVertex3f(-halfEdge,-halfEdge, halfEdge);    // Top Left Of The Quad (Bottom)
-    glVertex3f(-halfEdge,-halfEdge,-halfEdge);    // Bottom Left Of The Quad (Bottom)
-    glVertex3f( halfEdge,-halfEdge,-halfEdge);    // Bottom Right Of The Quad (Bottom)
-    glVertex3f( halfEdge, halfEdge, halfEdge);    // Top Right Of The Quad (Front)
-    glVertex3f(-halfEdge, halfEdge, halfEdge);    // Top Left Of The Quad (Front)
-    glVertex3f(-halfEdge,-halfEdge, halfEdge);    // Bottom Left Of The Quad (Front)
-    glVertex3f( halfEdge,-halfEdge, halfEdge);    // Bottom Right Of The Quad (Front)
-    glVertex3f( halfEdge,-halfEdge,-halfEdge);    // Top Right Of The Quad (Back)
-    glVertex3f(-halfEdge,-halfEdge,-halfEdge);    // Top Left Of The Quad (Back)
-    glVertex3f(-halfEdge, halfEdge,-halfEdge);    // Bottom Left Of The Quad (Back)
-    glVertex3f( halfEdge, halfEdge,-halfEdge);    // Bottom Right Of The Quad (Back)
-    glVertex3f(-halfEdge, halfEdge, halfEdge);    // Top Right Of The Quad (Left)
-    glVertex3f(-halfEdge, halfEdge,-halfEdge);    // Top Left Of The Quad (Left)
-    glVertex3f(-halfEdge,-halfEdge,-halfEdge);    // Bottom Left Of The Quad (Left)
-    glVertex3f(-halfEdge,-halfEdge, halfEdge);    // Bottom Right Of The Quad (Left)
-    glVertex3f( halfEdge, halfEdge,-halfEdge);    // Top Right Of The Quad (Right)
-    glVertex3f( halfEdge, halfEdge, halfEdge);    // Top Left Of The Quad (Right)
-    glVertex3f( halfEdge,-halfEdge, halfEdge);    // Bottom Left Of The Quad (Right)
-    glVertex3f( halfEdge,-halfEdge,-halfEdge);    // Bottom Right Of The Quad (Right)
+    glVertex3f( edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Top Right Of The Quad (Top)
+    glVertex3f(-edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Top Left Of The Quad (Top)
+    glVertex3f(-edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Bottom Left Of The Quad (Top)
+    glVertex3f( edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Bottom Right Of The Quad (Top)
+    glVertex3f( edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Top Right Of The Quad (Bottom)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Top Left Of The Quad (Bottom)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Bottom Left Of The Quad (Bottom)
+    glVertex3f( edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Bottom Right Of The Quad (Bottom)
+    glVertex3f( edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Top Right Of The Quad (Front)
+    glVertex3f(-edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Top Left Of The Quad (Front)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Bottom Left Of The Quad (Front)
+    glVertex3f( edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Bottom Right Of The Quad (Front)
+    glVertex3f( edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Top Right Of The Quad (Back)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Top Left Of The Quad (Back)
+    glVertex3f(-edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Bottom Left Of The Quad (Back)
+    glVertex3f( edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Bottom Right Of The Quad (Back)
+    glVertex3f(-edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Top Right Of The Quad (Left)
+    glVertex3f(-edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Top Left Of The Quad (Left)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Bottom Left Of The Quad (Left)
+    glVertex3f(-edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Bottom Right Of The Quad (Left)
+    glVertex3f( edgeHalfSize, edgeHalfSize,-edgeHalfSize);    // Top Right Of The Quad (Right)
+    glVertex3f( edgeHalfSize, edgeHalfSize, edgeHalfSize);    // Top Left Of The Quad (Right)
+    glVertex3f( edgeHalfSize,-edgeHalfSize, edgeHalfSize);    // Bottom Left Of The Quad (Right)
+    glVertex3f( edgeHalfSize,-edgeHalfSize,-edgeHalfSize);    // Bottom Right Of The Quad (Right)
     glEnd();
   }
 
@@ -143,7 +143,7 @@ extern "C" {
     { 1.0, 0.0, 1.0, alpha }, // purple
     { 1.0, 1.0, 0.0, alpha }, // yellow
     { 0.0, 1.0, 1.0, alpha }, // turqoise
-    { (102.0 / 255.0), 1.0, (102.0 / 255.0), alpha }, // light green
+    { 0.6, 1.0, 0.6, alpha }, // light green
     { 1.0, 1.0, 1.0, alpha } // white
   };
 
@@ -152,6 +152,18 @@ extern "C" {
     int index = lo.z + 2 * lo.y + 4 * lo.x;
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTable[index]);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
+  #if 1
+  {
+    char buffer[256];
+    sprintf(buffer, "color index %d lo %lld %lld %lld\n", index, lo.x, lo.y, lo.z);
+    std::cout << buffer;
+    if(index != 1) {
+      GLfloat invisible[] = { 0, 0, 0, 0 };
+      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, invisible);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, invisible);
+    }
+  }
+  #endif
   }
 
 
@@ -167,7 +179,7 @@ extern "C" {
     };
     glTranslatef(center[0], center[1], center[2]);
     setColor(bounds.lo);
-    cube(0.25);
+    cube(0.333);
     glPopMatrix();
     glFinish();
   }

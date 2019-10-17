@@ -48,7 +48,7 @@ terra configureCamera(angle : float)
   camera.up[1] = 1
   camera.up[2] = 0
   camera.from[0] = c.cos(angle) * 6
-  camera.from[1] = 1.5
+  camera.from[1] = -1.0 + 4 * c.sin(angle);
   camera.from[2] = c.sin(angle) * 6
   camera.at[0] = 1
   camera.at[1] = 1
@@ -70,7 +70,7 @@ do
     __fields(r), 1)
 
   var stepsPerAngle = 100
-  for loop = 0, 180 * stepsPerAngle do 
+  for loop = 0, 180 * stepsPerAngle do
     var angle : float = loop * (1.0 / stepsPerAngle)
     var camera = configureCamera(angle)
     render.cxx_render(__runtime(), __context(), camera)
