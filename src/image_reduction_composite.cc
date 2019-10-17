@@ -424,6 +424,13 @@ namespace Legion {
                                     ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
       factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = *aSource;
+#if 1
+{
+  char buffer[128];
+  sprintf(buffer, "%s aSource %g srcAlpha %g\n", __FUNCTION__, *aSource, factors[3]);
+  std::cout << buffer;
+}
+#endif
     }
 
 
@@ -441,6 +448,13 @@ namespace Legion {
                                               ) {
       factors[ImageReduction::FID_FIELD_R] = factors[ImageReduction::FID_FIELD_G] =
       factors[ImageReduction::FID_FIELD_B] = factors[ImageReduction::FID_FIELD_A] = 1.0f - *aSource;
+#if 1
+{
+  char buffer[128];
+  sprintf(buffer, "%s aSource %g oneMinusSrcAlpha %g\n", __FUNCTION__, *aSource, 1.0f - *aSource);
+  std::cout << buffer;
+}
+#endif
     }
 
 
@@ -660,7 +674,6 @@ namespace Legion {
         ImageReduction::PixelField destinationFactor[4];
         callScaleFunction(mGlBlendFunctionDestination, r0, g0, b0, a0, r1, g1, b1, a1, destinationFactor);
 
-        ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
 #if 1
 ImageReduction::PixelField rr0 = *r0;
 ImageReduction::PixelField gg0 = *g0;
@@ -671,6 +684,8 @@ ImageReduction::PixelField gg1 = *g1;
 ImageReduction::PixelField bb1 = *b1;
 ImageReduction::PixelField aa1 = *a1;
 #endif
+
+        ImageReduction::PixelField rSource = *r0 * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = *g0 * sourceFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bSource = *b0 * sourceFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aSource = *a0 * sourceFactor[ImageReduction::FID_FIELD_A];
@@ -724,7 +739,9 @@ ImageReduction::PixelField aa1 = *a1;
 if(rr0 != 0 || gg0 != 0 || bb0 != 0 || rr1 != 0 || bb1 != 0 || gg1 != 0) {
   char buffer[1024];
   sprintf(buffer, "r0 %g g0 %g b0 %g a0 %g, r1 %g g1 %g b1 %g a1 %g, sourceFactor %g %g %g %g, destFactor %g %g %g %g, rSource %g rDest %g rOut %g\n",
-rr0, gg0, bb0, aa1, rr1, gg1, bb1, aa1, sourceFactor[0], sourceFactor[1], sourceFactor[2], sourceFactor[3], destinationFactor[0], destinationFactor[1], destinationFactor[2], destinationFactor[3], rSource, rDestination, *rOut);
+rr0, gg0, bb0, aa1, rr1, gg1, bb1, aa1, sourceFactor[0], sourceFactor[1],
+sourceFactor[2], sourceFactor[3], destinationFactor[0], destinationFactor[1],
+destinationFactor[2], destinationFactor[3], rSource, rDestination, *rOut);
 std::cout << buffer;
 }
 }

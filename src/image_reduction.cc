@@ -744,7 +744,6 @@ namespace Legion {
     }
 
 
-
     void ImageReduction::composite_task(const Task *task,
                                         const std::vector<PhysicalRegion> &regions,
                                         Context ctx, HighLevelRuntime *runtime) {
@@ -766,9 +765,12 @@ namespace Legion {
       ImageReductionComposite::CompositeFunction* compositeFunction;
       //      UsecTimer composite("composite time:");
       //      composite.start();
-      compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
-      create_image_field_pointers(args.imageDescriptor, fragment0, r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
-      create_image_field_pointers(args.imageDescriptor, fragment1, r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
+      compositeFunction = ImageReductionComposite::compositeFunctionPointer(
+        args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
+      create_image_field_pointers(args.imageDescriptor, fragment0,
+        r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
+      create_image_field_pointers(args.imageDescriptor, fragment1,
+        r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
 
       if(flipRegions(fragment0, fragment1, args.cameraAt)) {
         compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,

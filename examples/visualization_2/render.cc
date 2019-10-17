@@ -60,7 +60,7 @@ extern "C" {
 
     renderCube(bounds, imageDescriptor, camera, rgbaBuffer, depthBuffer);
 
-#if 1
+#if 0
 {
   for(unsigned i = 0; i < 1280 * 720; ++i) {
     unsigned char r = rgbaBuffer[i * 4 + 0];
