@@ -39,6 +39,7 @@
 #include <iostream>
 #include <sstream>
 #include <unistd.h>
+#include <assert.h>
 
 #include "legion_c_util.h"
 #include "KDTree.hpp"
@@ -87,7 +88,6 @@ namespace Legion {
         FID_FIELD_COLOR, // used in coloring logical region
         FID_FIELD_EXTENT // used in extent logical region
       };
-      assert(FID_FIELD_R == 0);
 
       typedef float PixelField;
       static const int numPixelFields = 6;//rgbazu

@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name=visualization_2
 #SBATCH --mail-user=aheirich@stanford.edu
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=8
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1

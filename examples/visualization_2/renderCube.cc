@@ -70,7 +70,7 @@ extern "C" {
     GLfloat afPropertiesAmbient [] = {1.00, 1.00, 1.00, 0.5};
     GLfloat afPropertiesDiffuse [] = {1.00, 1.00, 1.00, 0.5};
     GLfloat afPropertiesSpecular[] = {1.00, 1.00, 1.00, 0.5};
-    glClearColor( 0, 0, 0, 1 );
+    glClearColor( 0.3, 0.3, 0.3, 0 );
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     //glEnable(GL_BLEND);
@@ -93,7 +93,7 @@ extern "C" {
     GLfloat fovy = 20;
     GLfloat aspect = (GLfloat)width / (GLfloat)height;
     GLfloat near = 0.0;
-    GLfloat far = 10.0;
+    GLfloat far = 50.0;
     gluPerspective(fovy, aspect, near, far);
 
     glMatrixMode(GL_MODELVIEW);
