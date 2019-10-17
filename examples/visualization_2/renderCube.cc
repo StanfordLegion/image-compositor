@@ -152,18 +152,19 @@ extern "C" {
     int index = lo.z + 2 * lo.y + 4 * lo.x;
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTable[index]);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
-  #if 1
-  {
-    char buffer[256];
-    sprintf(buffer, "color index %d lo %lld %lld %lld\n", index, lo.x, lo.y, lo.z);
-    std::cout << buffer;
-    if(index != 1) {
-      GLfloat invisible[] = { 0, 0, 0, 0 };
-      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, invisible);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, invisible);
-    }
-  }
-  #endif
+#if 1
+char hostname[256];
+gethostname(hostname, sizeof(hostname));
+char buffer[512];
+sprintf(buffer, "%s lo %lld %lld %lld index %d color %g %g %g %g\n",
+hostname,
+lo.x, lo.y, lo.z, index,
+colorTable[index][0],
+colorTable[index][1],
+colorTable[index][2],
+colorTable[index][3]);
+std::cout << buffer;
+#endif
   }
 
 
@@ -178,8 +179,10 @@ extern "C" {
       (float)(bounds.lo.z + 0.5)
     };
     glTranslatef(center[0], center[1], center[2]);
+if(bounds.lo.x == 1 && bounds.lo.y == 1 && bounds.lo.z == 0) {
     setColor(bounds.lo);
     cube(0.333);
+}
     glPopMatrix();
     glFinish();
   }
