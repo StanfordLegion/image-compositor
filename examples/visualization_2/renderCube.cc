@@ -152,7 +152,7 @@ extern "C" {
     int index = lo.z + 2 * lo.y + 4 * lo.x;
     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colorTable[index]);
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, colorTable[index]);
-#if 1
+#if 0
 char hostname[256];
 gethostname(hostname, sizeof(hostname));
 char buffer[512];
@@ -171,6 +171,16 @@ std::cout << buffer;
 
   void renderCube(Legion::Rect<3> bounds, ImageDescriptor* imageDescriptor, Camera* camera, unsigned char*& rgbaBuffer, float*& depthBuffer) {
     initializeRender(camera, imageDescriptor->width, imageDescriptor->height);
+#if 0
+{
+  char buffer[256];
+  sprintf(buffer, "camera from %g %g %g at %g %g %g up %g %g %g\n",
+camera->from[0], camera->from[1], camera->from[2],
+camera->at[0], camera->at[1], camera->at[2],
+camera->up[0], camera->up[1], camera->up[2]);
+std::cout << buffer;
+}
+#endif
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     float center[3] = {
@@ -179,10 +189,8 @@ std::cout << buffer;
       (float)(bounds.lo.z + 0.5)
     };
     glTranslatef(center[0], center[1], center[2]);
-if(bounds.lo.x == 1 && bounds.lo.y == 1 && bounds.lo.z == 0) {
     setColor(bounds.lo);
     cube(0.333);
-}
     glPopMatrix();
     glFinish();
   }

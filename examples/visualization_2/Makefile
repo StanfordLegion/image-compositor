@@ -23,8 +23,9 @@ LINK_FLAGS += -L$(IMAGE_COMPOSITOR_DIR)/src -lImageCompositor
 all: visualization_2.exec
 
 clean:
-	rm -f visualization_2.exec visualization_2.so render.o visualization_2_mapper.o
+	rm -f visualization_2.exec visualization_2.so render.o renderCube.o visualization_2_mapper.o
 	rm -f image.*.tga
+	rm -f standalone_render.o standalone_render
 
 
 visualization_2.exec: visualization_2.so render.o renderCube.o
@@ -41,3 +42,13 @@ renderCube.o: renderCube.cc render.h
 
 visualization_2_mapper.o: visualization_2_mapper.cc visualization_2_mapper.h
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+standalone_render.o: standalone_render.cc
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+STANDALONELINK_FLAGS += -g
+STANDALONELINK_FLAGS += $(LEGION_DIR)/bindings/regent/libregent.so
+
+standalone_render: standalone_render.o renderCube.o
+	$(CXX) -o $@ $^ $(STANDALONELINK_FLAGS) -lGLU -lOSMesa
+
