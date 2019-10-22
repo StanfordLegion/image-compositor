@@ -17,4 +17,4 @@ source ~/image-compositor/setup.bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LEGION_DIR/bindings/regent/
 
 
-srun -C gpu -N 4 $(IMAGE_COMPOSITOR_DIR)/examples/visualization_1/visualization_1 -ll:cpu 16 -ll:csize 8192
+srun -C gpu -N 4 $IMAGE_COMPOSITOR_DIR/examples/visualization_1/visualization_1 -ll:cpu 16 -ll:csize 8192
