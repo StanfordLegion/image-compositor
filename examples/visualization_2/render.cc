@@ -217,7 +217,6 @@ extern "C" {
     .add_layout_constraint_set(0/*index*/, soa_layout_id);
     Runtime::preregister_task_variant<int, save_image_task>(registrarSaveImage,
       "save_image_task");
-_T
   }
 
 
@@ -302,12 +301,12 @@ _T
 
 
 
-  void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) {
+  void cxx_reduce(legion_context_t ctx_, float cameraDirection[image_region_dimensions]) {
     Context ctx = CObjectWrapper::unwrap(ctx_)->context();
     Visualization::ImageReduction* compositor = gImageCompositor;
     compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     compositor->set_blend_equation(GL_FUNC_ADD);
-    FutureMap futures = compositor->reduceImages(ctx, cameraAt);
+    FutureMap futures = compositor->reduceImages(ctx, cameraDirection);
     futures.wait_all_results();
   }
 

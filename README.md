@@ -11,7 +11,9 @@ The framework will composite those rendered images to produce a reduced result.
 
 ## Prior reading
 To understand this framework it is necesary to be familiar with the following papers:
+
 [A Sorting Classification of Parallel Rendering.  Molnar, Cox, Ellsworth and Fuchs (1994).](http://www.cs.cmu.edu/afs/cs/academic/class/15869-f11/www/readings/molnar94_sorting.pdf)
+
 [Compositing Digital Images.  Porter, Duff (1984).](http://www.cs.cornell.edu/courses/cs465/2003fa/readings/cuonly/p253-porter.pdf)
 
 
@@ -86,7 +88,7 @@ The framework uses a logical partition as a source for the image reduction.
 These use cases differ in how this logical partition is defined, and whether the rendering is done in C++ or in Regent.
 These use cases are described here.
 
-### Tests and visualization example
+### Tests and visualization_1 example
 In this case the logical partition is created for a source image according to an image descriptor.
 The index space of the partition is required to be 3D.
 Rendering and reduction are performed in C++.
@@ -97,9 +99,12 @@ It provides a logical partition of this domain to the ImageCompositor constructo
 
 The application invokes
 ```
-compositor->reduce_associative_commutative()
+compositor->reduceImages(ctx, cameraDirection)
 ```
 which index launches the image reduction operations in the address spaces that were recorded previously by the mapper.
+ctx is a Legion context.
+cameraDirection is the difference between the camera lookAt point and the camera from point.
+In other words it is the viewing direction of the camera.
 
 ### Regent application with rendering in C++/OpenGL
 This is the most common use case for applications that use OpenGL or similar C++ graphics APIs.
@@ -107,7 +112,7 @@ This is the most common use case for applications that use OpenGL or similar C++
 #### visualization_2
 This example shows how to use the framework with an existing simulation written in Regent.
 The relevant parts of the C++ source code are contained in render.h, render.cc and renderCube.cc.
-These export symbols cxx_preinitialize, cxx_initialize, cxx_render and cxx_reduce.
+These export symbols cxx_preinitialize, cxx_initialize, cxx_render, cxx_reduce and cxx_saveImage.
 In the following program r and p represent the simulation region and partition.
 
 ```
