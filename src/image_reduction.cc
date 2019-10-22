@@ -723,14 +723,38 @@ namespace Legion {
       create_image_field_pointers(args.imageDescriptor, fragment1,
         r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
 
+#define SHOW_COMPOSITING 1
+#if SHOW_COMPOSITING
+ImageReduction::PixelField rr0 = *r0;
+ImageReduction::PixelField gg0 = *g0;
+ImageReduction::PixelField bb0 = *b0;
+ImageReduction::PixelField aa0 = *a0;
+ImageReduction::PixelField zz0 = *z0;
+ImageReduction::PixelField uu0 = *userdata0;
+ImageReduction::PixelField rr1 = *r1;
+ImageReduction::PixelField gg1 = *g1;
+ImageReduction::PixelField bb1 = *b1;
+ImageReduction::PixelField aa1 = *a1;
+ImageReduction::PixelField zz1 = *z1;
+ImageReduction::PixelField uu1 = *userdata1;
+#endif
+
       if(flipRegions(fragment0, fragment1, args.cameraDirection)) {
-        compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
+        compositeFunction(r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0,
           r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride1, stride0);
       } else {
-        compositeFunction(r0, g0, b0, a0, z0, userdata0, r0, g0, b0, a0, z0, userdata0,
-          r1, g1, b1, a1, z1, userdata1, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
+        compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
+          r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
       }
 
+#if SHOW_COMPOSITING
+{
+char buffer[256];
+sprintf(buffer, "%s (%g %g %g %g %g) (%g %g %g %g %g) = %g %g %g %g %g\n",
+__FUNCTION__, rr0, gg0, bb0, aa0, zz0, rr1, gg1, bb1, aa1, zz1, *r0, *g0, *b0, *a0, *z0);
+std::cout << buffer;
+}
+#endif
       //      composite.stop();
       //      std::cout << composite.to_string() << std::endl;
 
