@@ -24,12 +24,12 @@ const int numDomainNodes = numDomainNodesX * numDomainNodesY * numDomainNodesZ;
 void top_level_task(const Legion::Task *task,
                     const std::vector<Legion::PhysicalRegion> &regions,
                     Legion::Context ctx, Legion::Runtime *runtime) {
-  
+
   {
     // test with multiple fragments per scanline and all reduction operators
     const int width = 16;
     const int rows = 4;
-    
+
     Legion::Visualization::ImageDescriptor imageDescriptor = { width, rows, numDomainNodes };
     Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
 
@@ -51,16 +51,15 @@ void top_level_task(const Legion::Task *task,
       }
     }
   }
-  
+
 }
 
 
 
 
 int main(int argc, char *argv[]) {
-  
+
   Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
-  Legion::Visualization::preregisterSimulationBounds(numDomainNodesX, numDomainNodesY, numDomainNodesZ);
   Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);
 
   {
@@ -85,5 +84,3 @@ int main(int argc, char *argv[]) {
 
   return Legion::HighLevelRuntime::start(argc, argv);
 }
-
-

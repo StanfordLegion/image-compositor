@@ -32,25 +32,22 @@ namespace Legion {
     extern const int numDepthFuncs;
     extern const int numBlendFuncs;
     extern const int numBlendEquations;
-    
+
     void testAssociative(ImageReduction &imageReduction,
                          ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                          GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation);
-    
+
     void testNonassociative(ImageReduction &imageReduction,
                             ImageDescriptor imageDescriptor, Context context, Runtime *runtime,
                             GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation);
-    
-    void preregisterSimulationBounds(int numSimulationBoundsX, int numSimulationBoundsY, int numSimulationBoundsZ);
-    
+        
     void generate_image_data_task(const Task *task,
                                   const std::vector<PhysicalRegion> &regions,
                                   Context ctx, Runtime *runtime);
-    
+
     int verify_composited_image_data_task(const Task *task,
                                           const std::vector<PhysicalRegion> &regions,
                                           Context ctx, Runtime *runtime);
-    
+
   }
 }
-

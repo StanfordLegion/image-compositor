@@ -24,8 +24,8 @@ const int numDomainNodes = numDomainNodesX * numDomainNodesY * numDomainNodesZ;
 void top_level_task(const Legion::Task *task,
                     const std::vector<Legion::PhysicalRegion> &regions,
                     Legion::Context ctx, Legion::Runtime *runtime) {
-  
-  
+
+
   {
     // test with small images
     Legion::Visualization::ImageDescriptor imageDescriptor = { 320, 200, numDomainNodes };
@@ -33,40 +33,36 @@ void top_level_task(const Legion::Task *task,
     Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
     Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
   }
-  
+
 }
 
 
 
 
 int main(int argc, char *argv[]) {
-  
-  Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
-  Legion::Visualization::preregisterSimulationBounds(numDomainNodesX, numDomainNodesY, numDomainNodesZ);
-  
+
+  Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();  
   Legion::HighLevelRuntime::set_top_level_task_id(Legion::Visualization::TOP_LEVEL_TASK_ID);
-  
+
   {
     Legion::TaskVariantRegistrar registrar(Legion::Visualization::TOP_LEVEL_TASK_ID, "top_level_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "top_level_task");
   }
-  
+
   {
     Legion::TaskVariantRegistrar registrar(Legion::Visualization::GENERATE_IMAGE_DATA_TASK_ID, "generate_image_data_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     registrar.set_leaf();
     Legion::Runtime::preregister_task_variant<Legion::Visualization::generate_image_data_task>(registrar, "generate_image_data_task");
   }
-  
+
   {
     Legion::TaskVariantRegistrar registrar(Legion::Visualization::VERIFY_COMPOSITED_IMAGE_DATA_TASK_ID, "verify_composited_image_data_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     registrar.set_leaf();
     Legion::Runtime::preregister_task_variant<int, Legion::Visualization::verify_composited_image_data_task>(registrar, "verify_composited_image_data_task");
   }
-  
+
   return Legion::HighLevelRuntime::start(argc, argv);
 }
-
-

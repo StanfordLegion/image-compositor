@@ -21,21 +21,26 @@
 
 namespace Legion {
   namespace Visualization {
-    
+
     static const int image_region_dimensions = 3;//(width x height) x layerID
-    
+    static const int max_pFields = 32; // max fields in the simulation region
+
     typedef struct {
       int width;
       int height;
       int numImageLayers;
-      LogicalPartition logicalPartition;
-      Domain domain;
-      
-      
+      LogicalRegion simulationLogicalRegion;
+      LogicalPartition simulationLogicalPartition;
+      legion_field_id_t pFields[max_pFields];
+      int numPFields;
+      Domain simulationDomain;
+      Domain simulationColorSpace;
+      bool hasPartition;
+
       int pixelsPerLayer() const{ return width * height; }
-      
+
       Point<image_region_dimensions> origin() const{ return Point<image_region_dimensions>::ZEROES(); }
-      
+
       Point<image_region_dimensions> upperBound() const{
         Point<image_region_dimensions> result;
         result[0] = width;
@@ -43,7 +48,7 @@ namespace Legion {
         result[2] = numImageLayers;
         return result;
       }
-      
+
       // launch by depth plane, each depth point is one image
       Point<image_region_dimensions> layerSize() const{
         Point<image_region_dimensions> result;
@@ -52,7 +57,7 @@ namespace Legion {
         result[2] = 1;
         return result;
       }
-      
+
       Point<image_region_dimensions> numLayers() const{
         Point<image_region_dimensions> result;
         result[0] = 1;
@@ -60,16 +65,16 @@ namespace Legion {
         result[2] = numImageLayers;
         return result;
       }
-         
+
       std::string toString() const {
         char buffer[512];
         sprintf(buffer, "(%dx%d) x %d layers",
                 width, height, numImageLayers);
         return std::string(buffer);
       }
-      
+
     } ImageDescriptor;
-    
+
   }
 }
 
