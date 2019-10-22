@@ -18,4 +18,4 @@ export GASNET_BACKTRACE=1
 source ~/image-compositor/setup.bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LEGION_DIR/bindings/regent/
 
-srun -C gpu -N 8 ~/image-compositor/image-compositor/examples/visualization_2/visualization_2.exec -ll:cpu 16 -ll:csize 8192
+srun -C gpu -N 8 $(IMAGE_COMPOSITOR_DIR)/examples/visualization_2/visualization_2.exec -ll:cpu 16 -ll:csize 8192
