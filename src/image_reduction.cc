@@ -206,7 +206,6 @@ namespace Legion {
         TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
         registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
         Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
-  std::cout << "mInitialTaskID = " << mInitialTaskID << std::endl;
       }
       {
         mCompositeTaskID = Legion::HighLevelRuntime::generate_static_task_id();

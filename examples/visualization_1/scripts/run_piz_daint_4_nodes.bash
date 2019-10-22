@@ -13,4 +13,8 @@ export REALM_BACKTRACE=1
 export GASNET_BACKTRACE=1
 export REALM_FREEZE_ON_ERROR=1
 
-srun -C gpu -N 4 ~/PSAAP/legion/examples/visualization_1/visualization_1 -ll:cpu 16 -ll:csize 8192
+source ~/image-compositor/setup.bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LEGION_DIR/bindings/regent/
+
+
+srun -C gpu -N 4 $(IMAGE_COMPOSITOR_DIR)/examples/visualization_1/visualization_1 -ll:cpu 16 -ll:csize 8192
