@@ -47,10 +47,8 @@ using namespace LegionRuntime::Accessor;
  the README for a documented example.  After rendering is complete the
  application requests the framework to composite the resulting images.
 
- In order to ensure that compositing produces a correct result in the presence
- of non-commutative blending operations the following algorithm is followed.
- If the newer constructor is used this algorithm is followed regardless of the
- type of compositing operator, as it is valid for commutative depth comparisons
+ In order to ensure that compositing produces a correct result the following
+ algorithm is followed.  This is valid for commutative depth comparisons
  as well as for blending.
 
  The framework constructs a new logical partition of the Image region that will
@@ -79,39 +77,6 @@ using namespace LegionRuntime::Accessor;
  written to the image region by the render step in correct compositing order
  the resulting composite will be correct even in the present of blending
  operators.
-
- Note that is the first constructor is used then the framework will use the
- composite logical partition for both rendering and compositing.  This is only
- correct for commutative compositing operators like depth comparison.
-
-
-
- @aheirich I've not read the text above yet, but please work out an example on paper using a 2-d grid with integer coordinates, an image plane volume with 3-d coordinates, a source partition color space using roman letters as color names (i.e. 'a', 'b', 'c', 'd') and a compositing partition color space using greek letters (i.e. alpha, beta, gamma, ...)
-
- the goal is to produce a partition of the image plane volume with a color space made up of roman letters that is consistent with the compositing space partition (e.g. if subvolumes S4 and S12 are the first two leaves of the k-d tree and their colors in the source partition color space are 'b' and 'e', then the image plane colored 'b' in the synthesized partition must be the same image plane colored 'alpha' in the compositing partitiong, and the image plane colored 'e' in the syntheisized partition must be the same image plane colored 'beta' in hte compositing partition
- e.g. if S4 and S12 are simulation subregions corresponding to the first two leaves of the KD tree;
- the colors of S4 and S12 are b and d;
- the render image partition has subregions I1, I2 with colors b and d;
- renderImage[b] is the same subregion as compositeImage[alpha]
- renderImage[d] is the same subregion as compositeImage[beta]
- I think
-
- there are at least two ways to achieve this based on a traversal of the k-d tree
- and as is often the case in a strongly-typed world, if you can even construct a partition with the right types (i.e. colors that are roman letters and subvolumes that are image planes), you're most of the way there
-
- Simulation logical region, index space in 2D = { 0,0 0,1 1,0 1,1 }
- Image logical region, index space in 3D { 0,0,0 0,0,1 0,0,2 0,0,3 }
- Simulation partition, color space { a, b, c, d }
- Image compositing partition, color space { alpha, beta, gamma, delta }
-
- constructing renderImage:
- put the simulation coordinates in the KD tree.  For simplicity assume the simulation
- coordinates are the same as the index space coordinates.  WLOG assume the KD tree
- orders the coordinates { 0,1 1,1 0,0 1,0 }.  This corresponds to an ordering of the
- simulation partition color space { b, d, a, c }.
- now construct a renderImage partition where { b, d, a, c } corresponds to
- { alpha, beta, gamma, delta } in compositeImage[].  How?
-
 
 
  ******************************************************************************/
@@ -334,21 +299,6 @@ namespace Legion {
     /*
      * KDTree-based compositing
 
-     Note: can we stop returning legion data structures from the init and make them all accessible through the image-compositor?
-
-
-     Case 1: no partition
-     Construct old linear image partition
-     Copy it to render partition
-     Create an accessor for the render partition
-     Change the name of the existing accessor to “CompositePartition”
-
-     Case 2: partition
-     Construct old linear image partition
-     Construct new resorted render partition
-
-     Modify render.cc to access new compositor and render partitions
-     In example_2 and soleil-x
 
      To construct the new render partition do this
      The goal is to construct a partition with a permuted color map so that the rendered results will be placed into the correct positions in the compositor region.
