@@ -13,4 +13,6 @@ source ~/setup.bash
 source ~/image-compositor/setup.bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HDF_ROOT/lib
 
+export GASNET_BACKTRACE=1
+
 srun ./visualization_test_1 -ll:cpu 4 -ll:csize 4096 

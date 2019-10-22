@@ -723,7 +723,7 @@ namespace Legion {
       create_image_field_pointers(args.imageDescriptor, fragment1,
         r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
 
-#define SHOW_COMPOSITING 1
+#define SHOW_COMPOSITING 0
 #if SHOW_COMPOSITING
 ImageReduction::PixelField rr0 = *r0;
 ImageReduction::PixelField gg0 = *g0;
