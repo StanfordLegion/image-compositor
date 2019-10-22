@@ -68,7 +68,7 @@ namespace Legion {
         GLenum blendFunctionSource;
         GLenum blendFunctionDestination;
         GLenum blendEquation;
-        GLfloat cameraAt[image_region_dimensions];
+        GLfloat cameraDirection[image_region_dimensions];
       } CompositeArguments;
 
       typedef struct {
@@ -159,7 +159,7 @@ namespace Legion {
        * Perform a tree reduction.
        * Be sure to call either set_blend_func or set_depth_func first.
        */
-      FutureMap reduceImages(Context context, float cameraAt[image_region_dimensions] = nullptr);
+      FutureMap reduceImages(Context context, float cameraDirection[image_region_dimensions] = nullptr);
       /**
        * Move reduced image result to a display.
        *
@@ -346,7 +346,7 @@ namespace Legion {
 
       static KDNode<image_region_dimensions, long long int>* findFragmentInKDTree(PhysicalRegion fragment);
 
-      static bool flipRegions(PhysicalRegion fragment0, PhysicalRegion fragment1, float cameraAt[image_region_dimensions]);
+      static bool flipRegions(PhysicalRegion fragment0, PhysicalRegion fragment1, float cameraDirection[image_region_dimensions]);
 
       static void composite_task(const Task *task,
                                  const std::vector<PhysicalRegion> &regions,
@@ -460,7 +460,7 @@ namespace Legion {
                                            int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image,
                                            Runtime* runtime, Context context,
                                            int nodeID, int maxTreeLevel,
-                                           float cameraAt[image_region_dimensions]);
+                                           float cameraDirection[image_region_dimensions]);
 
 
       ImageDescriptor mImageDescriptor;

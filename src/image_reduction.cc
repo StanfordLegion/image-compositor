@@ -668,8 +668,9 @@ namespace Legion {
 
     bool ImageReduction::flipRegions(PhysicalRegion fragment0,
                                      PhysicalRegion fragment1,
-                                     float cameraAt[image_region_dimensions]) {
-      if(cameraAt == nullptr) return false;
+                                     float cameraDirection[image_region_dimensions]) {
+      if(mSimulationKDTree == nullptr) return false;
+      if(cameraDirection == nullptr) return false;
       KDNode<image_region_dimensions, long long int>* node0 = findFragmentInKDTree(fragment0);
       KDNode<image_region_dimensions, long long int>* node1 = findFragmentInKDTree(fragment1);
       unsigned axis0 = node0->mLevel % image_region_dimensions;
@@ -688,7 +689,7 @@ namespace Legion {
       }
       float dot = 0;
       for(unsigned i = 0; i < image_region_dimensions; ++i) {
-        dot += splittingPlaneNormal[i] * cameraAt[i];
+        dot += splittingPlaneNormal[i] * cameraDirection[i];
       }
       return dot < 0;
     }
@@ -696,7 +697,8 @@ namespace Legion {
 
     void ImageReduction::composite_task(const Task *task,
                                         const std::vector<PhysicalRegion> &regions,
-                                        Context ctx, HighLevelRuntime *runtime) {
+                                        Context ctx,
+                                        HighLevelRuntime *runtime) {
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
 #endif
@@ -722,7 +724,7 @@ namespace Legion {
       create_image_field_pointers(args.imageDescriptor, fragment1,
         r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
 
-      if(flipRegions(fragment0, fragment1, args.cameraAt)) {
+      if(flipRegions(fragment0, fragment1, args.cameraDirection)) {
         compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
           r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride1, stride0);
       } else {
@@ -746,7 +748,7 @@ namespace Legion {
                                                   LogicalRegion image,
                                                   Runtime* runtime, Context context,
                                                   int nodeID, int maxTreeLevel,
-                                                  float cameraAt[image_region_dimensions]) {
+                                                  float cameraDirection[image_region_dimensions]) {
       Domain launchDomain = (*mHierarchicalTreeDomain)[treeLevel - 1];
       int index = (treeLevel - 1) * 2;
       CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
@@ -759,7 +761,7 @@ namespace Legion {
       args.blendFunctionSource = blendFuncSource;
       args.blendFunctionDestination = blendFuncDestination;
       args.blendEquation = blendEquation;
-      memcpy(args.cameraAt, cameraAt, sizeof(args.cameraAt));
+      memcpy(args.cameraDirection, cameraDirection, sizeof(args.cameraDirection));
       IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
         TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false);
 
@@ -777,7 +779,7 @@ namespace Legion {
 
         futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc,
           blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID,
-          sourcePartition, image, runtime, context, nodeID, maxTreeLevel, cameraAt);
+          sourcePartition, image, runtime, context, nodeID, maxTreeLevel, cameraDirection);
       }
 
       return futures;
@@ -786,13 +788,13 @@ namespace Legion {
 
 
 
-    FutureMap ImageReduction::reduceImages(Context context, float cameraAt[]) {
+    FutureMap ImageReduction::reduceImages(Context context, float cameraDirection[]) {
       int maxTreeLevel = numTreeLevels(mImageDescriptor);
       if(maxTreeLevel > 0) {
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction,
           mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
           mCompositeTaskID, mCompositeImagePartition, mSourceImage, mRuntime,
-          context, mNodeID, maxTreeLevel, cameraAt);
+          context, mNodeID, maxTreeLevel, cameraDirection);
       } else {
         return FutureMap();
       }
