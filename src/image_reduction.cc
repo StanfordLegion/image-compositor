@@ -25,7 +25,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-
+using namespace std;
 using namespace LegionRuntime::Accessor;
 
 /******************************************************************************
@@ -714,8 +714,6 @@ namespace Legion {
       PixelField *r0, *g0, *b0, *a0, *z0, *userdata0;
       PixelField *r1, *g1, *b1, *a1, *z1, *userdata1;
       ImageReductionComposite::CompositeFunction* compositeFunction;
-      //      UsecTimer composite("composite time:");
-      //      composite.start();
       compositeFunction = ImageReductionComposite::compositeFunctionPointer(
         args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
       create_image_field_pointers(args.imageDescriptor, fragment0,
@@ -836,8 +834,6 @@ std::cout << buffer;
       char fileName[1024];
       sprintf(fileName, "display.%d.txt", args.t);
       string outputFileName = string(fileName);
-      UsecTimer display(describe_task(task) + " write to " + outputFileName + ":");
-      display.start();
       PhysicalRegion displayPlane = regions[0];
       Stride stride;
       PixelField *r, *g, *b, *a, *z, *userdata;
@@ -847,8 +843,6 @@ std::cout << buffer;
       fwrite(r, numPixelFields * sizeof(*r), args.imageDescriptor.pixelsPerLayer(), outputFile);
       fclose(outputFile);
 
-      display.stop();
-      cout << display.to_string() << endl;
     }
 
 

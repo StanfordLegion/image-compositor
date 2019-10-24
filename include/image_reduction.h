@@ -27,8 +27,6 @@
 #define __TRACE
 #endif
 
-#include "usec_timer.h"
-
 #ifdef __APPLE__
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
