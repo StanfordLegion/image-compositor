@@ -49,15 +49,17 @@ static void paintRegion(ImageDescriptor imageDescriptor,
                         ImageReduction::Stride stride,
                         int layer) {
 
+  std::cout << "paint region with value " << layer << std::endl;
   ImageReduction::PixelField zValue = layer;
+  ImageReduction::PixelField value = 1.0 / (1 + layer);
   for(int row = 0; row < imageDescriptor.height; ++row) {
     for(int column = 0; column < imageDescriptor.width; ++column) {
-      *r = layer;
-      *g = layer;
-      *b = layer;
-      *a = layer;
-      *z = layer;
-      *userdata = layer;
+      *r = value;
+      *g = value;
+      *b = value;
+      *a = value;
+      *z = zValue;
+      *userdata = value;
       r += stride[ImageReduction::FID_FIELD_R][0];
       g += stride[ImageReduction::FID_FIELD_G][0];
       b += stride[ImageReduction::FID_FIELD_B][0];
@@ -172,8 +174,10 @@ int main(const int argc, char *argv[]) {
   {
     Legion::TaskVariantRegistrar registrar(RENDER_TASK_ID, "render_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
-    Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "render_task");
+    Legion::Runtime::preregister_task_variant<render_task>(registrar, "render_task");
   }
+
+  Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
 
   return HighLevelRuntime::start(argc, argv);
 }

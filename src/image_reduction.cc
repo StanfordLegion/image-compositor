@@ -832,16 +832,53 @@ std::cout << buffer;
 #endif
       DisplayArguments args = ((DisplayArguments*)task->args)[0];
       char fileName[1024];
-      sprintf(fileName, "display.%d.txt", args.t);
+      sprintf(fileName, "display.%d.tga", args.t);
       string outputFileName = string(fileName);
       PhysicalRegion displayPlane = regions[0];
       Stride stride;
       PixelField *r, *g, *b, *a, *z, *userdata;
       create_image_field_pointers(args.imageDescriptor, displayPlane, r, g, b, a, z, userdata, stride, runtime, ctx, false);
 
-      FILE *outputFile = fopen(outputFileName.c_str(), "wb");
-      fwrite(r, numPixelFields * sizeof(*r), args.imageDescriptor.pixelsPerLayer(), outputFile);
-      fclose(outputFile);
+      FILE* f = fopen(fileName, (const char*)"w");
+      if(f == nullptr) {
+        std::cerr << "could not create file " << outputFileName << std::endl;
+        return;
+      }
+      fputc (0x00, f);  /* ID Length, 0 => No ID   */
+      fputc (0x00, f);  /* Color Map Type, 0 => No color map included   */
+      fputc (0x02, f);  /* Image Type, 2 => Uncompressed, True-color Image */
+      fputc (0x00, f);  /* Next five bytes are about the color map entries */
+      fputc (0x00, f);  /* 2 bytes Index, 2 bytes length, 1 byte size */
+      fputc (0x00, f);
+      fputc (0x00, f);
+      fputc (0x00, f);
+      fputc (0x00, f);  /* X-origin of Image */
+      fputc (0x00, f);
+      fputc (0x00, f);  /* Y-origin of Image */
+      fputc (0x00, f);
+      fputc (args.imageDescriptor.width & 0xff, f);      /* Image Width */
+      fputc ((args.imageDescriptor.width>>8) & 0xff, f);
+      fputc (args.imageDescriptor.height & 0xff, f);     /* Image Height   */
+      fputc ((args.imageDescriptor.height>>8) & 0xff, f);
+      fputc (0x18, f);     /* Pixel Depth, 0x18 => 24 Bits  */
+      fputc (0x20, f);     /* Image Descriptor  */
+      fclose(f);
+  
+      f = fopen(fileName, (const char*)"ab");  /* reopen in binary append mode */
+
+      for(int y = args.imageDescriptor.height - 1; y >= 0; y--) {
+        for(int x = 0; x < args.imageDescriptor.width; ++x) {
+          int index = x + y * args.imageDescriptor.width;
+          GLubyte b_ = b[index] * 255;
+          fputc(b_, f); /* write blue */
+          GLubyte g_ = g[index] * 255;
+          fputc(g_, f); /* write green */
+          GLubyte r_ = r[index] * 255;
+          fputc(r_, f);   /* write red */
+        }
+      }
+      fclose(f);
+      std::cout << "wrote image " << outputFileName << std::endl;
 
     }
 
