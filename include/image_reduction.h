@@ -39,7 +39,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "legion_c_util.h"
+#include "legion/legion_c_util.h"
 #include "KDTree.hpp"
 
 
