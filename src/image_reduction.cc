@@ -604,6 +604,8 @@ namespace Legion {
     }
 
 
+// TODO make this initializeNodes
+
     FutureMap ImageReduction::launch_task_composite_domain(unsigned taskID,
       HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
 
@@ -626,12 +628,14 @@ namespace Legion {
 
       IndexTaskLauncher compositeImageLauncher(taskID, domain,
         TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
-      RegionRequirement req(mCompositeImagePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
+      RegionRequirement req(mRenderImagePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
       addImageFieldsToRequirement(req);
       compositeImageLauncher.add_region_requirement(req);
       FutureMap futures = runtime->execute_index_space(context, compositeImageLauncher);
       if(blocking) {
+__TRACE
         futures.wait_all_results();
+__TRACE
       }
       delete [] argsBuffer;
       return futures;
