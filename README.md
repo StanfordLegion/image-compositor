@@ -358,6 +358,7 @@ Instead of cxx_render() the application index launches a render task in Regent.
 The render task writes to the source image region created by the image compositor.
 After launching the render task the application calls cxx_reduce.
 
+# Remarks/Integrator_maxHeatConductionSpectralRadius
 
 ## Nonassociative todo
 Associative reductions can be implemented in a tree.
@@ -366,3 +367,20 @@ Non-commutative reductions subsume commutative reductions
 so it is sufficient to implement only the non-commutative form.
 
 These can be implemented when there is a need.
+
+## Coordinate system
+
+The current implementation assumes the simulation domain is in 3D and
+the coordinate axes are aligned with the axes index space of the corresponding logical region.
+In other words, increasing X coordinates in the simultion domain correspond to increasing X coordinates in the logical region, and similarly for Y and Z.
+
+It is probably not very difficult to support a 2D or 4D simulation domain.  
+This would require some editing and recompilation.
+
+## KD-tree initialization
+
+The compositing algorithm requires a KD-tree in each address space where rendering and compositing will occur.
+This is accomplished in the task "initial_task".
+This task runs at framework startup for every subvolume of the simulation partition.
+If at some future time the simulation data were to migrate to an address space where the KD-tree had not been built, this could result in a crash.
+The resolution would be to ensure the KD-tree gets built in every address space.
