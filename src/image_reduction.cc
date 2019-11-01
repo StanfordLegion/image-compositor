@@ -620,18 +620,25 @@ namespace Legion {
       // if imageDescriptor has a partition launch over the partition
       // otherwise launch over the image compositeImageDomain
       Domain domain;
+      LogicalPartition partition;
+      LogicalRegion region;
       if(mImageDescriptor.hasPartition) {
         domain = mImageDescriptor.simulationDomain;
+        partition = mImageDescriptor.simulationLogicalPartition;
+        region = mImageDescriptor.simulationLogicalRegion;
       } else {
         domain = mCompositeImageDomain;
+        //partition =
+//TODO create mCompositeImagePartition in createImageRegion
+        region = mSourceImage;
       }
 
-      IndexTaskLauncher compositeImageLauncher(taskID, domain,
+      IndexTaskLauncher launcher(taskID, domain,
         TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
-      RegionRequirement req(mRenderImagePartition, 0, READ_WRITE, EXCLUSIVE, mSourceImage);
+      RegionRequirement req(partition, 0, READ_WRITE, EXCLUSIVE, region);
       addImageFieldsToRequirement(req);
-      compositeImageLauncher.add_region_requirement(req);
-      FutureMap futures = runtime->execute_index_space(context, compositeImageLauncher);
+      launcher.add_region_requirement(req);
+      FutureMap futures = runtime->execute_index_space(context, launcher);
       if(blocking) {
 __TRACE
         futures.wait_all_results();
