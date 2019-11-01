@@ -638,7 +638,7 @@ namespace Legion {
 
       IndexTaskLauncher launcher(taskID, domain,
         TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
-      RegionRequirement req(partition, 0, READ_WRITE, EXCLUSIVE, region);
+      RegionRequirement req(partition, 0, READ_ONLY, EXCLUSIVE, region);
       if(mImageDescriptor.hasPartition) {
         for(int i = 0; i < mImageDescriptor.numPFields; ++i) {
           req.add_field(mImageDescriptor.pFields[i]);
