@@ -626,6 +626,9 @@ namespace Legion {
         domain = mImageDescriptor.simulationDomain;
         partition = mImageDescriptor.simulationLogicalPartition;
         region = mImageDescriptor.simulationLogicalRegion;
+{
+  std::cout << "region requirement for initial_task is simulationLogicalPartition and simulationLogicalRegion " << partition << region << std::endl;
+}
       } else {
         domain = mCompositeImageDomain;
         //partition =
@@ -636,7 +639,13 @@ namespace Legion {
       IndexTaskLauncher launcher(taskID, domain,
         TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
       RegionRequirement req(partition, 0, READ_WRITE, EXCLUSIVE, region);
-      addImageFieldsToRequirement(req);
+      if(mImageDescriptor.hasPartition) {
+        for(int i = 0; i < mImageDescriptor.numPFields; ++i) {
+          req.add_field(mImageDescriptor.pFields[i]);
+        }
+      } else {
+        addImageFieldsToRequirement(req);
+      }
       launcher.add_region_requirement(req);
       FutureMap futures = runtime->execute_index_space(context, launcher);
       if(blocking) {
@@ -874,7 +883,7 @@ std::cout << buffer;
       fputc (0x18, f);     /* Pixel Depth, 0x18 => 24 Bits  */
       fputc (0x20, f);     /* Image Descriptor  */
       fclose(f);
-  
+
       f = fopen(fileName, (const char*)"ab");  /* reopen in binary append mode */
 
       for(int y = args.imageDescriptor.height - 1; y >= 0; y--) {
