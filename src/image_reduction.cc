@@ -125,7 +125,6 @@ namespace Legion {
       imageDescriptor.simulationDomain = domain;
       imageDescriptor.hasPartition = true;
       imageDescriptor.numImageLayers = domain.get_volume();
-      std::cout << __FUNCTION__ << " domain " << domain << std::endl;
       mImageDescriptor = imageDescriptor;
       mRuntime = runtime;
       mDepthFunction = 0;
@@ -626,9 +625,6 @@ namespace Legion {
         domain = mImageDescriptor.simulationDomain;
         partition = mImageDescriptor.simulationLogicalPartition;
         region = mImageDescriptor.simulationLogicalRegion;
-{
-  std::cout << "region requirement for initial_task is simulationLogicalPartition and simulationLogicalRegion " << partition << region << std::endl;
-}
       } else {
         domain = mCompositeImageDomain;
         //partition =
@@ -649,9 +645,7 @@ namespace Legion {
       launcher.add_region_requirement(req);
       FutureMap futures = runtime->execute_index_space(context, launcher);
       if(blocking) {
-__TRACE
         futures.wait_all_results();
-__TRACE
       }
       delete [] argsBuffer;
       return futures;
