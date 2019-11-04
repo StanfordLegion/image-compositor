@@ -415,18 +415,13 @@ namespace Legion {
         int mID;
       };
 
-      static CompositeProjectionFunctor* getCompositeProjectionFunctor(int nodeID, int maxTreeLevel, int level);
 
-      static CompositeProjectionFunctor* makeCompositeProjectionFunctor(int offset, int numBounds, int nodeID, int level, int numLevels, Runtime* runtime);
-
-      static void storeMyNodeID(int nodeID, int numNodes);
-
-      static void createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers);
+      static void createProjectionFunctors(Runtime* runtime, int numImageLayers);
 
 
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
-      void createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
+      void createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       FieldSpace imageFields(Context context);
       void createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
@@ -457,7 +452,7 @@ namespace Legion {
                                            GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
                                            int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image,
                                            Runtime* runtime, Context context,
-                                           int nodeID, int maxTreeLevel,
+                                           int maxTreeLevel,
                                            float cameraDirection[image_region_dimensions]);
 
 

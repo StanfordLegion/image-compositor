@@ -88,7 +88,6 @@ namespace Legion {
 
     // declare module static data
 
-    int ImageReduction::mNodeID;
     std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = NULL;
     std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = nullptr;
     GLfloat ImageReduction::mGlViewTransform[numMatrixElements4x4];
@@ -130,7 +129,6 @@ namespace Legion {
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
-      mNodeID = -1;
       mRenderImageDomain = imageDescriptor.simulationDomain;
 
       mGlBlendEquation = GL_FUNC_ADD;
@@ -142,9 +140,8 @@ namespace Legion {
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
       initializeNodes(mRuntime, context);
       partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
-      assert(mNodeID != -1);
       initializeViewMatrix();
-      createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
+      createTreeDomains(numTreeLevels(imageDescriptor), runtime, imageDescriptor);
     }
 
     /**
@@ -157,7 +154,6 @@ namespace Legion {
       mDepthFunction = 0;
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
-      mNodeID = -1;
 
       mGlBlendEquation = GL_FUNC_ADD;
       mGlBlendFunctionSource = 0;
@@ -173,7 +169,7 @@ namespace Legion {
       mRenderImagePartition = mCompositeImagePartition;
 
       initializeViewMatrix();
-      createTreeDomains(mNodeID, numTreeLevels(imageDescriptor), runtime, imageDescriptor);
+      createTreeDomains(numTreeLevels(imageDescriptor), runtime, imageDescriptor);
     }
 
     ImageReduction::~ImageReduction() {
@@ -371,11 +367,6 @@ namespace Legion {
     }
 
 
-    void ImageReduction::storeMyNodeID(int nodeID, int numNodes) {
-      mNodeID = nodeID;
-    }
-
-
     int ImageReduction::numTreeLevels(int numImageLayers) {
       int numTreeLevels = log2f(numImageLayers);
       if(powf(2.0f, numTreeLevels) < numImageLayers) {
@@ -400,7 +391,7 @@ namespace Legion {
     }
 
 
-    void ImageReduction::createProjectionFunctors(int nodeID, Runtime* runtime, int numImageLayers) {
+    void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLayers) {
 
       // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
       // not a problem for multinode runs
@@ -483,22 +474,12 @@ namespace Legion {
                                       const std::vector<PhysicalRegion> &regions,
                                       Context ctx, HighLevelRuntime *runtime) {
 
+__TRACE
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
 #endif
       ImageDescriptor imageDescriptor = *((ImageDescriptor*)task->args);
-      Processor processor = runtime->get_executing_processor(ctx);
-      Machine::ProcessorQuery query(Machine::get_machine());
-      query.only_kind(processor.kind());
-      {
-        // set the node ID
-        Domain indexSpaceDomain = runtime->get_index_space_domain(regions[0].get_logical_region().get_index_space());
-        Rect<image_region_dimensions> imageBounds = indexSpaceDomain;
-        int myNodeID = imageBounds.lo[2];
-        ImageDescriptor imageDescriptor = ((ImageDescriptor*)task->args)[0];
-        storeMyNodeID(myNodeID, imageDescriptor.numImageLayers);
-        createProjectionFunctors(myNodeID, runtime, imageDescriptor.numImageLayers);
-      }
+      createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
       if(imageDescriptor.hasPartition) {
         buildKDTrees(imageDescriptor, ctx, runtime);
       }
@@ -516,7 +497,7 @@ namespace Legion {
     }
 
 
-    void ImageReduction::createTreeDomains(int nodeID, int numTreeLevels, Runtime* runtime, ImageDescriptor imageDescriptor) {
+    void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor imageDescriptor) {
       if(mHierarchicalTreeDomain == NULL) {
         mHierarchicalTreeDomain = new std::vector<Domain>();
       }
@@ -782,7 +763,7 @@ std::cout << buffer;
                                                   int compositeTaskID, LogicalPartition sourcePartition,
                                                   LogicalRegion image,
                                                   Runtime* runtime, Context context,
-                                                  int nodeID, int maxTreeLevel,
+                                                  int maxTreeLevel,
                                                   float cameraDirection[image_region_dimensions]) {
       Domain launchDomain = (*mHierarchicalTreeDomain)[treeLevel - 1];
       int index = (treeLevel - 1) * 2;
@@ -814,7 +795,7 @@ std::cout << buffer;
 
         futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc,
           blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID,
-          sourcePartition, image, runtime, context, nodeID, maxTreeLevel, cameraDirection);
+          sourcePartition, image, runtime, context, maxTreeLevel, cameraDirection);
       }
 
       return futures;
@@ -829,7 +810,7 @@ std::cout << buffer;
         return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction,
           mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
           mCompositeTaskID, mCompositeImagePartition, mSourceImage, mRuntime,
-          context, mNodeID, maxTreeLevel, cameraDirection);
+          context, maxTreeLevel, cameraDirection);
       } else {
         return FutureMap();
       }
