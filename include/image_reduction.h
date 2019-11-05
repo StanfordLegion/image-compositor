@@ -141,19 +141,6 @@ namespace Legion {
       virtual ~ImageReduction();
 
       /**
-       * Launch a set of tasks on all processors.  This is useful for launching
-       * render tasks, which should run once per node.  To enforce once-per-node
-       * use this idiom within a task:
-       *
-       * Processor processor = runtime->get_executing_processor(ctx);
-       * Machine::ProcessorQuery query(Machine::get_machine());
-       * query.only_kind(processor.kind());
-       * if(processor.id == query.first().id) { ...
-       *
-       * @param taskID ID of task that has previously been registered with the Legion runtime
-       */
-      FutureMap launch_task_composite_domain(unsigned taskID, HighLevelRuntime* runtime, Context context, void* args = NULL, int argLen = 0, bool blocking = false);
-      /**
        * Perform a tree reduction.
        * Be sure to call either set_blend_func or set_depth_func first.
        */

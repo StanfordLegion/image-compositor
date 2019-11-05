@@ -434,8 +434,7 @@ namespace Legion {
         IndexSpace subregion = runtime->get_index_subspace(ctx,
           imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
         Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
-        Legion::Rect<image_region_dimensions> simulationRect =
-          (Legion::Rect<image_region_dimensions>)subdomain;
+        Legion::Rect<image_region_dimensions> simulationRect(color, color);
         KDTreeValue simulationValue;
         simulationValue.extent = simulationRect;
         simulationValue.color = color;
@@ -474,7 +473,6 @@ namespace Legion {
                                       const std::vector<PhysicalRegion> &regions,
                                       Context ctx, HighLevelRuntime *runtime) {
 
-__TRACE
 #ifdef TRACE_TASKS
       std::cout << describe_task(task) << std::endl;
 #endif
@@ -485,10 +483,6 @@ __TRACE
       }
     }
 
-
-    void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
-      launch_task_composite_domain(mInitialTaskID, runtime, context, NULL, 0, true);
-    }
 
 
     void ImageReduction::initializeViewMatrix() {
@@ -584,18 +578,12 @@ __TRACE
     }
 
 
-// TODO make this initializeNodes
-
-    FutureMap ImageReduction::launch_task_composite_domain(unsigned taskID,
-      HighLevelRuntime* runtime, Context context, void *args, int argLen, bool blocking){
-
+    void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
+      unsigned taskID = mInitialTaskID;
       ArgumentMap argMap;
-      int totalArgLen = sizeof(mImageDescriptor) + argLen;
+      int totalArgLen = sizeof(mImageDescriptor);
       char *argsBuffer = new char[totalArgLen];
       memcpy(argsBuffer, &mImageDescriptor, sizeof(mImageDescriptor));
-      if(argLen > 0) {
-        memcpy(argsBuffer + sizeof(mImageDescriptor), args, argLen);
-      }
 
       // if imageDescriptor has a partition launch over the partition
       // otherwise launch over the image compositeImageDomain
@@ -625,11 +613,11 @@ __TRACE
       }
       launcher.add_region_requirement(req);
       FutureMap futures = runtime->execute_index_space(context, launcher);
-      if(blocking) {
-        futures.wait_all_results();
-      }
+      futures.wait_all_results();
       delete [] argsBuffer;
-      return futures;
+      if(mImageDescriptor.hasPartition) {
+        buildKDTrees(mImageDescriptor, context, runtime);
+      }
     }
 
 
