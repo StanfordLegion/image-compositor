@@ -7,7 +7,6 @@
 
 #include "GL/osmesa.h"
 #include "GL/glu.h"
-#include "GL/glut.h"
 
 #include "render.h"
 #include "legion.h"
