@@ -140,6 +140,7 @@ namespace Legion {
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
       initializeNodes(mRuntime, context);
+      createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
       partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
       initializeViewMatrix();
       createTreeDomains(numTreeLevels(imageDescriptor), runtime, imageDescriptor);
@@ -165,6 +166,7 @@ namespace Legion {
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
       initializeNodes(mRuntime, context);
+      createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
       mRenderImageColorSpace = mCompositeImageColorSpace;
       mRenderImageDomain = mCompositeImageDomain;
       mRenderImagePartition = mCompositeImagePartition;

@@ -22,7 +22,7 @@
 
 //tracing for debug
 #if 1
-#define __TRACE {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
+#define __TRACE {char hostname[128];gethostname(hostname,128);char buffer[256];sprintf(buffer, "%s %s:%d %s pid %d\n",hostname,__FILE__,__LINE__,__FUNCTION__,getpid());std::cout<<buffer;fflush(stdout);}
 #else
 #define __TRACE
 #endif
