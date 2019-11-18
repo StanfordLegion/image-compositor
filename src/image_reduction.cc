@@ -101,7 +101,7 @@ namespace Legion {
     TaskID ImageReduction::mDisplayTaskID;
     KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
     KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
-
+    MapperID gMapperID;
 
     /**
      * Use this constructor with your simulation partition.
@@ -113,7 +113,8 @@ namespace Legion {
       int numPFields,
       ImageDescriptor imageDescriptor,
       Context context,
-      HighLevelRuntime *runtime) {
+      HighLevelRuntime *runtime,
+      MapperID mapperID) {
       Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
       imageDescriptor.simulationLogicalRegion = region;
       imageDescriptor.simulationLogicalPartition = partition;
@@ -131,6 +132,7 @@ namespace Legion {
       mGlBlendFunctionSource = 0;
       mGlBlendFunctionDestination = 0;
       mRenderImageDomain = imageDescriptor.simulationDomain;
+      gMapperID = mapperID;
 
       mGlBlendEquation = GL_FUNC_ADD;
       mGlBlendFunctionSource = 0;
@@ -149,7 +151,9 @@ namespace Legion {
     /**
      * use this constructor for testing and applications that don't have a simulation partition.
      **/
-    ImageReduction::ImageReduction(ImageDescriptor imageDescriptor, Context context, HighLevelRuntime *runtime) {
+    ImageReduction::ImageReduction(ImageDescriptor imageDescriptor,
+      Context context, HighLevelRuntime *runtime,
+      MapperID mapperID) {
       imageDescriptor.hasPartition = false;
       mImageDescriptor = imageDescriptor;
       mRuntime = runtime;
@@ -162,6 +166,7 @@ namespace Legion {
       mGlBlendFunctionDestination = 0;
       mDepthFunction = 0;
       legion_field_id_t fieldID[6];
+      gMapperID = mapperID;
 
       createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
       partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
@@ -605,8 +610,9 @@ namespace Legion {
       }
 
       IndexTaskLauncher launcher(taskID, domain,
-        TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED, false);
-      RegionRequirement req(partition, 0, READ_ONLY, EXCLUSIVE, region);
+        TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED,
+        false, gMapperID);
+      RegionRequirement req(partition, 0, READ_ONLY, EXCLUSIVE, region, gMapperID);
       if(mImageDescriptor.hasPartition) {
         for(int i = 0; i < mImageDescriptor.numPFields; ++i) {
           req.add_field(mImageDescriptor.pFields[i]);
@@ -770,13 +776,16 @@ std::cout << buffer;
       args.blendEquation = blendEquation;
       memcpy(args.cameraDirection, cameraDirection, sizeof(args.cameraDirection));
       IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
-        TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false);
+        TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false,
+        gMapperID);
 
-      RegionRequirement req0(sourcePartition, functor0->id(), READ_WRITE, EXCLUSIVE, image);
+      RegionRequirement req0(sourcePartition, functor0->id(),
+        READ_WRITE, EXCLUSIVE, image, gMapperID);
       addImageFieldsToRequirement(req0);
       treeCompositeLauncher.add_region_requirement(req0);
 
-      RegionRequirement req1(sourcePartition, functor1->id(), READ_ONLY, EXCLUSIVE, image);
+      RegionRequirement req1(sourcePartition, functor1->id(),
+        READ_ONLY, EXCLUSIVE, image, gMapperID);
       addImageFieldsToRequirement(req1);
       treeCompositeLauncher.add_region_requirement(req1);
 
@@ -872,10 +881,12 @@ std::cout << buffer;
 
     Future ImageReduction::display(int t, Context context) {
       DisplayArguments args = { mImageDescriptor, t };
-      TaskLauncher taskLauncher(mDisplayTaskID, TaskArgument(&args, sizeof(args)));
+      TaskLauncher taskLauncher(mDisplayTaskID, TaskArgument(&args, sizeof(args)),
+        Predicate::TRUE_PRED, gMapperID);
       DomainPoint origin = DomainPoint(Point<image_region_dimensions>::ZEROES());
       LogicalRegion displayPlane = mRuntime->get_logical_subregion_by_color(mCompositeImagePartition, origin);
-      RegionRequirement req(displayPlane, READ_ONLY, EXCLUSIVE, mSourceImage);
+      RegionRequirement req(displayPlane, READ_ONLY, EXCLUSIVE,
+          mSourceImage, gMapperID);
       addImageFieldsToRequirement(req);
       taskLauncher.add_region_requirement(req);
       Future displayFuture = mRuntime->execute_task(context, taskLauncher);

@@ -22,6 +22,7 @@ include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime
 list(APPEND FRAMEWORK_SRC
   image_reduction.cc
   image_reduction_composite.cc
+  image_reduction_mapper.cc
 )
 
 add_library(ImageCompositor ${FRAMEWORK_SRC})
