@@ -341,6 +341,12 @@ namespace Legion {
                                  const std::vector<PhysicalRegion> &regions,
                                  Context ctx, Runtime *runtime);
 
+      void initializeRenderNodes(HighLevelRuntime* runtime, 
+				Context context,
+				unsigned taskID,
+				char* args,
+				int totalArgLen);
+
 
 
     protected:
@@ -408,7 +414,6 @@ namespace Legion {
 
 
       static void createProjectionFunctors(Runtime* runtime, int numImageLayers);
-
 
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();

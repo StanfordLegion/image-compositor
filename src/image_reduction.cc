@@ -586,6 +586,41 @@ namespace Legion {
     }
 
 
+    void ImageReduction::initializeRenderNodes(HighLevelRuntime* runtime, 
+						Context context,
+						unsigned taskID,
+						char* args,
+						int totalArgLen) {
+      ArgumentMap argMap;
+      char *argsBuffer = new char[totalArgLen];
+      memcpy(argsBuffer, args, totalArgLen);
+
+      // if imageDescriptor has a partition launch over the partition
+      // otherwise launch over the image compositeImageDomain
+      Domain domain;
+      LogicalPartition partition;
+      LogicalRegion region;
+      if(mImageDescriptor.hasPartition) {
+        domain = mImageDescriptor.simulationDomain;
+        partition = mImageDescriptor.simulationLogicalPartition;
+        region = mImageDescriptor.simulationLogicalRegion;
+      } else {
+        domain = mCompositeImageDomain;
+        //partition =
+//TODO create mCompositeImagePartition in createImageRegion
+        region = mSourceImage;
+      }
+
+      IndexTaskLauncher launcher(taskID, domain,
+        TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED,
+        false, gMapperID);
+      RegionRequirement req(partition, 0, READ_ONLY, EXCLUSIVE, region, gMapperID);
+      FutureMap futures = runtime->execute_index_space(context, launcher);
+      futures.wait_all_results();
+      delete [] argsBuffer;
+    }
+
+
     void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
       unsigned taskID = mInitialTaskID;
       ArgumentMap argMap;
