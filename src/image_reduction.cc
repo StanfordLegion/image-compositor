@@ -477,23 +477,6 @@ namespace Legion {
     }
 
 
-#if 1
-  #ifdef __cplusplus
-  template<typename FT, int N, typename T = long long>
-  using AccessorRO = Legion::FieldAccessor<READ_ONLY,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
-  template<typename FT, int N, typename T = long long>
-  using AccessorWO = Legion::FieldAccessor<WRITE_DISCARD,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
-  template<typename FT, int N, typename T = long long>
-  using AccessorRW = Legion::FieldAccessor<READ_WRITE,FT,N,T,Realm::AffineAccessor<FT,N,T> >;
-  #endif
-typedef double FieldData;
-typedef struct {
-  FieldData x[3];
-} FieldData3;
-
-#endif
-
-
     void ImageReduction::initial_task(const Task *task,
                                       const std::vector<PhysicalRegion> &regions,
                                       Context ctx, HighLevelRuntime *runtime) {
@@ -506,27 +489,6 @@ typedef struct {
       if(imageDescriptor.hasPartition) {
         buildKDTrees(imageDescriptor, ctx, runtime);
       }
-
-#if 1 // debug
-    PhysicalRegion particles = regions[0];
-    AccessorRO<long int, 1> particlesID(particles, imageDescriptor.pFields[0]);
-    AccessorRO<FieldData3, 1> particlesPosition(particles, imageDescriptor.pFields[1]);
-    AccessorRO<FieldData, 1> particlesTemperature(particles, imageDescriptor.pFields[2]);
-    AccessorRO<FieldData, 1> particlesDensity(particles, imageDescriptor.pFields[3]);
-    AccessorRO<bool, 1> particlesValid(particles, imageDescriptor.pFields[4]);
-
-
-    Domain particlesDomain = runtime->get_index_space_domain(
-      particles.get_logical_region().get_index_space());
-    int numParticles = particlesDomain.get_volume();
-std::cout << describe_task(task)<<std::endl;
-std::cout<<"numParticles"<<numParticles<<std::endl;
-    for(int i = 0; i < numParticles; ++i) {
-if(particlesValid[i]) {
-std::cout<<"id "<<particlesID[i]<<" position "<<particlesPosition[i].x[0]<<" "<< particlesPosition[i].x[1]<<" "<< particlesPosition[i].x[2]<<" temp "<<particlesTemperature[i]<<" density "<<particlesDensity[i]<<" valid "<<particlesValid[i]<<std::endl;
-}
-    }
-#endif
     }
 
 
