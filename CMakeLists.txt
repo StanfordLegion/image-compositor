@@ -137,6 +137,7 @@ export(PACKAGE Legion)
 message("LEGION_DIR is $ENV{LEGION_DIR}")
 
 include_directories( $ENV{LEGION_DIR}/bindings/regent )
+include_directories( $ENV{LEGION_DIR}/language/build/runtime )
 include_directories( $ENV{LEGION_DIR}/runtime/legion )
 include_directories( $ENV{LEGION_DIR}/runtime/realm )
 include_directories( include )
