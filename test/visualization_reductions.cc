@@ -81,19 +81,6 @@ namespace Legion {
     }
 
 
-#ifdef DEBUG
-    static void dumpImage(ImageReduction::PixelField *rr: case ImageReduction::PixelField*gg, ImageReduction::PixelField*bb, ImageReduction::PixelField*aa, ImageReduction::PixelField*zz, ImageReduction::PixelField*uu, ImageReduction::Stride stride, char *text) {
-      std::cout << std::endl;
-      std::cout << text << std::endl;
-      for(int i = 0; i < 10; ++i) {
-        std::cout << text << " pixel " << i << ": ";
-        std::cout << rr[0] << "\t" << gg[0] << "\t" << bb[0] << "\t" << aa[0] << "\t" << zz[0] << "\t" << uu[0] << std::endl;
-        ImageReductionComposite::increment(rr, gg, bb, aa, zz, uu, stride);
-      }
-    }
-#endif
-
-
     typedef ImageReduction::PixelField* Image;
 
 
@@ -145,13 +132,13 @@ namespace Legion {
 
     // this is used to generate the test contents for the logical region
     static void paintRegion(ImageDescriptor imageDescriptor,
-                            ImageReduction::PixelField *r,
-                            ImageReduction::PixelField *g,
-                            ImageReduction::PixelField *b,
-                            ImageReduction::PixelField *a,
-                            ImageReduction::PixelField *z,
-                            ImageReduction::PixelField *userdata,
-                            Legion::Visualization::ImageReduction::Stride stride,
+                            int z,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z,
+                            const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata,
                             int taskID) {
 
       Image image;
@@ -160,14 +147,13 @@ namespace Legion {
 
       for(int row = 0; row < imageDescriptor.height; ++row) {
         for(int column = 0; column < imageDescriptor.width; ++column) {
-          *r = *imagePtr++;
-          *g = *imagePtr++;
-          *b = *imagePtr++;
-          *a = *imagePtr++;
-          *z = *imagePtr++;
-          *userdata = *imagePtr++;
+          r[row][column][z] = *imagePtr++;
+          g[row][column][z] = *imagePtr++;
+          b[row][column][z] = *imagePtr++;
+          a[row][column][z] = *imagePtr++;
+          z[row][column][z] = *imagePtr++;
+          userdata[row][column][z] = *imagePtr++;
 
-          ImageReductionComposite::increment(r, g, b, a, z, userdata, stride);
         }
       }
 
@@ -185,15 +171,17 @@ namespace Legion {
       PhysicalRegion image = regions[0];
       ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
 
-      ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
-      ImageReduction::Stride stride;
-      ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
-
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r(displayPlane, FID_FIELD_R);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g(displayPlane, FID_FIELD_G);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b(displayPlane, FID_FIELD_B);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a(displayPlane, FID_FIELD_A);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z(displayPlane, FID_FIELD_Z);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata(displayPlane, FID_FIELD_USERDATA);
       Domain indexSpaceDomain = runtime->get_index_space_domain(ctx, image.get_logical_region().get_index_space());
       LegionRuntime::Arrays::Rect<image_region_dimensions> imageBounds = indexSpaceDomain.get_rect<image_region_dimensions>();
-
       int taskID = imageBounds.lo[2];
-      paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, taskID);
+      int Z = taskID;
+      paintRegion(imageDescriptor, Z, r, g, b, a, z, userdata, taskID);
       render.stop();
       cout << render.to_string() << endl;
     }
@@ -207,38 +195,49 @@ namespace Legion {
       return true;
     }
 
-    static int verifyImage(ImageDescriptor imageDescriptor, Image expected, ImageReduction::PixelField *r, ImageReduction::PixelField *g, ImageReduction::PixelField *b, ImageReduction::PixelField *a, ImageReduction::PixelField *z, ImageReduction::PixelField *userdata, ImageReduction::Stride stride) {
+    static int verifyImage(ImageDescriptor imageDescriptor,
+                           Image expected,
+                           int Z,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z,
+                           const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata
+                           ) {
       // expected comes from a file and has contiguous data
-      // the other pointers are from a logical region and are separated by stride[i][0]
+      // the other pointers are from a logical region
 
       const int maxFailuresBeforeAbort = 10;
       int failures = 0;
-      for(int i = 0; i < imageDescriptor.pixelsPerLayer(); ++i) {
-        if(!verifyImageReduction(i, (char*)"r", *expected++, *r)) {
-          failures++;
+      for(int y = 0; y < imageDescriptor.height; y++) {
+        for(int x = 0; x < imageDescriptor.width; x++) {
+          
+          if(!verifyImageReduction(i, (char*)"r", *expected++, r[x][y][Z])) {
+            failures++;
+          }
+          if(!verifyImageReduction(i, (char*)"g", *expected++, g[x][y][Z])) {
+            failures++;
+          }
+          if(!verifyImageReduction(i, (char*)"b", *expected++, b[x][y][Z])) {
+            failures++;
+          }
+          if(!verifyImageReduction(i, (char*)"a", *expected++, a[x][y][Z])) {
+            failures++;
+          }
+          if(!verifyImageReduction(i, (char*)"z", *expected++, z[x][y][Z])) {
+            failures++;
+          }
+          if(!verifyImageReduction(i, (char*)"userdata", *expected++, userdata[x][y][Z])) {
+            failures++;
+          }
+          if(failures >= maxFailuresBeforeAbort) {
+            std::cerr << "too many failures, aborting verification" << std::endl;
+            break;
+          }
         }
-        if(!verifyImageReduction(i, (char*)"g", *expected++, *g)) {
-          failures++;
-        }
-        if(!verifyImageReduction(i, (char*)"b", *expected++, *b)) {
-          failures++;
-        }
-        if(!verifyImageReduction(i, (char*)"a", *expected++, *a)) {
-          failures++;
-        }
-        if(!verifyImageReduction(i, (char*)"z", *expected++, *z)) {
-          failures++;
-        }
-        if(!verifyImageReduction(i, (char*)"userdata", *expected++, *userdata)) {
-          failures++;
-        }
-        ImageReductionComposite::increment(r, g, b, a, z, userdata, stride);
-        if(failures >= maxFailuresBeforeAbort) {
-          std::cerr << "too many failures, aborting verification" << std::endl;
-          break;
-        }
+        return failures;
       }
-      return failures;
     }
 
 
@@ -251,10 +250,15 @@ namespace Legion {
         PhysicalRegion image = regions[0];
         ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
         Image expected = (Image)((char*)task->args + sizeof(imageDescriptor));
-        ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
-        ImageReduction::Stride stride;
-        ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, false);
-        return verifyImage(imageDescriptor, expected, r, g, b, a, z, userdata, stride);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r(displayPlane, FID_FIELD_R);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g(displayPlane, FID_FIELD_G);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b(displayPlane, FID_FIELD_B);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a(displayPlane, FID_FIELD_A);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z(displayPlane, FID_FIELD_Z);
+        const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata(displayPlane, FID_FIELD_USERDATA);
+
+        int Z = layer;
+        return verifyImage(imageDescriptor, expected, Z, r, g, b, a, z, userdata);
       }
       return 0;
     }
@@ -282,6 +286,7 @@ namespace Legion {
       ImageReductionComposite::CompositeFunction *compositeFunction =
       ImageReductionComposite::compositeFunctionPointer(depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
 
+#if 0
       // these images have contiguous data and do not come from Legion regions, they come from files
       ImageReduction::PixelField *r0In = image0;
       ImageReduction::PixelField *g0In = r0In + 1;
@@ -301,9 +306,15 @@ namespace Legion {
       for(int i = 0; i < ImageReduction::numPixelFields; ++i) {
         stride[i][0] = 1 * ImageReduction::numPixelFields;
       }
+#else
+      get an accessor into the images, turn images into physical region
+      int Z0 = 0;
+      int Z1 = 1;
+#endif
 
       compositeFunction(r0In, g0In, b0In, a0In, z0In, userdata0In, r1In, g1In, b1In, a1In, z1In, userdata1In,
-                        r0In, g0In, b0In, a0In, z0In, userdata0In, imageDescriptor.pixelsPerLayer(), stride, stride);
+        imageDescriptor.width, imageDescriptor.height,
+                        Z0, Z1, false);
     }
 
 

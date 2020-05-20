@@ -207,6 +207,7 @@ namespace Legion {
        */
       void set_depth_func(GLenum func){ mDepthFunction = func; }
 
+#if 0
       /**
        * obtain raw pointers to image data
        *
@@ -234,6 +235,56 @@ namespace Legion {
                                               Context context,
                                               bool readWrite);
 
+#else
+      
+      /**
+       * obtain accessors to image data
+       *
+       * @param imageDescriptor see legion_visualization.h
+       * @param region physical region of image fragment
+       * @param r return accessor to pixel fields
+       * @param g return accessor to pixel fields
+       * @param b return accessor to pixel fields
+       * @param a return accessor to pixel fields
+       * @param z return accessor to pixel fields
+       * @param userdata return accessor to pixel fields
+       */
+static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
+      PhysicalRegion region,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &r,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &g,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &b,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &a,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &z,
+      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &userdata,
+      Runtime *runtime,
+                                                  Context context);
+      
+      /**
+       * obtain accessors to image data
+       *
+       * @param imageDescriptor see legion_visualization.h
+       * @param region physical region of image fragment
+       * @param r return accessor to pixel fields
+       * @param g return accessor to pixel fields
+       * @param b return accessor to pixel fields
+       * @param a return accessor to pixel fields
+       * @param z return accessor to pixel fields
+       * @param userdata return accessor to pixel fields
+       */
+      static void create_image_field_RO_accessors(ImageDescriptor imageDescriptor,
+      PhysicalRegion region,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &r,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &g,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &b,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &a,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &z,
+      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &userdata,
+      Runtime *runtime,
+                                                  Context context);
+      
+#endif
+      
       /**
        * Utility function to provide descriptive output for messages.
        *

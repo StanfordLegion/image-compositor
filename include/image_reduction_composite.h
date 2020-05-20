@@ -37,27 +37,25 @@ namespace Legion {
     public:
 
       typedef void(CompositeFunction)
-      (ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       ImageReduction::PixelField*,
-       int,
-       ImageReduction::Stride stride0,
-       ImageReduction::Stride stride1);
+      (const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> >,
+       
+         int width,
+                                                         int height,
+                                                         int Z0,
+                                                         int Z1,
+                                                         bool flip);
 
       static CompositeFunction* compositeFunctionPointer(GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation);
 
@@ -72,64 +70,28 @@ namespace Legion {
       static CompositeFunction compositePixelsAlways;
       static CompositeFunction blendPixelsSlowly;
 
-      static inline void increment(ImageReduction::PixelField *&r,
-                                   ImageReduction::PixelField *&g,
-                                   ImageReduction::PixelField *&b,
-                                   ImageReduction::PixelField *&a,
-                                   ImageReduction::PixelField *&z,
-                                   ImageReduction::PixelField *&userdata,
-                                   Legion::Visualization::ImageReduction::Stride stride) {
-
-        ////DEBUG
-        //        ImageReduction::PixelField* rr = r;
-        //        ImageReduction::PixelField* gg = g;
-        //        ImageReduction::PixelField* bb = b;
-        //        ImageReduction::PixelField* aa = a;
-        //        ImageReduction::PixelField* zz = z;
-        //        ImageReduction::PixelField* uu = userdata;
-        ////DEBUG
-
-        r += stride[ImageReduction::FID_FIELD_R][0];
-        g += stride[ImageReduction::FID_FIELD_G][0];
-        b += stride[ImageReduction::FID_FIELD_B][0];
-        a += stride[ImageReduction::FID_FIELD_A][0];
-        z += stride[ImageReduction::FID_FIELD_Z][0];
-        userdata += stride[ImageReduction::FID_FIELD_USERDATA][0];
-
-
-        ////DEBUG
-        //        std::cout << "increment" << std::endl;
-        //        std::cout << "r " << rr << " + " << (r - rr) << " = " << r << std::endl;
-        //        std::cout << "g " << gg << " + " << (g - gg) << " = " << g << std::endl;
-        //        std::cout << "b " << bb << " + " << (b - bb) << " = " << b << std::endl;
-        //        std::cout << "a " << aa << " + " << (a - aa) << " = " << a << std::endl;
-        //        std::cout << "z " << zz << " + " << (z - zz) << " = " << z << std::endl;
-        //        std::cout << "u " << uu << " + " << (userdata - uu) << " = " << userdata << std::endl;
-        ////DEBUG
-      }
-
 
       typedef void (*ScaleFunction)(
-        ImageReduction::PixelField *rSource,
-        ImageReduction::PixelField *gSource,
-        ImageReduction::PixelField *bSource,
-        ImageReduction::PixelField *aSource,
-        ImageReduction::PixelField *rDestination,
-        ImageReduction::PixelField *gDestination,
-        ImageReduction::PixelField *bDestination,
-        ImageReduction::PixelField *aDestination,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
+        ImageReduction::PixelField,
         ImageReduction::PixelField factors[4]
                                     );
 
       static void callScaleFunction(GLenum blendFunction,
-        ImageReduction::PixelField *rSource,
-        ImageReduction::PixelField *gSource,
-        ImageReduction::PixelField *bSource,
-        ImageReduction::PixelField *aSource,
-        ImageReduction::PixelField *rDestination,
-        ImageReduction::PixelField *gDestination,
-        ImageReduction::PixelField *bDestination,
-        ImageReduction::PixelField *aDestination,
+        ImageReduction::PixelField rSource,
+        ImageReduction::PixelField gSource,
+        ImageReduction::PixelField bSource,
+        ImageReduction::PixelField aSource,
+        ImageReduction::PixelField rDestination,
+        ImageReduction::PixelField gDestination,
+        ImageReduction::PixelField bDestination,
+        ImageReduction::PixelField aDestination,
         ImageReduction::PixelField factors[4]);
 
 

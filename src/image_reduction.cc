@@ -529,62 +529,7 @@ namespace Legion {
       req.add_field(FID_FIELD_USERDATA);
     }
 
-
-
-    void ImageReduction::create_image_field_pointers(ImageDescriptor imageDescriptor,
-                                                     PhysicalRegion region,
-                                                     PixelField *&r,
-                                                     PixelField *&g,
-                                                     PixelField *&b,
-                                                     PixelField *&a,
-                                                     PixelField *&z,
-                                                     PixelField *&userdata,
-                                                     Stride stride,
-                                                     Runtime *runtime,
-                                                     Context context,
-                                                     bool readWrite) {
-
-      const Rect<image_region_dimensions> rect = runtime->get_index_space_domain(context,
-                                                                                 region.get_logical_region().get_index_space());
-
-      if(readWrite) {
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_r(region, FID_FIELD_R);
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_g(region, FID_FIELD_G);
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_b(region, FID_FIELD_B);
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_a(region, FID_FIELD_A);
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_z(region, FID_FIELD_Z);
-        const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_userdata(region, FID_FIELD_USERDATA);
-        r = acc_r.ptr(rect, stride[0]);
-        g = acc_g.ptr(rect, stride[1]);
-        b = acc_b.ptr(rect, stride[2]);
-        a = acc_a.ptr(rect, stride[3]);
-        z = acc_z.ptr(rect, stride[4]);
-        userdata = acc_userdata.ptr(rect, stride[5]);
-
-      } else {
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_r(region, FID_FIELD_R);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_g(region, FID_FIELD_G);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_b(region, FID_FIELD_B);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_a(region, FID_FIELD_A);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_z(region, FID_FIELD_Z);
-        const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t,
-        Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > acc_userdata(region, FID_FIELD_USERDATA);
-        r = (PixelField*)acc_r.ptr(rect, stride[0]);
-        g = (PixelField*)acc_g.ptr(rect, stride[1]);
-        b = (PixelField*)acc_b.ptr(rect, stride[2]);
-        a = (PixelField*)acc_a.ptr(rect, stride[3]);
-        z = (PixelField*)acc_z.ptr(rect, stride[4]);
-        userdata = (PixelField*)acc_userdata.ptr(rect, stride[5]);
-
-      }
-
-    }
-
+  
 
     void ImageReduction::initializeRenderNodes(HighLevelRuntime* runtime, 
 						Context context,
@@ -736,52 +681,34 @@ namespace Legion {
       CompositeArguments args = ((CompositeArguments*)task->args)[0];
       PhysicalRegion fragment0 = regions[0];
       PhysicalRegion fragment1 = regions[1];
-
-      Stride stride0, stride1;
-      PixelField *r0, *g0, *b0, *a0, *z0, *userdata0;
-      PixelField *r1, *g1, *b1, *a1, *z1, *userdata1;
+      
+      Legion::Domain domain0 = fragment0.get_bounds<image_region_dimensions, long long>();
+       Legion::Domain domain1 = fragment1.get_bounds<image_region_dimensions, long long>();
+      int Z0 = domain0.lo()[2];
+      int Z1 = domain1.lo()[2];
+        
       ImageReductionComposite::CompositeFunction* compositeFunction;
       compositeFunction = ImageReductionComposite::compositeFunctionPointer(
         args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
-      create_image_field_pointers(args.imageDescriptor, fragment0,
-        r0, g0, b0, a0, z0, userdata0, stride0, runtime, ctx, true);
-      create_image_field_pointers(args.imageDescriptor, fragment1,
-        r1, g1, b1, a1, z1, userdata1, stride1, runtime, ctx, false);
-
-#define SHOW_COMPOSITING 0
-#if SHOW_COMPOSITING
-ImageReduction::PixelField rr0 = *r0;
-ImageReduction::PixelField gg0 = *g0;
-ImageReduction::PixelField bb0 = *b0;
-ImageReduction::PixelField aa0 = *a0;
-ImageReduction::PixelField zz0 = *z0;
-ImageReduction::PixelField uu0 = *userdata0;
-ImageReduction::PixelField rr1 = *r1;
-ImageReduction::PixelField gg1 = *g1;
-ImageReduction::PixelField bb1 = *b1;
-ImageReduction::PixelField aa1 = *a1;
-ImageReduction::PixelField zz1 = *z1;
-ImageReduction::PixelField uu1 = *userdata1;
-#endif
-
-      if(flipRegions(fragment0, fragment1, args.cameraDirection)) {
-        compositeFunction(r1, g1, b1, a1, z1, userdata1, r0, g0, b0, a0, z0, userdata0,
-          r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride1, stride0);
-      } else {
-        compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
-          r0, g0, b0, a0, z0, userdata0, args.imageDescriptor.pixelsPerLayer(), stride0, stride1);
-      }
-
-#if SHOW_COMPOSITING
-{
-char buffer[256];
-sprintf(buffer, "%s (%g %g %g %g %g) (%g %g %g %g %g) = %g %g %g %g %g\n",
-__FUNCTION__, rr0, gg0, bb0, aa0, zz0, rr1, gg1, bb1, aa1, zz1, *r0, *g0, *b0, *a0, *z0);
-std::cout << buffer;
-}
-#endif
-      //      composite.stop();
-      //      std::cout << composite.to_string() << std::endl;
+            
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0(fragment0, FID_FIELD_R);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g0(fragment0, FID_FIELD_G);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b0(fragment0, FID_FIELD_B);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a0(fragment0, FID_FIELD_A);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z0(fragment0, FID_FIELD_Z);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata0(fragment0, FID_FIELD_USERDATA);
+      
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r1(fragment1, FID_FIELD_R);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g1(fragment1, FID_FIELD_G);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b1(fragment1, FID_FIELD_B);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a1(fragment1, FID_FIELD_A);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z1(fragment1, FID_FIELD_Z);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1(fragment1, FID_FIELD_USERDATA);
+      
+      bool flip = flipRegions(fragment0, fragment1, args.cameraDirection);
+      compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
+        args.imageDescriptor.width, args.imageDescriptor.height, Z0, Z1, flip);
+  
 
     }
 
@@ -820,7 +747,7 @@ std::cout << buffer;
       treeCompositeLauncher.add_region_requirement(req0);
 
       RegionRequirement req1(sourcePartition, functor1->id(),
-        READ_ONLY, EXCLUSIVE, image, gMapperID);
+        READ_WRITE, EXCLUSIVE, image, gMapperID);
       addImageFieldsToRequirement(req1);
       treeCompositeLauncher.add_region_requirement(req1);
 
@@ -852,7 +779,6 @@ std::cout << buffer;
     }
 
 
-
     void ImageReduction::display_task(const Task *task,
                                       const std::vector<PhysicalRegion> &regions,
                                       Context ctx, HighLevelRuntime *runtime) {
@@ -865,9 +791,13 @@ std::cout << buffer;
       sprintf(fileName, "display.%d.tga", args.t);
       string outputFileName = string(fileName);
       PhysicalRegion displayPlane = regions[0];
-      Stride stride;
-      PixelField *r, *g, *b, *a, *z, *userdata;
-      create_image_field_pointers(args.imageDescriptor, displayPlane, r, g, b, a, z, userdata, stride, runtime, ctx, false);
+
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r(displayPlane, FID_FIELD_R);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g(displayPlane, FID_FIELD_G);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b(displayPlane, FID_FIELD_B);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a(displayPlane, FID_FIELD_A);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z(displayPlane, FID_FIELD_Z);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata(displayPlane, FID_FIELD_USERDATA);
 
       FILE* f = fopen(fileName, (const char*)"w");
       if(f == nullptr) {
@@ -898,12 +828,11 @@ std::cout << buffer;
 
       for(int y = args.imageDescriptor.height - 1; y >= 0; y--) {
         for(int x = 0; x < args.imageDescriptor.width; ++x) {
-          int index = x + y * args.imageDescriptor.width;
-          GLubyte b_ = b[index] * 255;
+          GLubyte b_ = float(b[x][y][0]) * 255;
           fputc(b_, f); /* write blue */
-          GLubyte g_ = g[index] * 255;
+          GLubyte g_ = float(g[x][y][0]) * 255;
           fputc(g_, f); /* write green */
-          GLubyte r_ = r[index] * 255;
+          GLubyte r_ = float(r[x][y][0]) * 255;
           fputc(r_, f);   /* write red */
         }
       }
