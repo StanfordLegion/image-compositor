@@ -371,6 +371,17 @@ static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
       }
+      
+      /**
+       * Launcher utility over compositor domain.
+       */
+      Legion::FutureMap launch_task_composite_domain(
+      unsigned taskID,
+      Runtime* runtime,
+      Context context,
+      void* argsBuffer,
+      int totalArgLen,
+      bool blocking);
 
 
       static void display_task(const Task *task,
@@ -398,6 +409,7 @@ static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
 				char* args,
 				int totalArgLen);
 
+      static FieldSpace imageFields(Context context);
 
 
     protected:
@@ -469,7 +481,6 @@ static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
       void createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
-      FieldSpace imageFields(Context context);
       void createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
       void partitionImageByImageDescriptor(LogicalRegion image, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);

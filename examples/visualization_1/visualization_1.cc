@@ -15,6 +15,9 @@
 
 
 #include <iostream>
+#include <unistd.h>
+
+#define __TRACE {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
 
 #include "legion.h"
 #include "legion_visualization.h"
@@ -81,8 +84,6 @@ void render_task(const Task *task,
   query.only_kind(processor.kind());
   if(processor.id == query.first().id) {
 
-    UsecTimer render(Legion::Visualization::ImageReduction::describe_task(task) + ":");
-    render.start();
     PhysicalRegion image = regions[0];
     ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
 
@@ -91,8 +92,6 @@ void render_task(const Task *task,
     int layer = task->get_unique_id() % imageDescriptor.numImageLayers;
     ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
     paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, layer);
-    render.stop();
-    cout << render.to_string() << endl;
   }
 }
 
@@ -102,6 +101,7 @@ void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,
                     Context ctx, HighLevelRuntime *runtime) {
 
+  __TRACE
 
 #ifdef IMAGE_SIZE
   ImageDescriptor imageDescriptor = (ImageDescriptor){ IMAGE_SIZE };
@@ -122,37 +122,22 @@ void top_level_task(const Task *task,
   imageReduction.set_blend_equation(GL_FUNC_ADD);
 
   {
-    UsecTimer overall("overall time:");
-    overall.start();
-    UsecTimer frame("frame time:");
-    UsecTimer reduce("reduce time:");
     Future displayFuture;
 
     const int numTimeSteps = 5;
 
     for(int t = 0; t < numTimeSteps; ++t) {
 
-      frame.start();
       simulateTimeStep(t);
-      FutureMap renderFutures = imageReduction.launch_task_composite_domain(RENDER_TASK_ID, runtime, ctx);
-      renderFutures.wait_all_results();
+      FutureMap renderFutures = imageReduction.launch_task_composite_domain(RENDER_TASK_ID, runtime, ctx, true);
 
-      reduce.start();
       float cameraDirection[3] = { 0, 0, 1 };
       FutureMap reduceFutures = imageReduction.reduceImages(ctx, cameraDirection);
       reduceFutures.wait_all_results();
-      reduce.stop();
 
       displayFuture = imageReduction.display(t, ctx);
       displayFuture.wait();
-      frame.stop();
     }
-
-    overall.stop();
-
-    std::cout << reduce.to_string() << std::endl;
-    std::cout << frame.to_string() << std::endl;
-    std::cout << overall.to_string() << std::endl;
 
   }
 }
@@ -162,7 +147,7 @@ void top_level_task(const Task *task,
 
 
 int main(const int argc, char *argv[]) {
-
+__TRACE
   HighLevelRuntime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
 
   {
@@ -170,14 +155,17 @@ int main(const int argc, char *argv[]) {
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "top_level_task");
   }
+  __TRACE
 
   {
     Legion::TaskVariantRegistrar registrar(RENDER_TASK_ID, "render_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<render_task>(registrar, "render_task");
   }
+  __TRACE
 
   Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
+  __TRACE
 
   return HighLevelRuntime::start(argc, argv);
 }

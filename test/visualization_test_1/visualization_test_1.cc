@@ -31,7 +31,7 @@ void top_level_task(const Legion::Task *task,
     const int rows = 4;
 
     Legion::Visualization::ImageDescriptor imageDescriptor = { width, rows, numDomainNodes };
-    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
+    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime, 0);
 
     for(int i = 0; i < Legion::Visualization::numDepthFuncs; ++i) {
       GLenum depthFunc = Legion::Visualization::depthFuncs[i];
