@@ -276,7 +276,8 @@ namespace Legion {
 
 
     static void compositeTwoImages(Image image0, Image image1, ImageDescriptor imageDescriptor,
-                                   GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+                                   GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                                   HighLevelRuntime* runtime, Context context) {
 
       // Reuse the composite functions from the ImageReductionComposite class.
       // This means those functions will not be independently tested.
@@ -307,7 +308,47 @@ namespace Legion {
         stride[i][0] = 1 * ImageReduction::numPixelFields;
       }
 #else
-      get an accessor into the images, turn images into physical region
+      //get an accessor into the images, turn images into physical region
+      Rect<2> bounds(Point<2>(0, 0), Point<2>(imageDescriptor.width-1, imageDescriptor.height-1));
+      IndexSpace ispace = runtime->create_index_space(context, bounds);
+      FieldSpace field_space = ImageReduction::imageFields(context);
+
+      LogicalRegion image0_lr = runtime->create_logical_region(context, ispace, field_space);
+      runtime->attach_name(image0_lr, "image0_lr");
+
+      LogicalRegion image1_lr = runtime->create_logical_region(context, ispace, field_space);
+      runtime->attach_name(image1_lr, "image1_lr");
+
+      const Memory local_sysmem = Machine::MemoryQuery(Machine::get_machine())
+        .has_affinity_to(runtime->get_executing_processor(context))
+        .only_kind(Memory::SYSTEM_MEM)
+        .first();
+
+      std::vector<FieldID> attach_fields = { ImageReduction::FID_FIELD_R, ImageReduction::FID_FIELD_G, ImageReduction::FID_FIELD_B,
+                                             ImageReduction::FID_FIELD_A, ImageReduction::FID_FIELD_Z, ImageReduction::FID_FIELD_USERDATA };
+
+      AttachLauncher image0_launcher(EXTERNAL_INSTANCE, image0_lr, image0_lr);
+      image0_launcher.attach_array_soa(image0, false, attach_fields, local_sysmem);
+      PhysicalRegion image0_pr = runtime->attach_external_resource(context, image0_launcher);
+
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0In(image0_pr, ImageReduction::FID_FIELD_R);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g0In(image0_pr, ImageReduction::FID_FIELD_G);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b0In(image0_pr, ImageReduction::FID_FIELD_B);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a0In(image0_pr, ImageReduction::FID_FIELD_A);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z0In(image0_pr, ImageReduction::FID_FIELD_Z);
+      const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata0In(image0_pr, ImageReduction::FID_FIELD_USERDATA);
+
+      AttachLauncher image1_launcher(EXTERNAL_INSTANCE, image1_lr, image1_lr);
+      image1_launcher.attach_array_soa(image1, false, attach_fields, local_sysmem);
+      PhysicalRegion image1_pr = runtime->attach_external_resource(context, image1_launcher);
+
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r1In(image1_pr, ImageReduction::FID_FIELD_R);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g1In(image1_pr, ImageReduction::FID_FIELD_G);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b1In(image1_pr, ImageReduction::FID_FIELD_B);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a1In(image1_pr, ImageReduction::FID_FIELD_A);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z1In(image1_pr, ImageReduction::FID_FIELD_Z);
+      const FieldAccessor<READ_ONLY, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1In(image1_pr, ImageReduction::FID_FIELD_USERDATA);
+
       int Z0 = 0;
       int Z1 = 1;
 #endif
@@ -346,7 +387,8 @@ namespace Legion {
 
     static Image treeReduction(int treeLevel, int maxTreeLevel, int leftLayer,
                                ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
-                               GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+                               GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                               HighLevelRuntime* runtime, Context context) {
 
       Image image0 = NULL;
       Image image1 = NULL;
@@ -359,12 +401,12 @@ namespace Legion {
         image1 = loadReferenceImageFromFile(layer1, imageDescriptor);
       } else {
         image0 = treeReduction(treeLevel + 1, maxTreeLevel, layer0, imageReduction, imageDescriptor,
-                               depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+                               depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
         image1 = treeReduction(treeLevel + 1, maxTreeLevel, layer1, imageReduction, imageDescriptor,
-                               depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+                               depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       }
 
-      compositeTwoImages(image0, image1, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+      compositeTwoImages(image0, image1, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
 
       delete [] image1;
       return image0;
@@ -387,7 +429,7 @@ namespace Legion {
       savePaintedImages(imageDescriptor);
       int maxTreeLevel = ImageReduction::numTreeLevels(imageDescriptor);
       Image expected = treeReduction(0, maxTreeLevel, 0, imageReduction, imageDescriptor,
-                                     depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+                                     depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       verifyTestResult(testLabel, imageReduction, imageDescriptor,
                        depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
@@ -395,11 +437,12 @@ namespace Legion {
 
 
     static Image pipelineReduction(ImageReduction &imageReduction, ImageDescriptor imageDescriptor,
-                                   GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation) {
+                                   GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                                   HighLevelRuntime* runtime, Context context) {
       Image expected = loadReferenceImageFromFile(0, imageDescriptor);
       for(int layer = 1; layer < imageDescriptor.numImageLayers; ++layer) {
         Image nextImage = loadReferenceImageFromFile(layer, imageDescriptor);
-        compositeTwoImages(expected, nextImage, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+        compositeTwoImages(expected, nextImage, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       }
       return expected;
     }
@@ -409,7 +452,7 @@ namespace Legion {
                                                HighLevelRuntime* runtime, Context context) {
       savePaintedImages(imageDescriptor);
       Image expected = pipelineReduction(imageReduction, imageDescriptor,
-                                         depthFunc, blendFuncSource, blendFuncDestination, blendEquation);
+                                         depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
       verifyTestResult(testLabel, imageReduction, imageDescriptor,
                        depthFunc, blendFuncSource, blendFuncDestination, blendEquation, expected, runtime, context);
       delete [] expected;
