@@ -29,7 +29,7 @@ void top_level_task(const Legion::Task *task,
   {
     // test with small images
     Legion::Visualization::ImageDescriptor imageDescriptor = { 320, 200, numDomainNodes };
-    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime);
+    Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime, 0);
     Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
     Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, Legion::Visualization::depthFuncs[0], 0, 0, Legion::Visualization::blendEquations[0]);
   }

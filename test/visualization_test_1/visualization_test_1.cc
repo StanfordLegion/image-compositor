@@ -29,13 +29,18 @@ void top_level_task(const Legion::Task *task,
     // test with multiple fragments per scanline and all reduction operators
     const int width = 16;
     const int rows = 4;
+__TRACE
 
     Legion::Visualization::ImageDescriptor imageDescriptor = { width, rows, numDomainNodes };
+__TRACE
     Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime, 0);
 
+__TRACE
     for(int i = 0; i < Legion::Visualization::numDepthFuncs; ++i) {
       GLenum depthFunc = Legion::Visualization::depthFuncs[i];
+__TRACE
       Legion::Visualization::testAssociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
+__TRACE
       Legion::Visualization::testNonassociative(imageReduction, imageDescriptor, ctx, runtime, depthFunc, 0, 0, Legion::Visualization::blendEquations[0]);
     }
 

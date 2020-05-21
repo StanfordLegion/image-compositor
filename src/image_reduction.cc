@@ -140,6 +140,7 @@ ImageReduction::ImageReduction(
   mDepthFunction = 0;
   legion_field_id_t fieldID[6];
   createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
+  createImagePartition(fieldID, context);
   partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
   initializeNodes(mRuntime, context);
   createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
@@ -244,6 +245,29 @@ FieldSpace ImageReduction::imageFields(Context context) {
     assert(fidUserdata == FID_FIELD_USERDATA);
   }
   return fields;
+}
+
+
+void ImageReduction::createImagePartition(legion_field_id_t fieldID[], Context context) {
+
+  Point<image_region_dimensions> p0;
+  p0 = mImageDescriptor.origin();
+  Point <image_region_dimensions> p1 = mImageDescriptor.numLayers() - Point<image_region_dimensions>::ONES();
+  Rect<image_region_dimensions> color_bounds(p0, p1);
+  IndexSpace colorIndexSpace = mRuntime->create_index_space(context, color_bounds);
+  IndexSpace is_parent = mSourceImage.get_index_space();
+  Transform<image_region_dimensions, image_region_dimensions> identity;
+  for(unsigned i = 0; i < image_region_dimensions; ++i) {
+    for(unsigned j = 0; j < image_region_dimensions; ++j) identity[i][j] = 0;
+    identity[i][i] = 1;
+  }
+  Point<image_region_dimensions> p2 = mImageDescriptor.layerSize()
+  - Point<image_region_dimensions>::ONES();
+  Rect<image_region_dimensions> slice(p0, p2);
+  IndexPartition ip = mRuntime->create_partition_by_restriction(context,
+                                                               is_parent, colorIndexSpace, identity, slice);
+  mCompositeImagePartition = mRuntime->get_logical_partition(context, mSourceImage, ip);
+  mRuntime->attach_name(mCompositeImagePartition, "compositeImagePartition");
 }
 
 
@@ -551,8 +575,7 @@ void ImageReduction::initializeRenderNodes(HighLevelRuntime* runtime,
     region = mImageDescriptor.simulationLogicalRegion;
   } else {
     domain = mCompositeImageDomain;
-    //partition =
-    //TODO create mCompositeImagePartition in createImageRegion
+    partition = mCompositeImagePartition;
     region = mSourceImage;
   }
   
@@ -584,8 +607,7 @@ void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context)
     region = mImageDescriptor.simulationLogicalRegion;
   } else {
     domain = mCompositeImageDomain;
-    //partition =
-    //TODO create mCompositeImagePartition in createImageRegion
+    partition = mCompositeImagePartition;
     region = mSourceImage;
   }
   
@@ -630,15 +652,14 @@ ImageReduction::launch_task_composite_domain(
     region = mImageDescriptor.simulationLogicalRegion;
   } else {
     domain = mCompositeImageDomain;
-    //partition =
-    //TODO create mCompositeImagePartition in createImageRegion
+    partition = mCompositeImagePartition;
     region = mSourceImage;
   }
   
   IndexTaskLauncher launcher(taskID, domain,
                              TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED,
                              false, gMapperID);
-  RegionRequirement req(partition, 0, READ_ONLY, EXCLUSIVE, region, gMapperID);
+  RegionRequirement req(partition, 0, READ_WRITE, EXCLUSIVE, region, gMapperID);
   if(mImageDescriptor.hasPartition) {
     for(int i = 0; i < mImageDescriptor.numPFields; ++i) {
       req.add_field(mImageDescriptor.pFields[i]);
@@ -900,6 +921,8 @@ Future ImageReduction::display(int t, Context context) {
   Future displayFuture = mRuntime->execute_task(context, taskLauncher);
   return displayFuture;
 }
+
+
 
 }
 }

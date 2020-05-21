@@ -16,6 +16,7 @@
 #include "visualization_reductions.h"
 
 
+
 namespace Legion {
 namespace Visualization {
 
@@ -94,7 +95,7 @@ static Image loadReferenceImageFromFile(int taskID, ImageDescriptor imageDescrip
   char fileName[256];
   FILE *inputFile = fopen(paintFileName(fileName, taskID), "rb");
   Image result = new ImageReduction::PixelField[imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields];
-  fread(result, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
+  size_t numRead = fread(result, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
   fclose(inputFile);
   return result;
 }
@@ -308,7 +309,9 @@ static void compositeTwoImages(Image image0, Image image1, ImageDescriptor image
   }
 #else
   //get an accessor into the images, turn images into physical region
-  Rect<2> bounds(Point<2>(0, 0), Point<2>(imageDescriptor.width-1, imageDescriptor.height-1));
+  Rect<image_region_dimensions> bounds(imageDescriptor.origin(), 
+    imageDescriptor.layerSize() - Point<image_region_dimensions>::ONES());
+//Point<2>(0, 0), Point<2>(imageDescriptor.width-1, imageDescriptor.height-1));
   IndexSpace ispace = runtime->create_index_space(context, bounds);
   FieldSpace field_space = ImageReduction::imageFields(context);
   
@@ -332,26 +335,30 @@ static void compositeTwoImages(Image image0, Image image1, ImageDescriptor image
   attach_fields.push_back(ImageReduction::FID_FIELD_USERDATA);
   
   AttachLauncher image0_launcher(EXTERNAL_INSTANCE, image0_lr, image0_lr);
-  image0_launcher.attach_array_soa(image0, false, attach_fields, local_sysmem);
+  image0_launcher.attach_array_aos(image0, false, attach_fields, local_sysmem);
   PhysicalRegion image0_pr = runtime->attach_external_resource(context, image0_launcher);
   
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0In(image0_pr, ImageReduction::FID_FIELD_R);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g0In(image0_pr, ImageReduction::FID_FIELD_G);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b0In(image0_pr, ImageReduction::FID_FIELD_B);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a0In(image0_pr, ImageReduction::FID_FIELD_A);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z0In(image0_pr, ImageReduction::FID_FIELD_Z);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata0In(image0_pr, ImageReduction::FID_FIELD_USERDATA);
+  typedef const FieldAccessor<READ_WRITE, ImageReduction::PixelField, 
+    image_region_dimensions, 
+    coord_t, Realm::AffineAccessor<ImageReduction::PixelField, 
+    image_region_dimensions, coord_t> > RWAccessor;
+  RWAccessor r0In(image0_pr, ImageReduction::FID_FIELD_R);
+  RWAccessor g0In(image0_pr, ImageReduction::FID_FIELD_G);
+  RWAccessor b0In(image0_pr, ImageReduction::FID_FIELD_B);
+  RWAccessor a0In(image0_pr, ImageReduction::FID_FIELD_A);
+  RWAccessor z0In(image0_pr, ImageReduction::FID_FIELD_Z);
+  RWAccessor userdata0In(image0_pr, ImageReduction::FID_FIELD_USERDATA);
   
   AttachLauncher image1_launcher(EXTERNAL_INSTANCE, image1_lr, image1_lr);
-  image1_launcher.attach_array_soa(image1, false, attach_fields, local_sysmem);
+  image1_launcher.attach_array_aos(image1, false, attach_fields, local_sysmem);
   PhysicalRegion image1_pr = runtime->attach_external_resource(context, image1_launcher);
   
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r1In(image1_pr, ImageReduction::FID_FIELD_R);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g1In(image1_pr, ImageReduction::FID_FIELD_G);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > b1In(image1_pr, ImageReduction::FID_FIELD_B);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > a1In(image1_pr, ImageReduction::FID_FIELD_A);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z1In(image1_pr, ImageReduction::FID_FIELD_Z);
-  const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1In(image1_pr, ImageReduction::FID_FIELD_USERDATA);
+  RWAccessor r1In(image1_pr, ImageReduction::FID_FIELD_R);
+  RWAccessor g1In(image1_pr, ImageReduction::FID_FIELD_G);
+  RWAccessor b1In(image1_pr, ImageReduction::FID_FIELD_B);
+  RWAccessor a1In(image1_pr, ImageReduction::FID_FIELD_A);
+  RWAccessor z1In(image1_pr, ImageReduction::FID_FIELD_Z);
+  RWAccessor userdata1In(image1_pr, ImageReduction::FID_FIELD_USERDATA);
   
   int Z0 = 0;
   int Z1 = 1;

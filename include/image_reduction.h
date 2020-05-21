@@ -22,7 +22,7 @@
 
 //tracing for debug
 #if 1
-#define __TRACE {char hostname[128];gethostname(hostname,128);char buffer[256];sprintf(buffer, "%s %s:%d %s pid %d\n",hostname,__FILE__,__LINE__,__FUNCTION__,getpid());std::cout<<buffer;fflush(stdout);}
+#define __TRACE {char hostname[512];gethostname(hostname,sizeof(hostname));char buffer[1024];sprintf(buffer, "%s %s:%d %s pid %d\n",hostname,__FILE__,__LINE__,__FUNCTION__,getpid());std::cout<<buffer;fflush(stdout);}
 #else
 #define __TRACE
 #endif
@@ -207,83 +207,6 @@ namespace Legion {
        */
       void set_depth_func(GLenum func){ mDepthFunction = func; }
 
-#if 0
-      /**
-       * obtain raw pointers to image data
-       *
-       * @param imageDescriptor see legion_visualization.h
-       * @param region physical region of image fragment
-       * @param r return raw pointer to pixel fields
-       * @param g return raw pointer to pixel fields
-       * @param b return raw pointer to pixel fields
-       * @param a return raw pointer to pixel fields
-       * @param z return raw pointer to pixel fields
-       * @param userdata return raw pointer to pixel fields
-       * @param stride returns stride between successive pixels
-       * @param readWrite true if read/write access
-       */
-      static void create_image_field_pointers(ImageDescriptor imageDescriptor,
-                                              PhysicalRegion region,
-                                              PixelField *&r,
-                                              PixelField *&g,
-                                              PixelField *&b,
-                                              PixelField *&a,
-                                              PixelField *&z,
-                                              PixelField *&userdata,
-                                              Stride stride,
-                                              Runtime *runtime,
-                                              Context context,
-                                              bool readWrite);
-
-#else
-      
-      /**
-       * obtain accessors to image data
-       *
-       * @param imageDescriptor see legion_visualization.h
-       * @param region physical region of image fragment
-       * @param r return accessor to pixel fields
-       * @param g return accessor to pixel fields
-       * @param b return accessor to pixel fields
-       * @param a return accessor to pixel fields
-       * @param z return accessor to pixel fields
-       * @param userdata return accessor to pixel fields
-       */
-static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
-      PhysicalRegion region,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &r,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &g,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &b,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &a,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &z,
-      const FieldAccessor<READ_WRITE, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &userdata,
-      Runtime *runtime,
-                                                  Context context);
-      
-      /**
-       * obtain accessors to image data
-       *
-       * @param imageDescriptor see legion_visualization.h
-       * @param region physical region of image fragment
-       * @param r return accessor to pixel fields
-       * @param g return accessor to pixel fields
-       * @param b return accessor to pixel fields
-       * @param a return accessor to pixel fields
-       * @param z return accessor to pixel fields
-       * @param userdata return accessor to pixel fields
-       */
-      static void create_image_field_RO_accessors(ImageDescriptor imageDescriptor,
-      PhysicalRegion region,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &r,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &g,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &b,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &a,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &z,
-      const FieldAccessor<READ_ONLY, PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<PixelField, image_region_dimensions, coord_t> > &userdata,
-      Runtime *runtime,
-                                                  Context context);
-      
-#endif
       
       /**
        * Utility function to provide descriptive output for messages.
@@ -482,6 +405,7 @@ static void create_image_field_RW_accessors(ImageDescriptor imageDescriptor,
       void initializeViewMatrix();
       void createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       void createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
+      void createImagePartition(legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
       void partitionImageByImageDescriptor(LogicalRegion image, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
       void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
