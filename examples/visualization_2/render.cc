@@ -242,7 +242,7 @@ extern "C" {
     Visualization::ImageDescriptor imageDescriptor = { gImageWidth, gImageHeight, 1 };
 
     gImageCompositor = new Visualization::ImageReduction(region, partition,
-      pFields, numPFields, imageDescriptor, ctx, runtime);
+      pFields, numPFields, imageDescriptor, ctx, runtime, 0);
   }
 
 

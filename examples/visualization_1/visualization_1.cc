@@ -17,91 +17,89 @@
 #include <iostream>
 #include <unistd.h>
 
-#define __TRACE {std::cout<<__FILE__<<":"<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
-
 #include "legion.h"
 #include "legion_visualization.h"
 
-#include "usec_timer.h"
-
-
 using namespace Legion;
 using namespace Legion::Visualization;
-
 
 enum TaskIDs {
   TOP_LEVEL_TASK_ID,
   RENDER_TASK_ID,
 };
 
-
-
 static void simulateTimeStep(int t) {
   // tbd
 }
 
+  typedef const FieldAccessor<READ_WRITE, ImageReduction::PixelField,
+    image_region_dimensions,
+    coord_t, Realm::AffineAccessor<ImageReduction::PixelField,
+    image_region_dimensions, coord_t> > RWAccessor;
 
 
 static void paintRegion(ImageDescriptor imageDescriptor,
-                        ImageReduction::PixelField *r,
-                        ImageReduction::PixelField *g,
-                        ImageReduction::PixelField *b,
-                        ImageReduction::PixelField *a,
-                        ImageReduction::PixelField *z,
-                        ImageReduction::PixelField *userdata,
-                        ImageReduction::Stride stride,
+                        RWAccessor r,
+                        RWAccessor g,
+                        RWAccessor b,
+                        RWAccessor a,
+                        RWAccessor z,
+                        RWAccessor userdata,
                         int layer) {
 
   std::cout << "paint region with value " << layer << std::endl;
-  ImageReduction::PixelField zValue = layer;
-  ImageReduction::PixelField value = 1.0 / (1 + layer);
+  Legion::Visualization::ImageReduction::PixelField zValue = layer;
+  Legion::Visualization::ImageReduction::PixelField value = 1.0 / (1 + layer);
   for(int row = 0; row < imageDescriptor.height; ++row) {
     for(int column = 0; column < imageDescriptor.width; ++column) {
-      *r = value;
-      *g = value;
-      *b = value;
-      *a = value;
-      *z = zValue;
-      *userdata = value;
-      r += stride[ImageReduction::FID_FIELD_R][0];
-      g += stride[ImageReduction::FID_FIELD_G][0];
-      b += stride[ImageReduction::FID_FIELD_B][0];
-      a += stride[ImageReduction::FID_FIELD_A][0];
-      z += stride[ImageReduction::FID_FIELD_Z][0];
-      userdata += stride[ImageReduction::FID_FIELD_USERDATA][0];
+      Realm::Point<image_region_dimensions> p(column, row, layer);
+      r[p] = value;
+      g[p] = value;
+      b[p] = value;
+      a[p] = value;
+      z[p] = zValue;
+      userdata[p] = value;
       zValue = (zValue + 1);
       zValue = (zValue >= imageDescriptor.numImageLayers) ? 0 : zValue;
     }
   }
 }
 
-void render_task(const Task *task,
-                 const std::vector<PhysicalRegion> &regions,
-                 Context ctx, HighLevelRuntime *runtime) {
+void render_task(const Legion::Task *task,
+                 const std::vector<Legion::PhysicalRegion> &regions,
+                 Legion::Context ctx, Legion::Runtime *runtime) {
 
-  Processor processor = runtime->get_executing_processor(ctx);
+  Legion::Processor processor = runtime->get_executing_processor(ctx);
   Machine::ProcessorQuery query(Machine::get_machine());
   query.only_kind(processor.kind());
   if(processor.id == query.first().id) {
 
-    PhysicalRegion image = regions[0];
+    Legion::PhysicalRegion image = regions[0];
     ImageDescriptor imageDescriptor = ((ImageDescriptor *)task->args)[0];
 
-    ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
-    ImageReduction::Stride stride;
     int layer = task->get_unique_id() % imageDescriptor.numImageLayers;
-    ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
-    paintRegion(imageDescriptor, r, g, b, a, z, userdata, stride, layer);
+#if 0
+    Legion::Visualization::ImageReduction::PixelField *r, *g, *b, *a, *z, *userdata;
+    Legion::Visualization::ImageReduction::Stride stride;
+    Legion::Visualization::ImageReduction::create_image_field_pointers(imageDescriptor, image, r, g, b, a, z, userdata, stride, runtime, ctx, true);
+#else
+    RWAccessor r(image, Legion::Visualization::ImageReduction::FID_FIELD_R);
+    RWAccessor g(image, Legion::Visualization::ImageReduction::FID_FIELD_G);
+    RWAccessor b(image, Legion::Visualization::ImageReduction::FID_FIELD_B);
+    RWAccessor a(image, Legion::Visualization::ImageReduction::FID_FIELD_A);
+    RWAccessor z(image, Legion::Visualization::ImageReduction::FID_FIELD_Z);
+    RWAccessor userdata(image, Legion::Visualization::ImageReduction::FID_FIELD_USERDATA);
+#endif
+    paintRegion(imageDescriptor, r, g, b, a, z, userdata, layer);
   }
 }
 
 
 
-void top_level_task(const Task *task,
-                    const std::vector<PhysicalRegion> &regions,
-                    Context ctx, HighLevelRuntime *runtime) {
+void top_level_task(const Legion::Task *task,
+                    const std::vector<Legion::PhysicalRegion> &regions,
+                    Legion::Context ctx, Legion::Runtime *runtime) {
 
-  __TRACE
 
 #ifdef IMAGE_SIZE
   ImageDescriptor imageDescriptor = (ImageDescriptor){ IMAGE_SIZE };
@@ -117,22 +115,24 @@ void top_level_task(const Task *task,
   std::cout << "ImageDescriptor (" << imageDescriptor.width << "," << imageDescriptor.height
   << ") x " << imageDescriptor.numImageLayers << " layers " << std::endl;
 
-  ImageReduction imageReduction(imageDescriptor, ctx, runtime);
+  Legion::Visualization::ImageReduction imageReduction(imageDescriptor, ctx, runtime, 0);
   imageReduction.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   imageReduction.set_blend_equation(GL_FUNC_ADD);
 
   {
-    Future displayFuture;
+    Legion::Future displayFuture;
 
     const int numTimeSteps = 5;
 
     for(int t = 0; t < numTimeSteps; ++t) {
 
       simulateTimeStep(t);
-      FutureMap renderFutures = imageReduction.launch_task_composite_domain(RENDER_TASK_ID, runtime, ctx, true);
+      Legion::FutureMap renderFutures = imageReduction.launch_task_composite_domain(
+        RENDER_TASK_ID, runtime, ctx, 
+        &imageDescriptor, sizeof(imageDescriptor), true);
 
       float cameraDirection[3] = { 0, 0, 1 };
-      FutureMap reduceFutures = imageReduction.reduceImages(ctx, cameraDirection);
+      Legion::FutureMap reduceFutures = imageReduction.reduceImages(ctx, cameraDirection);
       reduceFutures.wait_all_results();
 
       displayFuture = imageReduction.display(t, ctx);
@@ -147,25 +147,21 @@ void top_level_task(const Task *task,
 
 
 int main(const int argc, char *argv[]) {
-__TRACE
-  HighLevelRuntime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
+  Legion::Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
 
   {
     Legion::TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<top_level_task>(registrar, "top_level_task");
   }
-  __TRACE
 
   {
     Legion::TaskVariantRegistrar registrar(RENDER_TASK_ID, "render_task");
     registrar.add_constraint(Legion::ProcessorConstraint(Legion::Processor::LOC_PROC));
     Legion::Runtime::preregister_task_variant<render_task>(registrar, "render_task");
   }
-  __TRACE
 
-  Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
-  __TRACE
+  Legion::Visualization::ImageReduction::preinitializeBeforeRuntimeStarts();
 
-  return HighLevelRuntime::start(argc, argv);
+  return Legion::Runtime::start(argc, argv);
 }
