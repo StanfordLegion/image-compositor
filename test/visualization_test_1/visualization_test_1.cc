@@ -59,7 +59,15 @@ __TRACE
 
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+extern void register_mappers();
+
+#ifdef __cplusplus
+}
+#endif
 
 
 int main(int argc, char *argv[]) {
@@ -87,5 +95,6 @@ int main(int argc, char *argv[]) {
     Legion::Runtime::preregister_task_variant<int, Legion::Visualization::verify_composited_image_data_task>(registrar, "verify_composited_image_data_task");
   }
 
+  register_mappers();
   return Legion::HighLevelRuntime::start(argc, argv);
 }

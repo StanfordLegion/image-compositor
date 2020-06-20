@@ -14,7 +14,7 @@
  */
 
 #include "visualization_reductions.h"
-
+#include "image_reduction_mapper.h"
 
 
 namespace Legion {
@@ -95,7 +95,7 @@ static Image loadReferenceImageFromFile(int taskID, ImageDescriptor imageDescrip
   char fileName[256];
   FILE *inputFile = fopen(paintFileName(fileName, taskID), "rb");
   Image result = new ImageReduction::PixelField[imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields];
-  size_t numRead = fread(result, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
+  fread(result, sizeof(ImageReduction::PixelField), imageDescriptor.pixelsPerLayer() * ImageReduction::numPixelFields, inputFile);
   fclose(inputFile);
   return result;
 }
@@ -542,5 +542,32 @@ void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime);
 
+
 }
 }
+
+
+static void create_mappers(Legion::Machine machine,
+                           Legion::Runtime* rt,
+                           const std::set<Legion::Processor>& local_procs) {
+  for (Legion::Processor proc : local_procs) {
+    Legion::Mapping::ImageReductionMapper* irMapper =
+      new Legion::Mapping::ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+    rt->replace_default_mapper(irMapper, proc);
+  }
+}
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void register_mappers() {
+  Runtime::add_registration_callback(create_mappers);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+
