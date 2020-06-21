@@ -19,6 +19,7 @@
 
 #include "legion.h"
 #include "legion_visualization.h"
+#include "image_reduction_mapper.h"
 
 using namespace Legion;
 using namespace Legion::Visualization;
@@ -143,11 +144,35 @@ void top_level_task(const Legion::Task *task,
 }
 
 
+static void create_mappers(Legion::Machine machine,
+                           Legion::Runtime* rt,
+                           const std::set<Legion::Processor>& local_procs) {
+  for (Legion::Processor proc : local_procs) {
+    Legion::Mapping::ImageReductionMapper* irMapper =
+      new Legion::Mapping::ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+    rt->replace_default_mapper(irMapper, proc);
+  }
+}
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void register_mappers() {
+  Runtime::add_registration_callback(create_mappers);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
 
 
 
 int main(const int argc, char *argv[]) {
   Legion::Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
+  register_mappers();
 
   {
     Legion::TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level_task");
@@ -165,3 +190,6 @@ int main(const int argc, char *argv[]) {
 
   return Legion::Runtime::start(argc, argv);
 }
+
+
+

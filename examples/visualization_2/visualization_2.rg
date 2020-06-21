@@ -6,7 +6,9 @@
 
 
 import "regent"
-c = regentlib.c
+local c = regentlib.c
+local MAPPER = terralib.includec("visualization_2_mapper.h")
+
 
 
 -------------------------------------------------------------------------------
@@ -99,4 +101,4 @@ task main()
   render.cxx_terminate()
 end
 
-regentlib.saveobj(main, "visualization_2.so", "object", render.cxx_preinitialize)
+regentlib.saveobj(main, "visualization_2.so", "object", MAPPER.register_mappers)

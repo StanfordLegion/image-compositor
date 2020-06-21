@@ -28,7 +28,7 @@ clean:
 	rm -f standalone_render.o standalone_render
 
 
-visualization_2.exec: visualization_2.so render.o renderCube.o
+visualization_2.exec: visualization_2.so render.o renderCube.o visualization_2_mapper.o
 	$(CXX) -o $@ $^ $(LINK_FLAGS) -lGLU -lOSMesa
 
 visualization_2.so: visualization_2.rg
