@@ -418,24 +418,33 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Processor::Kind target_kind = task.target_proc.kind();
+std::cout << __FUNCTION__ << " " << task.get_task_name() << " kind " << target_kind << std::endl;
 
       std::vector<VariantID> variants;
       runtime->find_valid_variants(ctx, task.task_id,
                                    variants, Processor::TOC_PROC);
+std::cout << "TOC variants " << variants.size() << std::endl;
       if(variants.size() == 1) {
         output.chosen_variant = variants[0];
+        int idx = mapped_task_count++ % local_gpus.size();
+        output.target_procs.push_back(local_gpus[idx]);
       } else {
         std::vector<VariantID> variants;
         runtime->find_valid_variants(ctx, task.task_id,
                                      variants, Processor::LOC_PROC);
+std::cout << "LOC variants " << variants.size() << std::endl;
         if(variants.size() == 1) {
           output.chosen_variant = variants[0];
+          int idx = mapped_task_count++ % local_cpus.size();
+          output.target_procs.push_back(local_cpus[idx]);
         } else {
           std::vector<VariantID> variants;
           runtime->find_valid_variants(ctx, task.task_id,
                                        variants, Processor::PROC_SET);
+std::cout << "other variants " << variants.size() << std::endl;
           if(variants.size() > 0) {
             output.chosen_variant = variants[0];
+            output.target_procs.push_back(task.target_proc);
           } else {
             assert(0 == "unable to find a valid task variant");
           }
@@ -464,7 +473,6 @@ namespace Legion {
         assert(ok);
         output.chosen_instances[i].push_back(inst);
       }
-      output.target_procs.push_back(task.orig_proc);
     }
 
     //--------------------------------------------------------------------------
