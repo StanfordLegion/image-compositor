@@ -418,12 +418,10 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       Processor::Kind target_kind = task.target_proc.kind();
-std::cout << __FUNCTION__ << " " << task.get_task_name() << " kind " << target_kind << std::endl;
 
       std::vector<VariantID> variants;
       runtime->find_valid_variants(ctx, task.task_id,
                                    variants, Processor::TOC_PROC);
-std::cout << "TOC variants " << variants.size() << std::endl;
       if(variants.size() == 1) {
         output.chosen_variant = variants[0];
         int idx = mapped_task_count++ % local_gpus.size();
@@ -432,7 +430,6 @@ std::cout << "TOC variants " << variants.size() << std::endl;
         std::vector<VariantID> variants;
         runtime->find_valid_variants(ctx, task.task_id,
                                      variants, Processor::LOC_PROC);
-std::cout << "LOC variants " << variants.size() << std::endl;
         if(variants.size() == 1) {
           output.chosen_variant = variants[0];
           int idx = mapped_task_count++ % local_cpus.size();
@@ -441,7 +438,6 @@ std::cout << "LOC variants " << variants.size() << std::endl;
           std::vector<VariantID> variants;
           runtime->find_valid_variants(ctx, task.task_id,
                                        variants, Processor::PROC_SET);
-std::cout << "other variants " << variants.size() << std::endl;
           if(variants.size() > 0) {
             output.chosen_variant = variants[0];
             output.target_procs.push_back(task.target_proc);
@@ -553,7 +549,7 @@ std::cout << "other variants " << variants.size() << std::endl;
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
