@@ -509,8 +509,61 @@ namespace Legion {
                                                SelectTaskSrcOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      default_policy_select_sources(ctx, input.target, input.source_instances,
+                                    output.chosen_ranking);
     }
+
+    //--------------------------------------------------------------------------
+    void ImageReductionMapper::default_policy_select_sources(MapperContext ctx,
+                                   const PhysicalInstance &target,
+                                   const std::vector<PhysicalInstance> &sources,
+                                   std::deque<PhysicalInstance> &ranking)
+    //--------------------------------------------------------------------------
+    {
+      // For right now we'll rank instances by the bandwidth of the memory
+      // they are in to the destination
+      // TODO: consider layouts when ranking source  to help out the DMA system
+      std::map<Memory,unsigned/*bandwidth*/> source_memories;
+      Memory destination_memory = target.get_location();
+      std::vector<MemoryMemoryAffinity> affinity(1);
+      // fill in a vector of the sources with their bandwidths and sort them
+      std::vector<std::pair<PhysicalInstance,
+                          unsigned/*bandwidth*/> > band_ranking(sources.size());
+      for (unsigned idx = 0; idx < sources.size(); idx++)
+      {
+        const PhysicalInstance &instance = sources[idx];
+        Memory location = instance.get_location();
+        std::map<Memory,unsigned>::const_iterator finder =
+          source_memories.find(location);
+        if (finder == source_memories.end())
+        {
+          affinity.clear();
+          machine.get_mem_mem_affinity(affinity, location, destination_memory,
+                                       false /*not just local affinities*/);
+          unsigned memory_bandwidth = 0;
+          if (!affinity.empty()) {
+            assert(affinity.size() == 1);
+            memory_bandwidth = affinity[0].bandwidth;
+          }
+          source_memories[location] = memory_bandwidth;
+          band_ranking[idx] =
+            std::pair<PhysicalInstance,unsigned>(instance, memory_bandwidth);
+        }
+        else
+          band_ranking[idx] =
+            std::pair<PhysicalInstance,unsigned>(instance, finder->second);
+      }
+      // Sort them by bandwidth
+      std::sort(band_ranking.begin(), band_ranking.end(), physical_sort_func);
+      // Iterate from largest bandwidth to smallest
+      for (std::vector<std::pair<PhysicalInstance,unsigned> >::
+            const_reverse_iterator it = band_ranking.rbegin();
+            it != band_ranking.rend(); it++)
+        ranking.push_back(it->first);
+    }
+
+
+
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_task_temporary_instance(

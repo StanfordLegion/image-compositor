@@ -285,6 +285,16 @@ namespace Legion {
                             long long int factor,
                             const Rect<DIM,coord_t> &rect_to_factor);
 
+     void default_policy_select_sources(MapperContext ctx,
+                                   const PhysicalInstance &target,
+                                   const std::vector<PhysicalInstance> &sources,
+                                   std::deque<PhysicalInstance> &ranking);
+
+     static inline bool physical_sort_func(
+                         const std::pair<PhysicalInstance,unsigned> &left,
+                         const std::pair<PhysicalInstance,unsigned> &right)
+    { return (left.second < right.second); }
+
 
       const Processor       local_proc;
       const Processor::Kind local_kind;
