@@ -862,7 +862,10 @@ namespace Legion {
                               SelectPartitionProjectionOutput&    output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      if (!input.open_complete_partitions.empty())
+        output.chosen_partition = input.open_complete_partitions[0];
+      else
+        output.chosen_partition = LogicalPartition::NO_PART;
     }
 
     //--------------------------------------------------------------------------
