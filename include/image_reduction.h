@@ -362,8 +362,15 @@ namespace Legion {
         }
 
         virtual LogicalRegion project(LogicalPartition upper_bound, const DomainPoint &point, const Domain &launch_domain) {
-          assert(false);
-          LogicalRegion result;
+          int launchDomainLayer = point[2];
+          DomainPoint remappedPoint = point;
+          int remappedLayer = launchDomainLayer * mMultiplier + mOffset;
+          // handle non-power of 2 simulation size
+          if(mNumBounds == 0 || remappedLayer < mNumBounds) {
+            remappedPoint[2] = remappedLayer;
+          }
+
+          LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upper_bound, remappedPoint);
           return result;
         }
 

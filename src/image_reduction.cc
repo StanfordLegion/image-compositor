@@ -390,10 +390,13 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
   }
   // partition the coloring region by field
   IndexPartition coloringIP = mRuntime->create_partition_by_field(ctx,
-                                                                  coloringExtentRegion, coloringExtentRegion, FID_FIELD_COLOR, coloringIndexSpace);
+    coloringExtentRegion, coloringExtentRegion, FID_FIELD_COLOR, 
+    coloringIndexSpace, AUTO_GENERATE_ID, gMapperID);
   LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringExtentRegion, coloringIP);
   IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
-                                                                           ctx, mSourceIndexSpace, coloringPartition, coloringExtentRegion, FID_FIELD_EXTENT, coloringIndexSpace);
+    ctx, mSourceIndexSpace, coloringPartition, coloringExtentRegion, 
+    FID_FIELD_EXTENT, coloringIndexSpace, COMPUTE_KIND, AUTO_GENERATE_ID,
+    gMapperID);
   mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
   mRuntime->attach_name(mRenderImagePartition, "render image partition");
 }
