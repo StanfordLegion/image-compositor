@@ -702,7 +702,7 @@ namespace Legion {
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
     
     //--------------------------------------------------------------------------
@@ -753,7 +753,7 @@ namespace Legion {
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
@@ -791,9 +791,10 @@ namespace Legion {
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
-    {
-      report_unimplemented(__func__, __LINE__);
+    {  
+      output.chosen_functor = 0; // use the default functor
     }
+
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::map_release(const MapperContext         ctx,
@@ -852,7 +853,7 @@ namespace Legion {
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
@@ -948,7 +949,7 @@ namespace Legion {
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
@@ -959,7 +960,7 @@ namespace Legion {
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
@@ -988,7 +989,7 @@ namespace Legion {
                                        MustEpochShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_functor = 0; // use the default functor
     }
 
     //--------------------------------------------------------------------------
