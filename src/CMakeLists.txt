@@ -26,3 +26,4 @@ list(APPEND FRAMEWORK_SRC
 )
 
 add_library(ImageCompositor ${FRAMEWORK_SRC})
+add_library(ImageCompositor_ SHARED ${FRAMEWORK_SRC})

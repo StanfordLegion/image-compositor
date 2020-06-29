@@ -875,7 +875,38 @@ namespace Legion {
                                      MapPartitionOutput&  output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+     // No constraints on mapping partitions
+      // Copy over all the valid instances, then try to do an acquire on them
+      // and see which instances are no longer valid
+      output.chosen_instances = input.valid_instances;
+      if (!output.chosen_instances.empty())
+        runtime->acquire_and_filter_instances(ctx,
+                                          output.chosen_instances);
+      // Now see if we have any fields which we still make space for
+      std::vector<unsigned> to_erase;
+      std::set<FieldID> missing_fields =
+        partition.requirement.privilege_fields;
+      for (std::vector<PhysicalInstance>::const_iterator it =
+            output.chosen_instances.begin(); it !=
+            output.chosen_instances.end(); it++)
+      {
+        if (it->get_location().kind() == Memory::GPU_FB_MEM) {
+          // These instances are not supported yet (see Legion issue #516)
+          to_erase.push_back(it - output.chosen_instances.begin());
+        } else {
+          it->remove_space_fields(missing_fields);
+          if (missing_fields.empty())
+            break;
+        }
+      }
+      // Erase undesired instances
+      for (std::vector<unsigned>::const_reverse_iterator it =
+            to_erase.rbegin(); it != to_erase.rend(); it++)
+        output.chosen_instances.erase((*it) + output.chosen_instances.begin());
+      // If we've satisfied all our fields, then we are done
+      if (missing_fields.empty())
+        return;
+
     }
 
     //--------------------------------------------------------------------------
