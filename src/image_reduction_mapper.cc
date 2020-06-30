@@ -1044,7 +1044,7 @@ namespace Legion {
                                            SelectPartitionSrcOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.chosen_ranking.push_back(input.source_instances[0]);
     }
 
     //--------------------------------------------------------------------------
