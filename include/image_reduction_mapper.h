@@ -35,6 +35,16 @@ namespace Legion {
      */
     class ImageReductionMapper : public Mapper {
     public:
+      enum MappingKind {
+        TASK_MAPPING,
+        INLINE_MAPPING,
+        COPY_MAPPING,
+        CLOSE_MAPPING,
+        ACQUIRE_MAPPING,
+        RELEASE_MAPPING,
+        PARTITION_MAPPING,
+      };
+
       ImageReductionMapper(MapperRuntime *rt, Machine machine, Processor local); 
       virtual ~ImageReductionMapper(void);
     private:
@@ -289,6 +299,16 @@ namespace Legion {
                                    const PhysicalInstance &target,
                                    const std::vector<PhysicalInstance> &sources,
                                    std::deque<PhysicalInstance> &ranking);
+
+     void default_policy_select_constraints(MapperContext ctx,
+                     LayoutConstraintSet &constraints, Memory target_memory,
+                     const RegionRequirement &req);
+
+     bool default_make_instance(MapperContext ctx,
+        Memory target_memory, const LayoutConstraintSet &constraints,
+        PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
+        const RegionRequirement &req, size_t *footprint);
+
 
      static inline bool physical_sort_func(
                          const std::pair<PhysicalInstance,unsigned> &left,

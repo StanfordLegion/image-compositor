@@ -907,8 +907,134 @@ namespace Legion {
       // If we've satisfied all our fields, then we are done
       if (missing_fields.empty())
         return;
+      // Otherwise, let's make an instance for our missing fields
+
+      // Find the visible memories from the processor for the given kind
+      Machine::MemoryQuery visible_memories(machine);
+      visible_memories.has_affinity_to(partition.parent_task->current_proc);
+      if (visible_memories.count() == 0)
+      {
+        log_image_reduction_mapper.error("No visible memories from processor " IDFMT "! "
+                         "This machine is really messed up!", partition.parent_task->current_proc.id);
+        assert(false);
+      }
+
+      Memory target_memory = visible_memories.first();
+
+      LayoutConstraintSet constraints;
+      default_policy_select_constraints(ctx, constraints, target_memory, partition.requirement);
+      // Do the registration
+      LayoutConstraintID constraintID =
+        runtime->register_layout(ctx, constraints);
+
+      LayoutConstraintSet creation_constraints =
+              runtime->find_layout_constraints(ctx, constraintID);
+      creation_constraints.add_constraint(
+          FieldConstraint(missing_fields, false/*contig*/, false/*inorder*/));
+      output.chosen_instances.resize(output.chosen_instances.size()+1);
+      size_t footprint;
+      bool force_new_instances = true;
+      if (!default_make_instance(ctx, target_memory, creation_constraints,
+            output.chosen_instances.back(), PARTITION_MAPPING,
+            force_new_instances, true/*meets*/,
+            partition.requirement, &footprint))
+      {
+        // If we failed to make it that is bad
+        log_image_reduction_mapper.error("Image reduction mapper failed allocation of size %zd bytes "
+                         "for region requirement of partition in task %s (UID "
+                         "%lld) in memory " IDFMT "for processor " IDFMT ". "
+                         "This means the working set of your application is too"
+                         " big for the allotted capacity of the given memory "
+                         "under the default mapper's mapping scheme. You have "
+                         "three choices: ask Realm to allocate more memory, "
+                         "write a custom mapper to better manage working sets, "
+                         "or find a bigger machine.", footprint,
+                         partition.parent_task->get_task_name(),
+                         partition.parent_task->get_unique_id(),
+                         target_memory.id,
+                         partition.parent_task->current_proc.id);
+        assert(false);
+      }
+
 
     }
+
+   //--------------------------------------------------------------------------
+    bool ImageReductionMapper::default_make_instance(MapperContext ctx,
+        Memory target_memory, const LayoutConstraintSet &constraints,
+        PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
+        const RegionRequirement &req, size_t *footprint)
+    //--------------------------------------------------------------------------
+    {
+      bool created = true;
+      LogicalRegion target_region = req.region;
+      bool tight_region_bounds = constraints.specialized_constraint.is_exact();
+
+      // TODO: deal with task layout constraints that require multiple
+      // region requirements to be mapped to the same instance
+      std::vector<LogicalRegion> target_regions(1, target_region);
+      if (force_new || (req.privilege == LEGION_REDUCE && (kind != COPY_MAPPING))) {
+        if (!runtime->create_physical_instance(ctx, target_memory,
+              constraints, target_regions, result))
+          return false;
+      } else {
+        if (!runtime->find_or_create_physical_instance(ctx,
+              target_memory, constraints, target_regions, result, created,
+              true/*acquire*/, 0/*priority*/, tight_region_bounds, footprint))
+          return false;
+      }
+      return true;
+    }
+
+
+    //--------------------------------------------------------------------------
+    void ImageReductionMapper::default_policy_select_constraints(MapperContext ctx,
+                     LayoutConstraintSet &constraints, Memory target_memory,
+                     const RegionRequirement &req)
+    //--------------------------------------------------------------------------
+    {
+      // See if we are doing a reduction instance
+      if (req.privilege == LEGION_REDUCE)
+      {
+        // Make reduction fold instances
+        constraints.add_constraint(SpecializedConstraint(
+                            LEGION_AFFINE_REDUCTION_SPECIALIZE, req.redop))
+          .add_constraint(MemoryConstraint(target_memory.kind()));
+      }
+      else
+      {
+        // Our base default mapper will try to make instances of containing
+        // all fields (in any order) laid out in SOA format to encourage
+        // maximum re-use by any tasks which use subsets of the fields
+        constraints.add_constraint(SpecializedConstraint())
+          .add_constraint(MemoryConstraint(target_memory.kind()));
+
+        if (constraints.field_constraint.field_set.size() == 0)
+        {
+          // Normal instance creation
+          std::vector<FieldID> fields;
+          FieldSpace handle = req.region.get_field_space();
+          runtime->get_field_space_fields(ctx, handle, fields);
+          constraints.add_constraint(FieldConstraint(fields,false/*contiguous*/,
+                                                     false/*inorder*/));
+        }
+        if (constraints.ordering_constraint.ordering.size() == 0)
+        {
+          IndexSpace is = req.region.get_index_space();
+          Domain domain = runtime->get_index_space_domain(ctx, is);
+          int dim = domain.get_dim();
+          std::vector<DimensionKind> dimension_ordering(dim + 1);
+          for (int i = 0; i < dim; ++i)
+            dimension_ordering[i] =
+              static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i);
+          dimension_ordering[dim] = LEGION_DIM_F;
+          constraints.add_constraint(OrderingConstraint(dimension_ordering,
+                                                        false/*contigous*/));
+        }
+      }
+    }
+
+
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_partition_sources(
