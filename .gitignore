@@ -7,4 +7,8 @@ src/CMakeFiles/
 src/Makefile
 src/cmake_install.cmake
 src/libImageCompositor.a
-
+*.so
+build/
+legion_defines.h
+realm_defines.h
+__pycache__
