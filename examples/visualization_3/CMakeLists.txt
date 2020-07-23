@@ -10,6 +10,7 @@ endif()
 find_package(ParaView REQUIRED)
 find_package(MPI REQUIRED)
 find_package(PNG REQUIRED)
+find_package(VTK COMPONENTS VTK::IOXML)
 
 set(CMAKE_CXX_FLAGS "-fpermissive")
 
@@ -34,5 +35,5 @@ add_dependencies(visualization_3 run)
 target_include_directories(visualization_3 PRIVATE ${MPI_C_INCLUDE_PATH})
 
 target_link_libraries(visualization_3
-  PUBLIC GLU OSMesa Legion::LegionRuntime Legion::Legion libviz_3 imageCompositor ${MPI_CXX_LIBRARIES} PNG::PNG
+  PUBLIC GLU OSMesa Legion::LegionRuntime Legion::Legion libviz_3 imageCompositor ${MPI_CXX_LIBRARIES} VTK::IOXML PNG::PNG
   INTERFACE VTK::PythonUsed PRIVATE ParaView::PythonCatalyst VTK::CommonDataModel)

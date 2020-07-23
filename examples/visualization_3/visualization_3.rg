@@ -43,52 +43,6 @@ struct Fields {
   TEMP : double
 }
 
--- terra configureCamera(angle : float)
---   var camera : render.Camera
---   if angle < -180 then angle = angle + 360 end
---   if angle > 180 then angle = angle - 360 end
---   camera.up[0] = 0
---   camera.up[1] = 1
---   camera.up[2] = 0
---   camera.from[0] = c.cos(angle) * 6
---   --camera.from[1] = -1.0 + 4 * c.sin(angle);
---   camera.from[1] = 1.5
---   camera.from[2] = c.sin(angle) * 6
---   camera.at[0] = 1
---   camera.at[1] = 1
---   camera.at[2] = 1
---   return camera
--- end
-
-
--- __forbid(__inner)
--- task renderLoop(
---   r : region(ispace(int3d), Fields),
---   colors : ispace(int3d),
---   p : partition(disjoint, r, colors)
--- )
--- where reads(r)
--- do
---   render.cxx_initialize(__runtime(), __context(), __raw(r), __raw(p),
---                         __fields(r.{TEMP}), 1)
-
---   var stepsPerAngle = 100
---   var angles = 180
-
---   for loop = 0, angles * stepsPerAngle do
---     var angle : float = loop * (1.0 / stepsPerAngle)
---     var camera = configureCamera(angle)
---     render.cxx_render(__runtime(), __context(), camera)
---     var direction : float[3]
---     for i = 0, 3 do
---       direction[i] = camera.at[i] - camera.from[i]
---     end
---     --render.cxx_saveIndividualImages(__runtime(), __context(), ".")
---     render.cxx_reduce(__context(), direction)
---     render.cxx_saveImage(__runtime(), __context(), ".")
---   end
--- end
-
 task perform_time_step(lr : region(ispace(int3d), Fields))
 where
   reads writes(lr)
@@ -145,15 +99,15 @@ task main()
 
   initializeVisualization(lr_int, lp_int_rank)
   var camera : render.Camera
-  camera.from[0] = -42300.32384962992
-  camera.from[1] = 12359.491036211044
-  camera.from[2] = -60266.278504190705
-  camera.at[0] = 21305.058773578516
-  camera.at[1] = 6152.909174503882
-  camera.at[2] = 26285.36895546706
-  camera.up[0] = -0.5336931391138512
-  camera.up[1] = 0.7198561483658373
-  camera.up[2] = 0.4438228913910425
+  camera.from[0] = 146975.3960280538
+  camera.from[1] = 32651.799693195957
+  camera.from[2] = 53621.97074250846
+  camera.at[0] = 7500.0
+  camera.at[1] = 15508.0
+  camera.at[2] = 7500.0
+  camera.up[0] = -0.04362952398351847
+  camera.up[1] = 0.9723340719573909
+  camera.up[2] = -0.2294840237309149
 
   var args = c.legion_runtime_get_input_args()
   var steps = 100
@@ -171,9 +125,9 @@ task main()
 
     if step % 10 == 0 then
       render.cxx_render(__runtime(), __context(), camera, step)
-      -- render.cxx_saveIndividualImages(__runtime(), __context(), ".")
-      render.cxx_reduce(__context(), camera)
-      render.cxx_saveImage(__runtime(), __context(), ".")
+      render.cxx_saveIndividualImages(__runtime(), __context(), ".")
+      -- render.cxx_reduce(__context(), camera)
+      -- render.cxx_saveImage(__runtime(), __context(), ".")
     end
   end
 

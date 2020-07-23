@@ -25,6 +25,9 @@ make_cinema_table=False
 
 from paraview.simple import *
 from paraview import coprocessing
+import vtk
+from vtk.util import numpy_support
+import numpy as np
 
 # ----------------------- CoProcessor definition -----------------------
 
@@ -50,16 +53,15 @@ def CreateCoProcessor():
 
       # Create a new 'Render View'
       renderView1 = CreateView('RenderView')
-      renderView1.ViewSize = [2324, 1180]
+      renderView1.ViewSize = [3222, 1180]
       renderView1.AxesGrid = 'GridAxes3DActor'
-      renderView1.CenterOfRotation = [7500.0, 7500.0, 7500.0]
+      renderView1.CenterOfRotation = [7500.0, 15508.0, 7500.0]
       renderView1.StereoType = 'Crystal Eyes'
-      renderView1.CameraPosition = [-42300.32384962992, 12359.491036211044, -60266.278504190705]
-      renderView1.CameraFocalPoint = [21305.058773578516, 6152.909174503882, 26285.36895546706]
-      renderView1.CameraViewUp = [-0.5336931391138512, 0.7198561483658373, 0.4438228913910425]
+      renderView1.CameraPosition = [146975.3960280538, 32651.799693195957, 53621.97074250846]
+      renderView1.CameraFocalPoint = [7500.0, 15508.0, 7500.0]
+      renderView1.CameraViewUp = [-0.04362952398351847, 0.9723340719573909, -0.2294840237309149]
       renderView1.CameraFocalDisk = 1.0
-      renderView1.CameraParallelScale = 12990.38105676658
-      renderView1.EnableRayTracing = 1
+      renderView1.CameraParallelScale = 39308.734740641485
       renderView1.BackEnd = 'OSPRay raycaster'
       renderView1.OSPRayMaterialLibrary = materialLibrary1
 
@@ -67,7 +69,7 @@ def CreateCoProcessor():
       # and provide it with information such as the filename to use,
       # how frequently to write the images, etc.
       coprocessor.RegisterView(renderView1,
-          filename='RenderView1_%t.png', freq=1, fittoscreen=0, magnification=1, width=3116, height=1180, cinema={}, compression=5)
+          filename='RenderView1_%t.png', freq=1, fittoscreen=0, magnification=1, width=2430, height=1180, cinema={}, compression=5)
       renderView1.ViewTime = datadescription.GetTime()
 
       SetActiveView(None)
@@ -98,17 +100,18 @@ def CreateCoProcessor():
       tEMP_1 = coprocessor.CreateProducer(datadescription, 'TEMP')
 
       # create a new 'Append Datasets'
-      appendDatasets1 = AppendDatasets(Input=[tEMP, tEMP_1])
+      appendDatasets1 = AppendDatasets(Input=[tEMP_1, tEMP])
 
       # ----------------------------------------------------------------
       # setup the visualization in view 'renderView1'
       # ----------------------------------------------------------------
 
-      # show data from tEMP_1
-      tEMP_1Display = Show(tEMP_1, renderView1, 'UniformGridRepresentation')
+      # show data from appendDatasets1
+      appendDatasets1Display = Show(appendDatasets1, renderView1, 'UnstructuredGridRepresentation')
 
       # get color transfer function/color map for 'TEMP'
       tEMPLUT = GetColorTransferFunction('TEMP')
+      tEMPLUT.AutomaticRescaleRangeMode = 'Grow and update every timestep'
       tEMPLUT.EnableOpacityMapping = 1
       tEMPLUT.RGBPoints = [11.0, 0.231373, 0.298039, 0.752941, 461.0625, 0.865003, 0.865003, 0.865003, 911.125, 0.705882, 0.0156863, 0.14902]
       tEMPLUT.ScalarRangeInitialized = 1.0
@@ -117,76 +120,6 @@ def CreateCoProcessor():
       tEMPPWF = GetOpacityTransferFunction('TEMP')
       tEMPPWF.Points = [11.0, 0.0, 0.5, 0.0, 911.125, 1.0, 0.5, 0.0]
       tEMPPWF.ScalarRangeInitialized = 1
-
-      # trace defaults for the display properties.
-      tEMP_1Display.Representation = 'Volume'
-      tEMP_1Display.ColorArrayName = ['POINTS', 'TEMP']
-      tEMP_1Display.LookupTable = tEMPLUT
-      tEMP_1Display.OSPRayScaleArray = 'TEMP'
-      tEMP_1Display.OSPRayScaleFunction = 'PiecewiseFunction'
-      tEMP_1Display.SelectOrientationVectors = 'None'
-      tEMP_1Display.ScaleFactor = 1500.0
-      tEMP_1Display.SelectScaleArray = 'None'
-      tEMP_1Display.GlyphType = 'Arrow'
-      tEMP_1Display.GlyphTableIndexArray = 'None'
-      tEMP_1Display.GaussianRadius = 75.0
-      tEMP_1Display.SetScaleArray = ['POINTS', 'TEMP']
-      tEMP_1Display.ScaleTransferFunction = 'PiecewiseFunction'
-      tEMP_1Display.OpacityArray = ['POINTS', 'TEMP']
-      tEMP_1Display.OpacityTransferFunction = 'PiecewiseFunction'
-      tEMP_1Display.DataAxesGrid = 'GridAxesRepresentation'
-      tEMP_1Display.PolarAxes = 'PolarAxesRepresentation'
-      tEMP_1Display.ScalarOpacityUnitDistance = 1732.0508075688776
-      tEMP_1Display.ScalarOpacityFunction = tEMPPWF
-      tEMP_1Display.SliceFunction = 'Plane'
-      tEMP_1Display.Slice = 7
-
-      # init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-      tEMP_1Display.ScaleTransferFunction.Points = [11.0, 0.0, 0.5, 0.0, 11.001953125, 1.0, 0.5, 0.0]
-
-      # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-      tEMP_1Display.OpacityTransferFunction.Points = [11.0, 0.0, 0.5, 0.0, 11.001953125, 1.0, 0.5, 0.0]
-
-      # init the 'Plane' selected for 'SliceFunction'
-      tEMP_1Display.SliceFunction.Origin = [7500.0, 7500.0, 7500.0]
-
-      # show data from tEMP
-      tEMPDisplay = Show(tEMP, renderView1, 'UniformGridRepresentation')
-
-      # trace defaults for the display properties.
-      tEMPDisplay.Representation = 'Volume'
-      tEMPDisplay.ColorArrayName = ['POINTS', 'TEMP']
-      tEMPDisplay.LookupTable = tEMPLUT
-      tEMPDisplay.OSPRayScaleArray = 'TEMP'
-      tEMPDisplay.OSPRayScaleFunction = 'PiecewiseFunction'
-      tEMPDisplay.SelectOrientationVectors = 'None'
-      tEMPDisplay.ScaleFactor = 1500.0
-      tEMPDisplay.SelectScaleArray = 'None'
-      tEMPDisplay.GlyphType = 'Arrow'
-      tEMPDisplay.GlyphTableIndexArray = 'None'
-      tEMPDisplay.GaussianRadius = 75.0
-      tEMPDisplay.SetScaleArray = ['POINTS', 'TEMP']
-      tEMPDisplay.ScaleTransferFunction = 'PiecewiseFunction'
-      tEMPDisplay.OpacityArray = ['POINTS', 'TEMP']
-      tEMPDisplay.OpacityTransferFunction = 'PiecewiseFunction'
-      tEMPDisplay.DataAxesGrid = 'GridAxesRepresentation'
-      tEMPDisplay.PolarAxes = 'PolarAxesRepresentation'
-      tEMPDisplay.ScalarOpacityUnitDistance = 1732.0508075688776
-      tEMPDisplay.ScalarOpacityFunction = tEMPPWF
-      tEMPDisplay.SliceFunction = 'Plane'
-      tEMPDisplay.Slice = 7
-
-      # init the 'PiecewiseFunction' selected for 'ScaleTransferFunction'
-      tEMPDisplay.ScaleTransferFunction.Points = [911.0, 0.0, 0.5, 0.0, 911.125, 1.0, 0.5, 0.0]
-
-      # init the 'PiecewiseFunction' selected for 'OpacityTransferFunction'
-      tEMPDisplay.OpacityTransferFunction.Points = [911.0, 0.0, 0.5, 0.0, 911.125, 1.0, 0.5, 0.0]
-
-      # init the 'Plane' selected for 'SliceFunction'
-      tEMPDisplay.SliceFunction.Origin = [7500.0, 23516.0, 7500.0]
-
-      # show data from appendDatasets1
-      appendDatasets1Display = Show(appendDatasets1, renderView1, 'UnstructuredGridRepresentation')
 
       # trace defaults for the display properties.
       appendDatasets1Display.Representation = 'Volume'
@@ -226,12 +159,6 @@ def CreateCoProcessor():
       tEMPLUTColorBar.Visibility = 1
 
       # show color legend
-      tEMP_1Display.SetScalarBarVisibility(renderView1, True)
-
-      # show color legend
-      tEMPDisplay.SetScalarBarVisibility(renderView1, True)
-
-      # show color legend
       appendDatasets1Display.SetScalarBarVisibility(renderView1, True)
 
       # ----------------------------------------------------------------
@@ -243,6 +170,7 @@ def CreateCoProcessor():
       # finally, restore active source
       SetActiveSource(appendDatasets1)
       # ----------------------------------------------------------------
+
     return Pipeline()
 
   class CoProcessor(coprocessing.CoProcessor):
@@ -307,3 +235,13 @@ def DoCoProcessing(datadescription):
 
     # Live Visualization, if enabled.
     coprocessor.DoLiveVisualization(datadescription, "localhost", 22222)
+
+    view = GetActiveView()
+    ss = vtk.vtkWindowToImageFilter()
+    ss.SetInputBufferTypeToZBuffer()
+    ss.SetInput(view.SMProxy.GetRenderWindow())
+    ss.Update()
+    writer = vtk.vtkXMLImageDataWriter()
+    writer.SetInputConnection(ss.GetOutputPort())
+    writer.SetFileName("z_buffer_%d.vti" % (view.ViewTime * 10))
+    writer.Write()

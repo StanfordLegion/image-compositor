@@ -21,6 +21,7 @@
 #include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkImageData.h>
+#include <vtkXMLImageDataReader.h>
 
 #define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
 
@@ -36,7 +37,7 @@ static vtkImageData* VTKGrid = NULL;
 static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
 static int gFrameNumber = 0;
-static int gImageWidth = 3116;
+static int gImageWidth = 2430;
 static int gImageHeight = 1180;
 
 void legion_wait_on_mpi()
@@ -128,6 +129,15 @@ static void render_task(const Task *task,
   ss << "rank" << rank << "/RenderView1_" << *timestep << ".png";
   read_png_file(ss.str().c_str(), pngimage);
 
+  ss.str(std::string());
+  ss.clear();
+  ss << "rank" << rank << "/z_buffer_" << *timestep << ".vti";
+  vtkXMLImageDataReader *reader = vtkXMLImageDataReader::New();
+  reader->SetFileName(ss.str().c_str());
+  reader->Update();
+  vtkImageData *buffer = reader->GetOutput();
+  vtkFloatArray *z_buf = vtkFloatArray::SafeDownCast(buffer->GetPointData()->GetArray(0));
+
   std::vector<legion_field_id_t> imageFields;
   image.get_fields(imageFields);
   AccessorWO<ImageReduction::PixelField, 3> r(image, imageFields[0]);
@@ -148,7 +158,7 @@ static void render_task(const Task *task,
     g[*pir] = pngimage->G(x, y);
     b[*pir] = pngimage->B(x, y);
     a[*pir] = pngimage->A(x, y);
-    z[*pir] = 1;
+    z[*pir] = *(z_buf->GetTuple(x * gImageHeight + y));
     u[*pir] = 0; // user defined channel, unused
   }
 
