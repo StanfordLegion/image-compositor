@@ -365,10 +365,12 @@ void ImageReduction::partitionImageByImageDescriptor(LogicalRegion image, Contex
 
 void ImageReduction::partitionImageByKDTree(LogicalRegion image,
                                             LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
+__TRACE
   mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
   Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
   mSimulationKDTree->getColorMap(coloring);
   
+__TRACE
   // create a logical region to hold the coloring and extent
   Point<image_region_dimensions> p0 = mImageDescriptor.origin();
   Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
@@ -377,14 +379,17 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
   FieldSpace coloringFields = mRuntime->create_field_space(ctx);
   mRuntime->attach_name(coloringFields, "render image coloring fields");
   
+__TRACE
   FieldAllocator coloringAllocator = mRuntime->create_field_allocator(ctx, coloringFields);
   FieldID fidColor = coloringAllocator.allocate_field(sizeof(Point<image_region_dimensions>), FID_FIELD_COLOR);
   assert(fidColor == FID_FIELD_COLOR);
   FieldID fidExtent = coloringAllocator.allocate_field(sizeof(Rect<image_region_dimensions>), FID_FIELD_EXTENT);
   assert(fidExtent == FID_FIELD_EXTENT);
   
+__TRACE
   LogicalRegion coloringExtentRegion = mRuntime->create_logical_region(ctx, coloringIndexSpace, coloringFields);
   
+__TRACE
   // write the color and extent values into the region
   RegionRequirement coloringReq(coloringExtentRegion, WRITE_DISCARD, EXCLUSIVE, coloringExtentRegion);
   coloringReq.add_field(FID_FIELD_COLOR);
@@ -396,6 +401,7 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
   Realm::AffineAccessor<Point<image_region_dimensions>, image_region_dimensions, long long int> >
   acc_color(coloringPhysicalRegion, FID_FIELD_COLOR);
   
+__TRACE
   const FieldAccessor<WRITE_DISCARD, Rect<image_region_dimensions>,
   image_region_dimensions, long long int,
   Realm::AffineAccessor<Rect<image_region_dimensions>, image_region_dimensions, long long int> >
@@ -403,7 +409,9 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
   
   Rect<image_region_dimensions> rect = imageBounds;
   
+__TRACE
   for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
+std::cout<<__FUNCTION__<<":"<<__LINE__<<" i "<<i<<" coloring[i] "<<coloring[i]<<std::endl;
     rect.lo.z = rect.hi.z = i;
     acc_extent[coloring[i]] = rect;
     acc_color[coloring[i]] = coloring[i];
