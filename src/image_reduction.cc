@@ -142,9 +142,13 @@ ImageReduction::ImageReduction(
   createImageRegion(mSourceIndexSpace, mSourceImage, mSourceImageDomain, mSourceImageFields, fieldID, context);
   createImagePartition(fieldID, context);
   partitionImageByImageDescriptor(mSourceImage, context, runtime, imageDescriptor);
+__TRACE
   initializeNodes(mRuntime, context);
+__TRACE
   createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
+__TRACE
   partitionImageByKDTree(mSourceImage, partition, context, runtime, imageDescriptor);
+__TRACE
   initializeViewMatrix();
   createTreeDomains(numTreeLevels(imageDescriptor), runtime, imageDescriptor);
 }
@@ -207,6 +211,7 @@ void ImageReduction::preinitializeBeforeRuntimeStarts() {
 void ImageReduction::registerTasks() {
   {
     mInitialTaskID = Legion::HighLevelRuntime::generate_static_task_id();
+std::cout<<"mInitialTaskID "<<mInitialTaskID<<std::endl;
     TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
@@ -250,11 +255,14 @@ FieldSpace ImageReduction::imageFields(Context context) {
 
 void ImageReduction::createImagePartition(legion_field_id_t fieldID[], Context context) {
 
+  // create colors (0,0,0),(0,0,1)....(0,0,n-1)
   Point<image_region_dimensions> p0;
   p0 = mImageDescriptor.origin();
   Point <image_region_dimensions> p1 = mImageDescriptor.numLayers() - Point<image_region_dimensions>::ONES();
   Rect<image_region_dimensions> color_bounds(p0, p1);
   IndexSpace colorIndexSpace = mRuntime->create_index_space(context, color_bounds);
+
+  // partition the image into slices (0,0,0),(w-1,h-1,0)
   IndexSpace is_parent = mSourceImage.get_index_space();
   Transform<image_region_dimensions, image_region_dimensions> identity;
   for(unsigned i = 0; i < image_region_dimensions; ++i) {
@@ -265,38 +273,50 @@ void ImageReduction::createImagePartition(legion_field_id_t fieldID[], Context c
   - Point<image_region_dimensions>::ONES();
   Rect<image_region_dimensions> slice(p0, p2);
   IndexPartition ip = mRuntime->create_partition_by_restriction(context,
-                                                               is_parent, colorIndexSpace, identity, slice);
+         is_parent, colorIndexSpace, identity, slice, DISJOINT_COMPLETE_KIND);
   mCompositeImagePartition = mRuntime->get_logical_partition(context, mSourceImage, ip);
   mRuntime->attach_name(mCompositeImagePartition, "compositeImagePartition");
 }
 
 
 void ImageReduction::createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context) {
+__TRACE
   Point<image_region_dimensions> p0 = mImageDescriptor.origin();
   Point <image_region_dimensions> p1 = mImageDescriptor.upperBound() - Point<image_region_dimensions>::ONES();
   Rect<image_region_dimensions> imageBounds(p0, p1);
   domain = Domain(imageBounds);
+__TRACE
   indexSpace = mRuntime->create_index_space(context, domain);
   fields = imageFields(context);
+__TRACE
   region = mRuntime->create_logical_region(context, indexSpace, fields);
+__TRACE
   mRuntime->attach_name(region, "sourceImage");
+__TRACE
   fieldID[0] = FID_FIELD_R;
   fieldID[1] = FID_FIELD_G;
   fieldID[2] = FID_FIELD_B;
   fieldID[3] = FID_FIELD_A;
   fieldID[4] = FID_FIELD_Z;
   fieldID[5] = FID_FIELD_USERDATA;
+__TRACE
   // fill the region initially with ZEROES
+__TRACE
   PixelField zero = 0;
+__TRACE
   TaskArgument arg(&zero, sizeof(zero));
+__TRACE
   FillLauncher fillLauncher(region, region, arg);
+__TRACE
   fillLauncher.add_field(FID_FIELD_R);
   fillLauncher.add_field(FID_FIELD_G);
   fillLauncher.add_field(FID_FIELD_B);
   fillLauncher.add_field(FID_FIELD_A);
   fillLauncher.add_field(FID_FIELD_Z);
   fillLauncher.add_field(FID_FIELD_USERDATA);
+__TRACE
   mRuntime->fill_fields(context, fillLauncher);
+__TRACE
 }
 
 
@@ -395,7 +415,7 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
   LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringExtentRegion, coloringIP);
   IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
     ctx, mSourceIndexSpace, coloringPartition, coloringExtentRegion, 
-    FID_FIELD_EXTENT, coloringIndexSpace, COMPUTE_KIND, AUTO_GENERATE_ID,
+    FID_FIELD_EXTENT, coloringIndexSpace, DISJOINT_COMPLETE_KIND, AUTO_GENERATE_ID,
     gMapperID);
   mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
   mRuntime->attach_name(mRenderImagePartition, "render image partition");
@@ -458,14 +478,17 @@ void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLaye
 void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
                                   Context ctx,
                                   HighLevelRuntime *runtime) {
+__TRACE
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
   Point<image_region_dimensions> p0 = Point<image_region_dimensions>::ZEROES();
   Rect<image_region_dimensions> zeroRect(p0, p0);
   
+__TRACE
   for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
     DomainPoint color(it.p);
+std::cout<<"color "<<color<<std::endl;
     IndexSpace subregion = runtime->get_index_subspace(ctx,
                                                        imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
@@ -478,6 +501,7 @@ void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
     index++;
   }
   
+__TRACE
   mSimulationKDTree = new KDTree<image_region_dimensions, long long int>(simulationElements, rect.volume());
   delete [] simulationElements;
   
@@ -485,6 +509,7 @@ void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
   mSimulationKDTree->getExtent(simulationExtents);
   KDTreeValue* imageElements = new KDTreeValue[rect.volume()];
   
+__TRACE
   for(unsigned i = 0; i < rect.volume(); ++i) {
     Point<image_region_dimensions> p0(0, 0, i);
     Point<image_region_dimensions> p1 = imageDescriptor.upperBound() -
@@ -498,9 +523,11 @@ void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
     imageElements[i] = imageElement;
   }
   
+__TRACE
   delete [] simulationExtents;
   mImageKDTree = new KDTree<image_region_dimensions, long long int>(imageElements, rect.volume());
   delete [] imageElements;
+__TRACE
 }
 
 
@@ -593,18 +620,22 @@ void ImageReduction::initializeRenderNodes(HighLevelRuntime* runtime,
 
 
 void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
+__TRACE
   unsigned taskID = mInitialTaskID;
+std::cout<<__FUNCTION__<<" mInitialTaskID "<<mInitialTaskID<<std::endl;
   ArgumentMap argMap;
   int totalArgLen = sizeof(mImageDescriptor);
   char *argsBuffer = new char[totalArgLen];
   memcpy(argsBuffer, &mImageDescriptor, sizeof(mImageDescriptor));
   
+__TRACE
   // if imageDescriptor has a partition launch over the partition
   // otherwise launch over the image compositeImageDomain
   Domain domain;
   LogicalPartition partition;
   LogicalRegion region;
   if(mImageDescriptor.hasPartition) {
+__TRACE
     domain = mImageDescriptor.simulationDomain;
     partition = mImageDescriptor.simulationLogicalPartition;
     region = mImageDescriptor.simulationLogicalRegion;
@@ -614,6 +645,7 @@ void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context)
     region = mSourceImage;
   }
   
+__TRACE
   IndexTaskLauncher launcher(taskID, domain,
                              TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED,
                              false, gMapperID);
@@ -626,11 +658,15 @@ void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context)
     addImageFieldsToRequirement(req);
   }
   launcher.add_region_requirement(req);
+__TRACE
   FutureMap futures = runtime->execute_index_space(context, launcher);
   futures.wait_all_results();
   delete [] argsBuffer;
+__TRACE
   if(mImageDescriptor.hasPartition) {
+__TRACE
     buildKDTrees(mImageDescriptor, context, runtime);
+__TRACE
   }
 }
 

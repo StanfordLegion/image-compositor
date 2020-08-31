@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-namespace Legion {
-  namespace Mapping {
+using namespace Legion ;
+using namespace Mapping ;
 
     /**
      * \class ImageReductionMapper
@@ -338,8 +338,8 @@ namespace Legion {
 
     };
 
-  }; // namespace Mapping
-}; // namespace Legion
+  //}; // namespace Mapping
+//}; // namespace Legion
 
 
 #endif // __IMAGE_REDUCTION_MAPPER_H__
