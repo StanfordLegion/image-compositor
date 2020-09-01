@@ -519,7 +519,7 @@ __TRACE
 __TRACE
   for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
     DomainPoint color(it.p);
-std::cout<<"i "<<i<<" simulation color[i] "<<color<<std::endl;
+std::cout<<"i "<<index<<" simulation color[i] "<<color<<std::endl;
     IndexSpace subregion = runtime->get_index_subspace(ctx,
       imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
@@ -570,9 +570,11 @@ void ImageReduction::initial_task(const Task *task,
 #ifdef TRACE_TASKS
   std::cout << describe_task(task) << std::endl;
 #endif
+__TRACE
   ImageDescriptor imageDescriptor = *((ImageDescriptor*)task->args);
   createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
   if(imageDescriptor.hasPartition) {
+__TRACE
     buildKDTrees(imageDescriptor, ctx, runtime);
   }
 }
