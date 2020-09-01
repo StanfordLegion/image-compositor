@@ -102,11 +102,11 @@ TaskID ImageReduction::mDisplayTaskID = 0;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
 MapperID gMapperID = 0;
-std::mutex mMutex0;
-std::mutex mMutex1;
-std::mutex mMutex2;
-std::mutex mMutex3;
-std::mutex mMutex4;
+std::mutex ImageReduction::mMutex0;
+std::mutex ImageReduction::mMutex1;
+std::mutex ImageReduction::mMutex2;
+std::mutex ImageReduction::mMutex3;
+std::mutex ImageReduction::mMutex4;
 
 /**
  * Use this constructor with your simulation partition.
@@ -377,8 +377,14 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
                                             LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
 __TRACE
   mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
+std::cout<<__FUNCTION__<<" coloring size "<<mSimulationKDTree->size()<<std::endl;
   Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
   mSimulationKDTree->getColorMap(coloring);
+__TRACE
+std::cout<<__FUNCTION__<<" read back from getColorMap:"<<std::endl;
+for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
+  std::cout<<"i "<<i<<" coloring[i] "<<coloring[i]<<std::endl;
+}
   
 __TRACE
   // create a logical region to hold the coloring and extent
@@ -513,9 +519,9 @@ __TRACE
 __TRACE
   for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
     DomainPoint color(it.p);
-std::cout<<"simulation color "<<color<<std::endl;
+std::cout<<"i "<<i<<" simulation color[i] "<<color<<std::endl;
     IndexSpace subregion = runtime->get_index_subspace(ctx,
-                                                       imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
+      imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
     Legion::Rect<image_region_dimensions> simulationRect(color, color);
     KDTreeValue simulationValue;
