@@ -102,6 +102,11 @@ TaskID ImageReduction::mDisplayTaskID = 0;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
 MapperID gMapperID = 0;
+std::mutex mMutex0;
+std::mutex mMutex1;
+std::mutex mMutex2;
+std::mutex mMutex3;
+std::mutex mMutex4;
 
 /**
  * Use this constructor with your simulation partition.
