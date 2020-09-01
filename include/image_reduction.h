@@ -36,6 +36,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <mutex>
 #include <unistd.h>
 #include <assert.h>
 
@@ -466,16 +467,21 @@ namespace Legion {
     public:
       static int mNodeID;
       static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
+      static std::mutex mMutex0;
       static std::vector<Domain> *mHierarchicalTreeDomain;
+      static std::mutex mMutex1;
       static const int numMatrixElements4x4 = 16;
       static GLfloat mGlViewTransform[numMatrixElements4x4];
+      static std::mutex mMutex2;
       static PixelField mGlConstantColor[numPixelFields];
       static GLenum mGlBlendEquation;
       static GLenum mGlBlendFunctionSource;
       static GLenum mGlBlendFunctionDestination;
       static TaskID mInitialTaskID;
+      static std::mutex mMutex3;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
+      static std::mutex mMutex4;
       static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
       static KDTree<image_region_dimensions, long long int>* mImageKDTree;
     };

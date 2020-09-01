@@ -89,19 +89,19 @@ namespace Visualization {
 
 // declare module static data
 
-std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = NULL;
+std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = nullptr;
 std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = nullptr;
 GLfloat ImageReduction::mGlViewTransform[numMatrixElements4x4];
 ImageReduction::PixelField ImageReduction::mGlConstantColor[numPixelFields];
-GLenum ImageReduction::mGlBlendEquation;
-GLenum ImageReduction::mGlBlendFunctionSource;
-GLenum ImageReduction::mGlBlendFunctionDestination;
-TaskID ImageReduction::mInitialTaskID;
-TaskID ImageReduction::mCompositeTaskID;
-TaskID ImageReduction::mDisplayTaskID;
+GLenum ImageReduction::mGlBlendEquation = 0;
+GLenum ImageReduction::mGlBlendFunctionSource = 0;
+GLenum ImageReduction::mGlBlendFunctionDestination = 0;
+TaskID ImageReduction::mInitialTaskID = 0;
+TaskID ImageReduction::mCompositeTaskID = 0;
+TaskID ImageReduction::mDisplayTaskID = 0;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
-MapperID gMapperID;
+MapperID gMapperID = 0;
 
 /**
  * Use this constructor with your simulation partition.
@@ -210,24 +210,29 @@ void ImageReduction::preinitializeBeforeRuntimeStarts() {
 
 void ImageReduction::registerTasks() {
   {
-    mInitialTaskID = Legion::HighLevelRuntime::generate_static_task_id();
+    mMutex3.lock();
+    if(mInitialTaskID == 0)
+      mInitialTaskID = Legion::HighLevelRuntime::generate_static_task_id();
 std::cout<<"mInitialTaskID "<<mInitialTaskID<<std::endl;
     TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
   }
   {
-    mCompositeTaskID = Legion::HighLevelRuntime::generate_static_task_id();
+    if(mCompositeTaskID == 0)
+      mCompositeTaskID = Legion::HighLevelRuntime::generate_static_task_id();
     TaskVariantRegistrar registrar(mCompositeTaskID, "composite_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<composite_task>(registrar, "composite_task");
   }
   {
-    mDisplayTaskID = Legion::HighLevelRuntime::generate_static_task_id();
+    if(mDisplayTaskID == 0)
+      mDisplayTaskID = Legion::HighLevelRuntime::generate_static_task_id();
     TaskVariantRegistrar registrar(mDisplayTaskID, "display_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<display_task>(registrar, "display_task");
   }
+  mMutex3.unlock();
 }
 
 
@@ -458,6 +463,7 @@ void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLaye
   
   // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
   // not a problem for multinode runs
+  mMutex0.lock();
   if(mCompositeProjectionFunctor == NULL) {
     mCompositeProjectionFunctor = new std::vector<CompositeProjectionFunctor*>();
     
@@ -480,6 +486,7 @@ void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLaye
       multiplier /= 2;
     }
   }
+  mMutex0.unlock();
 }
 
 
@@ -487,6 +494,11 @@ void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
                                   Context ctx,
                                   HighLevelRuntime *runtime) {
 __TRACE
+  mMutex4.lock();
+  if(mSimulationKDTree != nullptr) {
+    mMutex4.unlock();
+    return;
+  }
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
@@ -496,7 +508,7 @@ __TRACE
 __TRACE
   for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
     DomainPoint color(it.p);
-std::cout<<"color "<<color<<std::endl;
+std::cout<<"simulation color "<<color<<std::endl;
     IndexSpace subregion = runtime->get_index_subspace(ctx,
                                                        imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
@@ -536,6 +548,7 @@ __TRACE
   mImageKDTree = new KDTree<image_region_dimensions, long long int>(imageElements, rect.volume());
   delete [] imageElements;
 __TRACE
+  mMutex4.unlock();
 }
 
 
@@ -556,12 +569,15 @@ void ImageReduction::initial_task(const Task *task,
 
 
 void ImageReduction::initializeViewMatrix() {
+  mMutex2.lock();
   memset(mGlViewTransform, 0, sizeof(mGlViewTransform));
   mGlViewTransform[0] = mGlViewTransform[5] = mGlViewTransform[10] = mGlViewTransform[15] = 1.0f;
+  mMutex2.unlock();
 }
 
 
 void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor imageDescriptor) {
+  mMutex1.lock();
   if(mHierarchicalTreeDomain == NULL) {
     mHierarchicalTreeDomain = new std::vector<Domain>();
   }
@@ -578,6 +594,7 @@ void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, Imag
     }
     numLeaves *= 2;
   }
+  mMutex1.unlock();
   
 }
 
