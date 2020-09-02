@@ -218,7 +218,6 @@ void ImageReduction::registerTasks() {
     mMutex3.lock();
     if(mInitialTaskID == 0)
       mInitialTaskID = Legion::HighLevelRuntime::generate_static_task_id();
-std::cout<<"mInitialTaskID "<<mInitialTaskID<<std::endl;
     TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
@@ -377,15 +376,8 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
                                             LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor) {
 __TRACE
   mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
-std::cout<<__FUNCTION__<<" coloring size "<<mSimulationKDTree->size()<<std::endl;
   Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
   mSimulationKDTree->getColorMap(coloring);
-__TRACE
-std::cout<<__FUNCTION__<<" read back from getColorMap:"<<std::endl;
-for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
-  std::cout<<"i "<<i<<" coloring[i] "<<coloring[i]<<std::endl;
-}
-  
 __TRACE
   // create a logical region to hold the coloring and extent
   Point<image_region_dimensions> p0 = mImageDescriptor.origin();
@@ -427,7 +419,6 @@ __TRACE
   
 __TRACE
   for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
-std::cout<<__FUNCTION__<<":"<<__LINE__<<" i "<<i<<" coloring[i] "<<coloring[i]<<std::endl;
     rect.lo.z = rect.hi.z = i;
     acc_extent[coloring[i]] = rect;
     acc_color[coloring[i]] = coloring[i];
@@ -510,6 +501,7 @@ __TRACE
     mMutex4.unlock();
     return;
   }
+
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
@@ -519,7 +511,6 @@ __TRACE
 __TRACE
   for(Domain::DomainPointIterator it(imageDescriptor.simulationDomain); it; it++) {
     DomainPoint color(it.p);
-std::cout<<"i "<<index<<" simulation color[i] "<<color<<std::endl;
     IndexSpace subregion = runtime->get_index_subspace(ctx,
       imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
@@ -660,7 +651,6 @@ void ImageReduction::initializeRenderNodes(HighLevelRuntime* runtime,
 void ImageReduction::initializeNodes(HighLevelRuntime* runtime, Context context) {
 __TRACE
   unsigned taskID = mInitialTaskID;
-std::cout<<__FUNCTION__<<" mInitialTaskID "<<mInitialTaskID<<std::endl;
   ArgumentMap argMap;
   int totalArgLen = sizeof(mImageDescriptor);
   char *argsBuffer = new char[totalArgLen];

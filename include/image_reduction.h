@@ -21,7 +21,7 @@
 //#define TRACE_TASKS
 
 //tracing for debug
-#if 1
+#if 0
 #define __TRACE {char hostname[512];gethostname(hostname,sizeof(hostname));char buffer[1024];sprintf(buffer, "%s %s:%d %s pid %d\n",hostname,__FILE__,__LINE__,__FUNCTION__,getpid());std::cout<<buffer;fflush(stdout);}
 #else
 #define __TRACE

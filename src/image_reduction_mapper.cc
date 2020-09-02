@@ -419,7 +419,6 @@ using namespace Mapping ;
     {
       Processor::Kind target_kind = task.target_proc.kind();
 
-std::cout<<__FUNCTION__<<" "<<task.get_task_name()<<std::endl;
       std::vector<VariantID> variants;
       runtime->find_valid_variants(ctx, task.task_id,
                                    variants, Processor::TOC_PROC);
@@ -443,7 +442,6 @@ std::cout<<__FUNCTION__<<" "<<task.get_task_name()<<std::endl;
             output.chosen_variant = variants[0];
             output.target_procs.push_back(task.target_proc);
           } else {
-std::cout<<__FUNCTION__<<" "<<task.get_task_name()<<std::endl;
             assert(0 == "unable to find a valid task variant");
           }
         }
