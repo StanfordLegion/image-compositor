@@ -134,7 +134,7 @@ private:
     node->mSplitter = elements[medianIndex].extent.lo[level % N];
     node->mLevel = level;
     node->mLeft = buildKDTree(elements, medianIndex, level + 1, node);
-    node->mRight = buildKDTree(elements + medianIndex, medianIndex, level + 1, node);
+    node->mRight = buildKDTree(elements + medianIndex, numElements - medianIndex, level + 1, node);
     return node;
   }
 

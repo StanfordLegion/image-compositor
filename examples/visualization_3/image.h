@@ -11,24 +11,31 @@ public:
   int height;
   png_bytep *row_pointers;
 
-  unsigned int R(int x, int y)
+  png_bytep px(int x, int y)
   {
-    return (unsigned int)row_pointers[y][x];
+    png_bytep row = row_pointers[y];
+    png_bytep p = &(row[x * 4]);
+    return p;
   }
 
-  unsigned int G(int x, int y)
+  png_byte R(int x, int y)
   {
-    return (unsigned int)row_pointers[y][x+1];
+    return px(x, y)[0];
   }
 
-  unsigned int B(int x, int y)
+  png_byte G(int x, int y)
   {
-    return (unsigned int)row_pointers[y][x+2];
+    return px(x, y)[1];
   }
 
-  unsigned int A(int x, int y)
+  png_byte B(int x, int y)
   {
-    return (unsigned int)row_pointers[y][x+3];
+    return px(x, y)[2];
+  }
+
+  png_byte A(int x, int y)
+  {
+    return px(x, y)[3];
   }
 
   ~PNGImage()
