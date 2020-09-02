@@ -152,14 +152,21 @@ static void render_task(const Task *task,
 
   for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
     DomainPoint point(*pir);
+    int y = pngimage->height - point[1] - 1;
     int x = point[0];
-    int y = point[1];
     r[*pir] = pngimage->R(x, y);
     g[*pir] = pngimage->G(x, y);
     b[*pir] = pngimage->B(x, y);
     a[*pir] = pngimage->A(x, y);
     z[*pir] = *(z_buf->GetTuple(x * gImageHeight + y));
     u[*pir] = 0; // user defined channel, unused
+    // printf("X: %d Y: %d R: %d G: %d B: %d A: %d Z: %g\n",
+    //        x, y,
+    //        pngimage->R(x, y),
+    //        pngimage->G(x, y),
+    //        pngimage->B(x, y),
+    //        pngimage->A(x, y),
+    //        *(z_buf->GetTuple(x * gImageHeight + y)));
   }
 
   delete pngimage;
