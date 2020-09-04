@@ -48,6 +48,8 @@ public:
   }
 };
 
-void read_png_file(char *filename, PNGImage *image);
+void read_png_file(const char *filename, PNGImage *image);
+void write_png_file(char *filename, int width, int height,
+                    float *R, float *G, float *B, float *A);
 
 #endif

@@ -15,7 +15,6 @@
 #include "legion.h"
 
 using namespace Legion::Visualization;
-using namespace LegionRuntime::HighLevel;
 
 namespace Legion{
   namespace Visualization{
@@ -151,9 +150,6 @@ private:
                             Legion::Point<image_region_dimensions>* coloring,
                             unsigned& index) {
     if(node->mIsLeaf) {
-
-std::cout << __FUNCTION__ << " level " << node->mLevel << " node " << node << " color " << node->mValue.color << std::endl;
-
       coloring[index++] = node->mValue.color;
     } else {
       getColorMapRecursive(node->mLeft, coloring, index);

@@ -36,9 +36,20 @@ static vtkCPProcessor* VTKProcessor = NULL;
 static vtkImageData* VTKGrid = NULL;
 static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
-static int gFrameNumber = 0;
 static int gImageWidth = 2430;
 static int gImageHeight = 1180;
+
+struct SaveImageArgs{
+  ImageDescriptor imageDescriptor;
+  char *outdir;
+  int timestep;
+
+  SaveImageArgs(ImageDescriptor imageDescriptor, char *outdir, int timestep) :
+    imageDescriptor(imageDescriptor),
+    outdir(outdir),
+    timestep(timestep)
+  {};
+};
 
 void legion_wait_on_mpi()
 {
@@ -68,6 +79,7 @@ static void render_task(const Task *task,
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
   Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
   int* timestep = (int*)(argsPtr + sizeof(ImageDescriptor) + sizeof(Camera));
+
   printf("RANK: %d TIMESTEP: %d ", rank, *timestep);
   printf("Lo: %d %d %d Hi: %d %d %d\n",
          bounds.lo[0], bounds.lo[1], bounds.lo[2],
@@ -158,15 +170,8 @@ static void render_task(const Task *task,
     g[*pir] = pngimage->G(x, y);
     b[*pir] = pngimage->B(x, y);
     a[*pir] = pngimage->A(x, y);
-    z[*pir] = *(z_buf->GetTuple(x * gImageHeight + y));
+    z[*pir] = *(z_buf->GetTuple(x * gImageHeight + point[1]));
     u[*pir] = 0; // user defined channel, unused
-    // printf("X: %d Y: %d R: %d G: %d B: %d A: %d Z: %g\n",
-    //        x, y,
-    //        pngimage->R(x, y),
-    //        pngimage->G(x, y),
-    //        pngimage->B(x, y),
-    //        pngimage->A(x, y),
-    //        *(z_buf->GetTuple(x * gImageHeight + y)));
   }
 
   delete pngimage;
@@ -176,8 +181,11 @@ static int save_image_task(const Task *task,
                            const std::vector<PhysicalRegion> &regions,
                            Context ctx, Runtime *runtime)
 {
-  ImageDescriptor* imageDescriptor = (ImageDescriptor*)(task->args);
-  unsigned char* outDir = (unsigned char*)(task->args) + sizeof(ImageDescriptor);
+  const SaveImageArgs *args = (const SaveImageArgs *)(task->args);
+  const ImageDescriptor imageDescriptor = args->imageDescriptor;
+  const char *outDir = args->outdir;
+  const int timestep = args->timestep;
+
   PhysicalRegion image = regions[0];
   IndexSpace indexSpace = image.get_logical_region().get_index_space();
   Legion::Rect<3> bounds = runtime->get_index_space_domain(ctx, indexSpace);
@@ -188,57 +196,26 @@ static int save_image_task(const Task *task,
   AccessorRO<ImageReduction::PixelField, 3> g(image, imageFields[1]);
   AccessorRO<ImageReduction::PixelField, 3> b(image, imageFields[2]);
   AccessorRO<ImageReduction::PixelField, 3> a(image, imageFields[3]);
-  AccessorRO<ImageReduction::PixelField, 3> z(image, imageFields[4]);
+
+  int rank = runtime->find_local_MPI_rank();
+  printf("RANK: %d SAVE TIMESTEP: %d\n", rank, timestep);
 
   char filename[1024];
-  sprintf(filename, "%s/image_%d_%d_%d.%05d.tga", outDir, (
-            int)bounds.lo.x, (int)bounds.lo.y, (int)bounds.lo.z, gFrameNumber++);
-  FILE* f = fopen(filename, "w");
-  if(f == nullptr) {
-    std::cerr << "could not create file " << filename << std::endl;
-    return -1;
-  }
-  fputc (0x00, f);  /* ID Length, 0 => No ID   */
-  fputc (0x00, f);  /* Color Map Type, 0 => No color map included   */
-  fputc (0x02, f);  /* Image Type, 2 => Uncompressed, True-color Image */
-  fputc (0x00, f);  /* Next five bytes are about the color map entries */
-  fputc (0x00, f);  /* 2 bytes Index, 2 bytes length, 1 byte size */
-  fputc (0x00, f);
-  fputc (0x00, f);
-  fputc (0x00, f);
-  fputc (0x00, f);  /* X-origin of Image */
-  fputc (0x00, f);
-  fputc (0x00, f);  /* Y-origin of Image */
-  fputc (0x00, f);
-  fputc (imageDescriptor->width & 0xff, f);      /* Image Width */
-  fputc ((imageDescriptor->width>>8) & 0xff, f);
-  fputc (imageDescriptor->height & 0xff, f);     /* Image Height   */
-  fputc ((imageDescriptor->height>>8) & 0xff, f);
-  fputc (0x18, f);     /* Pixel Depth, 0x18 => 24 Bits  */
-  fputc (0x20, f);     /* Image Descriptor  */
-  fclose(f);
+  sprintf(filename, "%s/image_%d_%d_%d.%05d.png", outDir,
+          (int)bounds.lo.x, (int)bounds.lo.y, (int)bounds.lo.z,
+          timestep);
 
-  f = fopen(filename, "ab");  /* reopen in binary append mode */
   IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
   Legion::Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
   PointInRectIterator<3> pir(saveRect);
   ImageReduction::PixelField* BB = (ImageReduction::PixelField*)b.ptr(*pir);
   ImageReduction::PixelField* GG = (ImageReduction::PixelField*)g.ptr(*pir);
   ImageReduction::PixelField* RR = (ImageReduction::PixelField*)r.ptr(*pir);
+  ImageReduction::PixelField* AA = (ImageReduction::PixelField*)a.ptr(*pir);
 
-  for(int y = imageDescriptor->height - 1; y >= 0; y--) {
-    for(int x = 0; x < imageDescriptor->width; ++x) {
-      int index = x + y * imageDescriptor->width;
-      GLubyte b_ = BB[index] * 255;
-      fputc(b_, f); /* write blue */
-      GLubyte g_ = GG[index] * 255;
-      fputc(g_, f); /* write green */
-      GLubyte r_ = RR[index] * 255;
-      fputc(r_, f);   /* write red */
-    }
-  }
-  fclose(f);
-  std::cout << "wrote image " << filename << std::endl;
+  write_png_file(filename, imageDescriptor.width, imageDescriptor.height,
+                 RR, GG, BB, AA);
+  std::cout << "rank" << rank << " wrote image " << filename << std::endl;
   return 0;
 }
 
@@ -291,6 +268,7 @@ void cxx_initialize(legion_runtime_t runtime_,
   gImageCompositor = new ImageReduction(region, partition,
                                         pFields, numPFields, imageDescriptor, ctx, runtime,
                                         imageReductionMapperID);
+
   int rank = runtime->find_local_MPI_rank();
 
   if (VTKProcessor == NULL)
@@ -383,7 +361,8 @@ void cxx_reduce(legion_context_t ctx_,
 
 void cxx_saveImage(legion_runtime_t runtime_,
                    legion_context_t ctx_,
-                   const char* outDir)
+                   const char* outDir,
+                   int timestep)
 {
   Runtime *runtime = CObjectWrapper::unwrap(runtime_);
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
@@ -391,11 +370,10 @@ void cxx_saveImage(legion_runtime_t runtime_,
   // save the image
   ImageReduction* compositor = gImageCompositor;
   ImageDescriptor imageDescriptor = compositor->imageDescriptor();
-  size_t argLen = sizeof(ImageDescriptor) + strlen(outDir) + 1;
-  char args[argLen] = { 0 };
-  memcpy(args, &imageDescriptor, sizeof(imageDescriptor));
-  strcpy(args + sizeof(imageDescriptor), outDir);
-  TaskLauncher saveImageLauncher(gSaveImageTaskID, TaskArgument(args, argLen), Predicate::TRUE_PRED,
+
+  SaveImageArgs args(imageDescriptor, strdup(outDir), timestep);
+
+  TaskLauncher saveImageLauncher(gSaveImageTaskID, TaskArgument(&args, sizeof(args)), Predicate::TRUE_PRED,
                                  imageReductionMapperID);
   DomainPoint slice0 = Legion::Point<3>::ZEROES();
   LogicalRegion imageSlice0 = runtime->get_logical_subregion_by_color(compositor->compositeImagePartition(),
@@ -414,7 +392,8 @@ void cxx_saveImage(legion_runtime_t runtime_,
 // this is provided for debugging the renderer
 void cxx_saveIndividualImages(legion_runtime_t runtime_,
                               legion_context_t ctx_,
-                              const char* outDir)
+                              const char* outDir,
+                              int timestep)
 {
   Runtime *runtime = CObjectWrapper::unwrap(runtime_);
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
@@ -423,13 +402,12 @@ void cxx_saveIndividualImages(legion_runtime_t runtime_,
   ImageReduction* compositor = gImageCompositor;
   ImageDescriptor imageDescriptor = compositor->imageDescriptor();
   ArgumentMap argMap;
-  size_t argLen = sizeof(ImageDescriptor) + strlen(outDir) + 1;
-  char args[argLen] = { 0 };
-  memcpy(args, &imageDescriptor, sizeof(imageDescriptor));
-  strcpy(args + sizeof(imageDescriptor), outDir);
+
+  SaveImageArgs args(imageDescriptor, strdup(outDir), timestep);
+
   IndexTaskLauncher saveImageLauncher(gSaveImageTaskID,
                                       compositor->compositeImageDomain(),
-                                      TaskArgument(args, argLen),
+                                      TaskArgument(&args, sizeof(args)),
                                       argMap, Predicate::TRUE_PRED, false,
                                       imageReductionMapperID);
   RegionRequirement req(compositor->compositeImagePartition(), 0, READ_ONLY, EXCLUSIVE,

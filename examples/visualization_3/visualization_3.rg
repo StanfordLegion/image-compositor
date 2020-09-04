@@ -125,9 +125,9 @@ task main()
 
     if step % 10 == 0 then
       render.cxx_render(__runtime(), __context(), camera, step)
-      render.cxx_saveIndividualImages(__runtime(), __context(), "./individual/")
+      render.cxx_saveIndividualImages(__runtime(), __context(), "./individual", step)
       render.cxx_reduce(__context(), camera)
-      render.cxx_saveImage(__runtime(), __context(), ".")
+      render.cxx_saveImage(__runtime(), __context(), ".", step)
     end
   end
 

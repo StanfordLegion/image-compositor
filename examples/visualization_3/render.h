@@ -5,7 +5,6 @@
 #include "legion.h"
 #include "legion/legion_c.h"
 
-
 #ifdef __cplusplus
 extern "C" {
   extern Legion::MPILegionHandshake handshake;
@@ -41,14 +40,16 @@ extern "C" {
 
   void cxx_saveImage(legion_runtime_t runtime_,
                      legion_context_t ctx_,
-                     const char* outDir );
+                     const char* outDir,
+                     int timestep);
 
   // set this to 1 when debugging the renderer, 0 otherwise #define
   // DEBUG_INDIVIDUAL_IMAGES 1
 
   void cxx_saveIndividualImages(legion_runtime_t runtime_,
                                 legion_context_t ctx_,
-                                const char* outDir );
+                                const char* outDir,
+                                int timestep);
 
   void cxx_terminate();
 

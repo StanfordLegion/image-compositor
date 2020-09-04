@@ -208,7 +208,7 @@ namespace Legion {
        */
       void set_depth_func(GLenum func){ mDepthFunction = func; }
 
-      
+
       /**
        * Utility function to provide descriptive output for messages.
        *
@@ -295,7 +295,7 @@ namespace Legion {
       ImageDescriptor imageDescriptor() const {
         return mImageDescriptor;
       }
-      
+
       /**
        * Launcher utility over compositor domain.
        */
@@ -327,7 +327,7 @@ namespace Legion {
                                  const std::vector<PhysicalRegion> &regions,
                                  Context ctx, Runtime *runtime);
 
-      void initializeRenderNodes(HighLevelRuntime* runtime, 
+      void initializeRenderNodes(HighLevelRuntime* runtime,
 				Context context,
 				unsigned taskID,
 				char* args,

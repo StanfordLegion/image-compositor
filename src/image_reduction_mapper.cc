@@ -25,7 +25,7 @@ using namespace Mapping ;
     //--------------------------------------------------------------------------
     ImageReductionMapper::ImageReductionMapper(MapperRuntime *rt, Machine m, Processor local)
       : Mapper(rt), machine(m), node_id(local.address_space()),
-        local_proc(local), local_kind(local.kind()), 
+        local_proc(local), local_kind(local.kind()),
         mapper_name("image_reduction_mapper")
     //--------------------------------------------------------------------------
     {
@@ -155,7 +155,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    const char* ImageReductionMapper::get_mapper_name(void) const    
+    const char* ImageReductionMapper::get_mapper_name(void) const
     //--------------------------------------------------------------------------
     {
       return (char*)"ImageReductionMapper";
@@ -183,7 +183,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::premap_task(const MapperContext      ctx,
-                                 const Task&              task, 
+                                 const Task&              task,
                                  const PremapTaskInput&   input,
                                        PremapTaskOutput&  output)
     //--------------------------------------------------------------------------
@@ -313,7 +313,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::slice_task(const MapperContext      ctx,
-                                const Task&              task, 
+                                const Task&              task,
                                 const SliceTaskInput&    input,
                                       SliceTaskOutput&   output)
     //--------------------------------------------------------------------------
@@ -499,7 +499,7 @@ using namespace Mapping ;
                                         PostMapOutput&     output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -573,7 +573,7 @@ using namespace Mapping ;
                                           CreateTaskTemporaryOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -633,7 +633,7 @@ using namespace Mapping ;
                                         CreateInlineTemporaryOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);  
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -673,7 +673,7 @@ using namespace Mapping ;
                                         CreateCopyTemporaryOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -693,7 +693,7 @@ using namespace Mapping ;
     {
       report_unimplemented(__func__, __LINE__);
     }
-    
+
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
                                  const MapperContext                ctx,
@@ -704,7 +704,7 @@ using namespace Mapping ;
     {
       output.chosen_functor = 0; // use the default functor
     }
-    
+
     //--------------------------------------------------------------------------
     void ImageReductionMapper::map_close(const MapperContext       ctx,
                                const Close&              close,
@@ -712,7 +712,7 @@ using namespace Mapping ;
                                      MapCloseOutput&     output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -733,7 +733,7 @@ using namespace Mapping ;
                                         CreateCloseTemporaryOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -791,7 +791,7 @@ using namespace Mapping ;
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
     //--------------------------------------------------------------------------
-    {  
+    {
       output.chosen_functor = 0; // use the default functor
     }
 
@@ -1124,7 +1124,7 @@ using namespace Mapping ;
                                           MapMustEpochOutput&     output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -1152,7 +1152,7 @@ using namespace Mapping ;
                                                SelectMappingOutput&   output)
     //--------------------------------------------------------------------------
     {
-      for (std::list<const Task*>::const_iterator it = input.ready_tasks.begin(); 
+      for (std::list<const Task*>::const_iterator it = input.ready_tasks.begin();
         it != input.ready_tasks.end(); it++)
         {
           output.map_tasks.insert(*it);
@@ -1181,7 +1181,7 @@ using namespace Mapping ;
                                     const MapperMessage&          message)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__); 
+      report_unimplemented(__func__, __LINE__);
     }
 
     //--------------------------------------------------------------------------
@@ -1191,7 +1191,3 @@ using namespace Mapping ;
     {
       report_unimplemented(__func__, __LINE__);
     }
-
-
-
-     

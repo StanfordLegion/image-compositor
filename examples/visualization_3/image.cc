@@ -1,6 +1,6 @@
 #include "image.h"
 
-void read_png_file(char *filename, PNGImage *image) {
+void read_png_file(const char *filename, PNGImage *image) {
   FILE *fp = fopen(filename, "rb");
 
   png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -48,7 +48,6 @@ void read_png_file(char *filename, PNGImage *image) {
 
   png_read_update_info(png, info);
 
-  //png_bytep *row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * image->height);
   image->row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * image->height);
 
   for(int y = 0; y < image->height; y++) {
@@ -60,4 +59,65 @@ void read_png_file(char *filename, PNGImage *image) {
   fclose(fp);
 
   png_destroy_read_struct(&png, &info, NULL);
+}
+
+void write_png_file(char *filename, int width, int height,
+                    float *R, float *G, float *B, float *A) {
+  FILE *fp = fopen(filename, "wb");
+  if(!fp) abort();
+
+  png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  if (!png) abort();
+
+  png_infop info = png_create_info_struct(png);
+  if (!info) abort();
+
+  if (setjmp(png_jmpbuf(png))) abort();
+
+  png_init_io(png, fp);
+
+  // Output is 8bit depth, RGBA format.
+  png_set_IHDR(
+    png,
+    info,
+    width, height,
+    8,
+    PNG_COLOR_TYPE_RGBA,
+    PNG_INTERLACE_NONE,
+    PNG_COMPRESSION_TYPE_DEFAULT,
+    PNG_FILTER_TYPE_DEFAULT
+  );
+  png_write_info(png, info);
+
+  // To remove the alpha channel for PNG_COLOR_TYPE_RGB format,
+  // Use png_set_filler().
+  // png_set_filler(png, 0, PNG_FILLER_AFTER);
+
+  png_bytep *row_pointers = (png_bytep *)png_malloc(png, height * sizeof(png_bytep));
+  for (int y = 0; y < height; y++) {
+    png_bytep row = (png_bytep)png_malloc(png, sizeof(png_byte) * width * 4);
+    row_pointers[y] = row;
+    for (int x = 0; x < width; x++) {
+      int idx = x + width*(height-y);
+      *row++ = (png_byte)R[idx];
+      *row++ = (png_byte)G[idx];
+      *row++ = (png_byte)B[idx];
+      *row++ = (png_byte)A[idx];
+    }
+  }
+
+  if (!row_pointers) abort();
+
+  png_write_image(png, row_pointers);
+  png_write_end(png, NULL);
+
+  for(int y = 0; y < height; y++)
+  {
+    free(row_pointers[y]);
+  }
+  free(row_pointers);
+
+  fclose(fp);
+
+  png_destroy_write_struct(&png, &info);
 }
