@@ -9,10 +9,10 @@
 #include "legion_visualization.h"
 
 #include <sstream>
-#include <vtkCPDataDescription.h>
-#include <vtkCPInputDataDescription.h>
-#include <vtkCPProcessor.h>
-#include <vtkCPPythonScriptPipeline.h>
+//#include <vtkCPDataDescription.h>
+//#include <vtkCPInputDataDescription.h>
+//#include <vtkCPProcessor.h>
+//#include <vtkCPPythonScriptPipeline.h>
 #include <vtkCellData.h>
 #include <vtkCellType.h>
 #include <vtkDoubleArray.h>
@@ -32,7 +32,7 @@ using namespace Legion;
 // global data
 Legion::MapperID imageReductionMapperID = 1;
 static ImageReduction* gImageCompositor = nullptr;
-static vtkCPProcessor* VTKProcessor = NULL;
+//static vtkCPProcessor* VTKProcessor = NULL;
 static vtkImageData* VTKGrid = NULL;
 static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
@@ -80,61 +80,63 @@ static void render_task(const Task *task,
   Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
   int* timestep = (int*)(argsPtr + sizeof(ImageDescriptor) + sizeof(Camera));
 
+  printf("[render] RANK: %d TIMESTEP: %d ", rank, *timestep);
   printf("RANK: %d TIMESTEP: %d ", rank, *timestep);
+
   printf("Lo: %d %d %d Hi: %d %d %d\n",
          bounds.lo[0], bounds.lo[1], bounds.lo[2],
          bounds.hi[0], bounds.hi[1], bounds.hi[2]);
 
-  if(VTKGrid == NULL)
-  {
-    VTKGrid = vtkImageData::New();
-    VTKGrid->SetExtent(bounds.lo[0], bounds.hi[0],
-                       bounds.lo[1], bounds.hi[1],
-                       bounds.lo[2], bounds.hi[2]);
-    VTKGrid->SetSpacing(1000, 1000, 1000);
-    VTKGrid->SetOrigin(bounds.lo[0], bounds.lo[1], bounds.lo[2]);
-  }
+  // if(VTKGrid == NULL)
+  // {
+  //   VTKGrid = vtkImageData::New();
+  //   VTKGrid->SetExtent(bounds.lo[0], bounds.hi[0],
+  //                      bounds.lo[1], bounds.hi[1],
+  //                      bounds.lo[2], bounds.hi[2]);
+  //   VTKGrid->SetSpacing(1000, 1000, 1000);
+  //   VTKGrid->SetOrigin(bounds.lo[0], bounds.lo[1], bounds.lo[2]);
+  // }
 
-  vtkNew<vtkCPDataDescription> dataDescription;
-  dataDescription->SetTimeData((*timestep)*0.1, *timestep);
+  // vtkNew<vtkCPDataDescription> dataDescription;
+  // dataDescription->SetTimeData((*timestep)*0.1, *timestep);
 
-  for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
-      it != dataReq.privilege_fields.end(); ++it)
-  {
-    FieldID fid = *it;
-    const char *field_name;
-    runtime->retrieve_name(fspace, fid, field_name);
-    dataDescription->AddInput(field_name);
-  }
+  // for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
+  //     it != dataReq.privilege_fields.end(); ++it)
+  // {
+  //   FieldID fid = *it;
+  //   const char *field_name;
+  //   runtime->retrieve_name(fspace, fid, field_name);
+  //   dataDescription->AddInput(field_name);
+  // }
 
-  if (VTKProcessor->RequestDataDescription(dataDescription.GetPointer()) != 0)
-  {
-    for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
-        it != dataReq.privilege_fields.end(); ++it)
-    {
-      FieldID fid = *it;
-      const char *field_name;
-      runtime->retrieve_name(fspace, fid, field_name);
-      vtkCPInputDataDescription* idd = dataDescription->GetInputDescriptionByName(field_name);
-      if (idd->IsFieldNeeded(field_name, vtkDataObject::POINT) == true)
-      {
-        if (VTKGrid->GetPointData()->GetNumberOfArrays() == 0)
-        {
-          vtkNew<vtkDoubleArray> arr;
-          arr->SetName(field_name);
-          arr->SetNumberOfComponents(1);
-          arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.get_volume()));
-          VTKGrid->GetPointData()->AddArray(arr.GetPointer());
-        }
+  // if (VTKProcessor->RequestDataDescription(dataDescription.GetPointer()) != 0)
+  // {
+  //   for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
+  //       it != dataReq.privilege_fields.end(); ++it)
+  //   {
+  //     FieldID fid = *it;
+  //     const char *field_name;
+  //     runtime->retrieve_name(fspace, fid, field_name);
+  //     vtkCPInputDataDescription* idd = dataDescription->GetInputDescriptionByName(field_name);
+  //     if (idd->IsFieldNeeded(field_name, vtkDataObject::POINT) == true)
+  //     {
+  //       if (VTKGrid->GetPointData()->GetNumberOfArrays() == 0)
+  //       {
+  //         vtkNew<vtkDoubleArray> arr;
+  //         arr->SetName(field_name);
+  //         arr->SetNumberOfComponents(1);
+  //         arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.get_volume()));
+  //         VTKGrid->GetPointData()->AddArray(arr.GetPointer());
+  //       }
 
-        vtkDoubleArray* arr = vtkDoubleArray::SafeDownCast(VTKGrid->GetPointData()->GetArray(field_name));
-        AccessorRO<double, 3> data_acc(data, *it);
-        arr->SetArray(data_acc.ptr(bounds.lo), domain.get_volume(), 1);
-      }
-      idd->SetGrid(VTKGrid);
-    }
-    VTKProcessor->CoProcess(dataDescription.GetPointer());
-  }
+  //       vtkDoubleArray* arr = vtkDoubleArray::SafeDownCast(VTKGrid->GetPointData()->GetArray(field_name));
+  //       AccessorRO<double, 3> data_acc(data, *it);
+  //       arr->SetArray(data_acc.ptr(bounds.lo), domain.get_volume(), 1);
+  //     }
+  //     idd->SetGrid(VTKGrid);
+  //   }
+  //   VTKProcessor->CoProcess(dataDescription.GetPointer());
+  // }
 
   PNGImage *pngimage = new PNGImage();
   std::stringstream ss;
@@ -271,29 +273,29 @@ void cxx_initialize(legion_runtime_t runtime_,
 
   int rank = runtime->find_local_MPI_rank();
 
-  if (VTKProcessor == NULL)
-  {
-    std::stringstream ss;
-    ss << "rank" << rank;
-    VTKProcessor = vtkCPProcessor::New();
-    VTKProcessor->Initialize(ss.str().c_str());
-  }
-  else
-  {
-    VTKProcessor->RemoveAllPipelines();
-  }
+  // if (VTKProcessor == NULL)
+  // {
+  //   std::stringstream ss;
+  //   ss << "rank" << rank;
+  //   VTKProcessor = vtkCPProcessor::New();
+  //   VTKProcessor->Initialize(ss.str().c_str());
+  // }
+  // else
+  // {
+  //   VTKProcessor->RemoveAllPipelines();
+  // }
 
-  const InputArgs &args = Runtime::get_input_args();
+  // const InputArgs &args = Runtime::get_input_args();
 
-  for (int i = 0; i < args.argc; i++)
-  {
-    if (!strcmp(args.argv[i], "-pipeline"))
-    {
-      vtkNew<vtkCPPythonScriptPipeline> pipeline;
-      pipeline->Initialize(args.argv[i+1]);
-      VTKProcessor->AddPipeline(pipeline.GetPointer());
-    }
-  }
+  // for (int i = 0; i < args.argc; i++)
+  // {
+  //   if (!strcmp(args.argv[i], "-pipeline"))
+  //   {
+  //     vtkNew<vtkCPPythonScriptPipeline> pipeline;
+  //     pipeline->Initialize(args.argv[i+1]);
+  //     VTKProcessor->AddPipeline(pipeline.GetPointer());
+  //   }
+  // }
 }
 
 // this entry point is called once from the main task
