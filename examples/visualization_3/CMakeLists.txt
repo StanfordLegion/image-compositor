@@ -7,10 +7,19 @@ if(NOT Legion_SOURCE_DIR)
   find_package(Legion REQUIRED)
 endif()
 
-find_package(ParaView REQUIRED)
+# the `pkg_check_modules` function is created with this call
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(OSMesa REQUIRED IMPORTED_TARGET osmesa)
+pkg_check_modules(GLU REQUIRED IMPORTED_TARGET glu)
+
+#find_package(ParaView REQUIRED)
+#find_package(GLU REQUIRED)
+#find_package(OSMesa REQUIRED)
 find_package(MPI REQUIRED)
 find_package(PNG REQUIRED)
-find_package(VTK COMPONENTS VTK::IOXML)
+#find_package(VTK COMPONENTS VTK::IOXML)
+find_package(VTK COMPONENTS IOXML)
 
 set(CMAKE_CXX_FLAGS "-fpermissive")
 
@@ -18,22 +27,40 @@ add_custom_target(run ALL
   DEPENDS libviz_3.so)
 
 add_custom_command(OUTPUT libviz_3.so
-  COMMAND regent.py visualization_3.rg
-  DEPENDS visualization_3.rg)
+  COMMAND regent.py ${CMAKE_CURRENT_LIST_DIR}/visualization_3.rg
+  DEPENDS ${CMAKE_CURRENT_LIST_DIR}/visualization_3.rg)
 
 add_library(libviz_3 SHARED IMPORTED)
-set_target_properties(libviz_3 PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/libviz_3.so)
+set_target_properties(libviz_3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libviz_3.so)
 
-include_directories(../../include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include)
 # add_library(imageCompositor STATIC IMPORTED)
 # SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ../../build/src/libImageCompositor.a)
 add_library(imageCompositor SHARED IMPORTED)
-SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ../../build/src/libImageCompositor_.so)
+SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/../../build/src/libImageCompositor_.so)
 
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
 add_dependencies(visualization_3 run)
 target_include_directories(visualization_3 PRIVATE ${MPI_C_INCLUDE_PATH})
-
+  
 target_link_libraries(visualization_3
-  PUBLIC GLU OSMesa Legion::LegionRuntime Legion::Legion libviz_3 imageCompositor ${MPI_CXX_LIBRARIES} VTK::IOXML PNG::PNG
-  INTERFACE VTK::PythonUsed PRIVATE ParaView::PythonCatalyst VTK::CommonDataModel)
+PUBLIC
+  PkgConfig::GLU PkgConfig::OSMesa Legion::LegionRuntime Legion::Legion libviz_3 imageCompositor
+  ${MPI_CXX_LIBRARIES}
+  PNG::PNG
+
+INTERFACE
+  VTK::PythonUsed
+
+PRIVATE
+  #ParaView::PythonCatalyst
+  VTK::CommonDataModel
+  ${VTK_LIBRARIES}
+  VTK::IOXML
+  )
+
+# vtk_module_autoinit is needed
+vtk_module_autoinit(
+  TARGETS visualization_3e
+  MODULES ${VTK_LIBRARIES}
+)
