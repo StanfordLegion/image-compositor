@@ -717,6 +717,45 @@ void ImageReductionComposite::callScaleFunction(GLenum blendFunction,
   
 }
 
+#if 0 /* for debug purpose */
+#define STACK_BUFFER(TYPE, nElements) (TYPE *)alloca(sizeof(TYPE) * nElements)
+  template <typename COMP_T,
+	    int N_COMP,
+	    typename PIXEL_T,
+	    int PIXEL_COMP,
+	    bool FLIP>
+  inline void writeImage(const std::string &fileName,
+			 const char *const header,
+			 const int sizeX,
+			 const int sizeY,
+			 const PIXEL_T *const pixel)
+  {
+    FILE *file = fopen(fileName.c_str(), "wb");
+    if (file == nullptr)
+      throw std::runtime_error("Can't open file for writeP[FP]M!");
+
+    fprintf(file, header, sizeX, sizeY);
+    auto out = STACK_BUFFER(COMP_T, N_COMP * sizeX);
+    for (int y = 0; y < sizeY; y++) {
+      auto *in = (const COMP_T *)&pixel[(FLIP ? sizeY - 1 - y : y) * sizeX];
+      for (int x = 0; x < sizeX; x++)
+	for (int c = 0; c < N_COMP; c++)
+	  out[N_COMP * x + c] = in[PIXEL_COMP * x + (N_COMP == 1 ? 3 : c)];
+      fwrite(out, N_COMP * sizeX, sizeof(COMP_T), file);
+    }
+    fprintf(file, "\n");
+    fclose(file);
+  }
+
+  inline void writePPM(const std::string &fileName,
+		       const int sizeX,
+		       const int sizeY,
+		       const uint32_t *pixel)
+  {
+    writeImage<unsigned char, 3, uint32_t, 4, true>(
+						    fileName, "P6\n%i %i\n255\n", sizeX, sizeY, pixel);
+  }
+#endif
 
 /// blend composite function for all blend operators
 
@@ -744,14 +783,15 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
                                                        int Z1,
                                                        bool flip
                                                        ) {
-  
-  
+
+
   for(int y = 0; y < height; ++y) {
     for(int x = 0; x < width; ++x) {
       
       ImageReduction::PixelField sourceFactor[4];
       ImageReduction::PixelField destinationFactor[4];
-      if(flip) {
+      if(!flip) {
+
         callScaleFunction(mGlBlendFunctionSource,
                           r1[x][y][Z1],
                           g1[x][y][Z1],
@@ -772,7 +812,7 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
                           b0[x][y][Z0],
                           a0[x][y][Z0],
                           destinationFactor);
-        
+
         ImageReduction::PixelField rSource = r1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = g1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bSource = b1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_B];
@@ -781,7 +821,8 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         ImageReduction::PixelField gDestination = g0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bDestination = b0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = a0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_A];
-        
+
+
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
             r1[x][y][Z1] = rSource + rDestination;
@@ -821,9 +862,7 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         g1[x][y][Z1] = std::min(1.0f, std::max(0.0f, g1[x][y][Z1]));
         b1[x][y][Z1] = std::min(1.0f, std::max(0.0f, b1[x][y][Z1]));
         a1[x][y][Z1] = std::min(1.0f, std::max(0.0f, a1[x][y][Z1]));
-        
-        
-        
+
       } else {
         callScaleFunction(mGlBlendFunctionSource,
                           r0[x][y][Z0],
@@ -895,11 +934,12 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         g0[x][y][Z0] = std::min(1.0f, std::max(0.0f, g0[x][y][Z0]));
         b0[x][y][Z0] = std::min(1.0f, std::max(0.0f, b0[x][y][Z0]));
         a0[x][y][Z0] = std::min(1.0f, std::max(0.0f, a0[x][y][Z0]));
-        
+
       }
       
     }
   }
+
 }
 
 
@@ -915,7 +955,6 @@ ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFu
       case GL_NOTEQUAL: return compositePixelsNotEqual;
       case GL_GEQUAL: return compositePixelsGEqual;
       case GL_ALWAYS: return compositePixelsAlways;
-        
     }
   } else {
     mGlBlendFunctionSource = blendFunctionSource;

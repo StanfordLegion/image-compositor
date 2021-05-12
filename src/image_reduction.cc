@@ -841,7 +841,7 @@ void ImageReduction::composite_task(const Task *task,
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1(fragment1, FID_FIELD_USERDATA);
 
   bool flip = flipRegions(fragment0, fragment1, args.cameraDirection);
-#if 1
+#if 0
 std::cout << __FUNCTION__ << " Z0 " << Z0 << " Z1 " << Z1 << " (r0,g0,b0) << " << r0[0] << " " << g0[0] << " " << b0[0] << " (r1,g1,b1) " << r1[0] << " " << g1[0] << " " << b1[0] << std::endl;
 #endif
   compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
