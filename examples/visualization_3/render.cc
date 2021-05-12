@@ -168,10 +168,10 @@ static void render_task(const Task *task,
     DomainPoint point(*pir);
     int y = pngimage->height - point[1] - 1;
     int x = point[0];
-    r[*pir] = pngimage->R(x, y);
-    g[*pir] = pngimage->G(x, y);
-    b[*pir] = pngimage->B(x, y);
-    a[*pir] = pngimage->A(x, y);
+    r[*pir] = pngimage->R(x, y) / 255.f;
+    g[*pir] = pngimage->G(x, y) / 255.f;
+    b[*pir] = pngimage->B(x, y) / 255.f;
+    a[*pir] = 0.5f; //pngimage->A(x, y) / 255.f;
     z[*pir] = *(z_buf->GetTuple(x * gImageHeight + point[1]));
     u[*pir] = 0; // user defined channel, unused
   }

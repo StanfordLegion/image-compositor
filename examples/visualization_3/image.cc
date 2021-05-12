@@ -99,10 +99,10 @@ void write_png_file(char *filename, int width, int height,
     row_pointers[y] = row;
     for (int x = 0; x < width; x++) {
       int idx = x + width*(height-y);
-      *row++ = (png_byte)R[idx];
-      *row++ = (png_byte)G[idx];
-      *row++ = (png_byte)B[idx];
-      *row++ = (png_byte)A[idx];
+      *row++ = (png_byte)(R[idx] * 255);
+      *row++ = (png_byte)(G[idx] * 255);
+      *row++ = (png_byte)(B[idx] * 255);
+      *row++ = (png_byte)(A[idx] * 255);
     }
   }
 
