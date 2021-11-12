@@ -15,18 +15,18 @@ local root_dir = arg[0]:match(".*/") or "./"
 local mapper = terralib.includec("visualization_3_mapper.h", {"-I", root_dir})
 assert(os.getenv('LG_RT_DIR'), "LG_RT_DIR should be set!")
 local runtime_dir = os.getenv('LG_RT_DIR') .. "/"
-local legion_dir = runtime_dir .. "legion/"
-local mapper_dir = runtime_dir .. "mappers/"
-local realm_dir = runtime_dir .. "realm/"
+local legion_dir  = runtime_dir .. "legion/"
+local mapper_dir  = runtime_dir .. "mappers/"
+local realm_dir   = runtime_dir .. "realm/"
 
 local viz_mapper = terralib.includec("visualization_3_mapper.h", {"-I", root_dir})
 
-render = terralib.includec("render.h",
-{"-I", root_dir,
-"-I", runtime_dir,
-"-I", mapper_dir,
-"-I", legion_dir,
-"-I", realm_dir,
+render = terralib.includec("render.h", {
+  "-I", root_dir,
+  "-I", runtime_dir,
+  "-I", mapper_dir,
+  "-I", legion_dir,
+  "-I", realm_dir,
 })
 
 render.cxx_initialize.replicable = true
@@ -75,15 +75,15 @@ task main()
   render.legion_wait_on_mpi();
 
   var global_grid_size = int3d{16, 32, 16}
-  var proc_grid_size = int3d{1, 2, 1}
+  var proc_grid_size = int3d{1, 8, 1}
+  -- var proc_grid_size = int3d{2, 2, 2}
 
   var is_grid = ispace(int3d, global_grid_size)
   var blocking_factor = global_grid_size / proc_grid_size
 
   var block_size = c.legion_blockify_3d_t{blocking_factor, int3d{0, 0, 0}}
 
-  var ip_rank = c.legion_index_partition_create_blockify_3d(__runtime(), __context(),
-                                                            __raw(is_grid), block_size, -1)
+  var ip_rank = c.legion_index_partition_create_blockify_3d(__runtime(), __context(), __raw(is_grid), block_size, -1)
   var raw_ispace = c.legion_index_partition_get_color_space(__runtime(), ip_rank)
   var is_rank = __import_ispace(int3d, raw_ispace)
 
@@ -99,18 +99,29 @@ task main()
 
   initializeVisualization(lr_int, lp_int_rank)
   var camera : render.Camera
-  camera.from[0] = 146975.3960280538
-  camera.from[1] = 32651.799693195957
-  camera.from[2] = 53621.97074250846
-  camera.at[0] = 7500.0
-  camera.at[1] = 15508.0
-  camera.at[2] = 7500.0
-  camera.up[0] = -0.04362952398351847
-  camera.up[1] = 0.9723340719573909
-  camera.up[2] = -0.2294840237309149
+
+  -- camera.from[0] = 146975.3960280538
+  -- camera.from[1] = 32651.799693195957
+  -- camera.from[2] = 53621.97074250846
+  -- camera.at[0] = 7500.0
+  -- camera.at[1] = 15508.0
+  -- camera.at[2] = 7500.0
+  -- camera.up[0] = -0.04362952398351847
+  -- camera.up[1] = 0.9723340719573909
+  -- camera.up[2] = -0.2294840237309149
+
+  camera.from[0] = 0.0
+  camera.from[1] = 1000000.0
+  camera.from[2] = 0.0
+  camera.at[0] = 0.0
+  camera.at[1] = 0.0
+  camera.at[2] = 0.0
+  camera.up[0] = 0.0
+  camera.up[1] = 0.0
+  camera.up[2] = 1.0
 
   var args = c.legion_runtime_get_input_args()
-  var steps = 100
+  var steps = 20
   for i = 0, args.argc do
     if c.strcmp(args.argv[i], "-t") == 0 then
       steps = c.atoi(args.argv[i+1])

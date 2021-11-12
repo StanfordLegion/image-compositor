@@ -790,7 +790,8 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
       
       ImageReduction::PixelField sourceFactor[4];
       ImageReduction::PixelField destinationFactor[4];
-      if(!flip) {
+
+      if (flip) {
 
         callScaleFunction(mGlBlendFunctionSource,
                           r1[x][y][Z1],
@@ -863,7 +864,13 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         b1[x][y][Z1] = std::min(1.0f, std::max(0.0f, b1[x][y][Z1]));
         a1[x][y][Z1] = std::min(1.0f, std::max(0.0f, a1[x][y][Z1]));
 
+        r0[x][y][Z0] = r1[x][y][Z1];
+        g0[x][y][Z0] = g1[x][y][Z1];
+        b0[x][y][Z0] = b1[x][y][Z1];
+        a0[x][y][Z0] = a1[x][y][Z1];
+
       } else {
+
         callScaleFunction(mGlBlendFunctionSource,
                           r0[x][y][Z0],
                           g0[x][y][Z0],

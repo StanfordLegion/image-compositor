@@ -779,7 +779,7 @@ bool ImageReduction::flipRegions(PhysicalRegion fragment0,
   if(cameraDirection == nullptr) return false;
   KDNode<image_region_dimensions, long long int>* node0 = findFragmentInKDTree(fragment0);
   KDNode<image_region_dimensions, long long int>* node1 = findFragmentInKDTree(fragment1);
-  unsigned axis0 = node0->mLevel % image_region_dimensions;
+  unsigned axis0 = node0->mLevel % image_region_dimensions; // image_region_dimensions === 3
   unsigned axis1 = node1->mLevel % image_region_dimensions;
   float splittingPlaneNormal[image_region_dimensions] = { 0 };
   if(axis0 == axis1) {
@@ -793,6 +793,14 @@ bool ImageReduction::flipRegions(PhysicalRegion fragment0,
       case 3: splittingPlaneNormal[0] = 1; break;
     }
   }
+  // std::cout << "splittingPlaneNormal " 
+  //           << splittingPlaneNormal[0] << " "
+  //           << splittingPlaneNormal[1] << " "
+  //           << splittingPlaneNormal[2] << std::endl;
+  // std::cout << "cameraDirection " 
+  //           << cameraDirection[0] << " "
+  //           << cameraDirection[1] << " "
+  //           << cameraDirection[2] << std::endl;
   float dot = 0;
   for(unsigned i = 0; i < image_region_dimensions; ++i) {
     dot += splittingPlaneNormal[i] * cameraDirection[i];
@@ -841,6 +849,8 @@ void ImageReduction::composite_task(const Task *task,
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1(fragment1, FID_FIELD_USERDATA);
 
   bool flip = flipRegions(fragment0, fragment1, args.cameraDirection);
+  // std::cout << " flip " << flip << std::endl;
+  // std::cout << " Z0 " << Z0 << " Z1 " << Z1 << std::endl;
 #if 0
 std::cout << __FUNCTION__ << " Z0 " << Z0 << " Z1 " << Z1 << " (r0,g0,b0) << " << r0[0] << " " << g0[0] << " " << b0[0] << " (r1,g1,b1) " << r1[0] << " " << g1[0] << " " << b1[0] << std::endl;
 #endif

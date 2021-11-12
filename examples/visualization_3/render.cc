@@ -9,6 +9,7 @@
 #include "legion_visualization.h"
 
 #include <sstream>
+#include <cstdio>
 //#include <vtkCPDataDescription.h>
 //#include <vtkCPInputDataDescription.h>
 //#include <vtkCPProcessor.h>
@@ -36,8 +37,8 @@ static ImageReduction* gImageCompositor = nullptr;
 static vtkImageData* VTKGrid = NULL;
 static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
-static int gImageWidth = 2430;
-static int gImageHeight = 1180;
+static int gImageWidth  = 800; // 2430;
+static int gImageHeight = 600; // 1180;
 
 struct SaveImageArgs{
   ImageDescriptor imageDescriptor;
@@ -73,19 +74,22 @@ static void render_task(const Task *task,
 
   LogicalRegion dataRegion = data.get_logical_region();
   FieldSpace fspace = dataRegion.get_field_space();
-  RegionRequirement dataReq = task->regions[0];
+  RegionRequirement dataReq = task->regions[0]; // --> lr
   int rank = runtime->find_local_MPI_rank();
   char* argsPtr = (char*)task->args;
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
   Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
   int* timestep = (int*)(argsPtr + sizeof(ImageDescriptor) + sizeof(Camera));
 
-  printf("[render] RANK: %d TIMESTEP: %d ", rank, *timestep);
-  printf("RANK: %d TIMESTEP: %d ", rank, *timestep);
-
-  printf("Lo: %d %d %d Hi: %d %d %d\n",
+  printf("[render] RANK: %d TIMESTEP: %d\n"
+         "         Lo: %lld %lld %lld Hi: %lld %lld %lld\n"
+         "         Camera Up: %f %f %f, At: %f %f %f, From: %f %f %f\n", 
+         rank, *timestep,
          bounds.lo[0], bounds.lo[1], bounds.lo[2],
-         bounds.hi[0], bounds.hi[1], bounds.hi[2]);
+         bounds.hi[0], bounds.hi[1], bounds.hi[2],
+         camera->up[0],   camera->up[1],   camera->up[2],
+         camera->at[0],   camera->at[1],   camera->at[2],
+         camera->from[0], camera->from[1], camera->from[2]);
 
   // if(VTKGrid == NULL)
   // {
@@ -96,10 +100,10 @@ static void render_task(const Task *task,
   //   VTKGrid->SetSpacing(1000, 1000, 1000);
   //   VTKGrid->SetOrigin(bounds.lo[0], bounds.lo[1], bounds.lo[2]);
   // }
-
+  //
   // vtkNew<vtkCPDataDescription> dataDescription;
   // dataDescription->SetTimeData((*timestep)*0.1, *timestep);
-
+  //
   // for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
   //     it != dataReq.privilege_fields.end(); ++it)
   // {
@@ -108,7 +112,7 @@ static void render_task(const Task *task,
   //   runtime->retrieve_name(fspace, fid, field_name);
   //   dataDescription->AddInput(field_name);
   // }
-
+  //
   // if (VTKProcessor->RequestDataDescription(dataDescription.GetPointer()) != 0)
   // {
   //   for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
@@ -128,7 +132,7 @@ static void render_task(const Task *task,
   //         arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.get_volume()));
   //         VTKGrid->GetPointData()->AddArray(arr.GetPointer());
   //       }
-
+  //
   //       vtkDoubleArray* arr = vtkDoubleArray::SafeDownCast(VTKGrid->GetPointData()->GetArray(field_name));
   //       AccessorRO<double, 3> data_acc(data, *it);
   //       arr->SetArray(data_acc.ptr(bounds.lo), domain.get_volume(), 1);
@@ -138,20 +142,73 @@ static void render_task(const Task *task,
   //   VTKProcessor->CoProcess(dataDescription.GetPointer());
   // }
 
-  PNGImage *pngimage = new PNGImage();
-  std::stringstream ss;
-  ss << "rank" << rank << "/RenderView1_" << *timestep << ".png";
-  read_png_file(ss.str().c_str(), pngimage);
+  for (std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
+       it != dataReq.privilege_fields.end(); ++it)
+  {
+    FieldID fid = *it;
+    const char *field_name;
+    runtime->retrieve_name(fspace, fid, field_name);
+    printf("field name: %s\n", field_name);
 
-  ss.str(std::string());
-  ss.clear();
-  ss << "rank" << rank << "/z_buffer_" << *timestep << ".vti";
-  vtkXMLImageDataReader *reader = vtkXMLImageDataReader::New();
-  reader->SetFileName(ss.str().c_str());
-  reader->Update();
-  vtkImageData *buffer = reader->GetOutput();
-  vtkFloatArray *z_buf = vtkFloatArray::SafeDownCast(buffer->GetPointData()->GetArray(0));
+    AccessorRO<double, 3> data_access(data, *it);
+    const double* rawptr = data_access.ptr(bounds.lo);
 
+    size_t num_points = domain.get_volume(); // = size x * size y * size y
+    // printf("size = %lu\n", num_points);
+
+    // for (int i = 0; i < num_points; ++i) {
+    //   printf("%f ", rawptr[i]);
+    // }
+    // printf("\n");
+  }
+
+  // {
+  //   std::vector<legion_field_id_t> datafield;
+  //   lr.get_fields(datafield);
+  //   AccessorWO<ImageReduction::PixelField, 3> f0(lr, datafield[0]);
+  //   for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
+  //     f0[*pir] = ...
+  //   }
+  // }
+
+  /* retrieve RGBA channel and depth information */
+// #if 0
+//   PNGImage *pngimage = new PNGImage();
+//   std::stringstream ss;
+//   ss << "rank" << 0 /*rank*/ << "/RenderView1_" << *timestep << ".png";
+//   read_png_file(ss.str().c_str(), pngimage);
+//   ss.str(std::string());
+//   ss.clear();
+//   ss << "rank" << 0 /*rank*/ << "/z_buffer_" << *timestep << ".vti";
+//   vtkXMLImageDataReader *reader = vtkXMLImageDataReader::New();
+//   reader->SetFileName(ss.str().c_str());
+//   reader->Update();
+//   vtkImageData *buffer = reader->GetOutput();
+//   vtkFloatArray *z_buf = vtkFloatArray::SafeDownCast(buffer->GetPointData()->GetArray(0));
+// #endif
+
+  std::stringstream tilename;
+  // tilename << "tile-" << 7 - rank << ".dat"; 
+  tilename << "tile-" << rank << ".dat";
+  FILE* file = fopen(tilename.str().c_str(), "rb");
+  if (!file) {
+    fprintf(stderr, "fopen('%s', 'rb') failed: %d", tilename.str().c_str(),
+  	    errno);
+    return;
+  }
+  int width, height;
+  fscanf(file, "P6\n%i %i\n255\n", &width, &height);
+  uint8_t* pixels = new uint8_t[width * height * 4];
+  for (int y = 0; y < height; y++) {
+    unsigned char* in = &pixels[4 * (height - 1 - y) * width];
+    fread(in, sizeof(char), 4 * width, file);
+  }
+  float depth;
+  fscanf(file, "\nDEPTH\n%f\n", &depth);
+  fclose(file);
+  // std::cout << rank << " w " << width << " h " << height << " d " << depth << std::endl;
+ 
+  /* put them together */
   std::vector<legion_field_id_t> imageFields;
   image.get_fields(imageFields);
   AccessorWO<ImageReduction::PixelField, 3> r(image, imageFields[0]);
@@ -166,17 +223,17 @@ static void render_task(const Task *task,
 
   for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
     DomainPoint point(*pir);
-    int y = pngimage->height - point[1] - 1;
+    int y = point[1];
     int x = point[0];
-    r[*pir] = pngimage->R(x, y) / 255.f;
-    g[*pir] = pngimage->G(x, y) / 255.f;
-    b[*pir] = pngimage->B(x, y) / 255.f;
-    a[*pir] = 0.5f; //pngimage->A(x, y) / 255.f;
-    z[*pir] = *(z_buf->GetTuple(x * gImageHeight + point[1]));
-    u[*pir] = 0; // user defined channel, unused
+    a[*pir] = pixels[4 * (gImageWidth * y + x) + 3] / 255.f;
+    r[*pir] = pixels[4 * (gImageWidth * y + x) + 0] / 255.f;// * a[*pir];
+    g[*pir] = pixels[4 * (gImageWidth * y + x) + 1] / 255.f;// * a[*pir];
+    b[*pir] = pixels[4 * (gImageWidth * y + x) + 2] / 255.f;// * a[*pir];
+    z[*pir] = 0;
+    u[*pir] = 0;
   }
 
-  delete pngimage;
+  //  delete pngimage;
 }
 
 static int save_image_task(const Task *task,
@@ -214,6 +271,8 @@ static int save_image_task(const Task *task,
   ImageReduction::PixelField* GG = (ImageReduction::PixelField*)g.ptr(*pir);
   ImageReduction::PixelField* RR = (ImageReduction::PixelField*)r.ptr(*pir);
   ImageReduction::PixelField* AA = (ImageReduction::PixelField*)a.ptr(*pir);
+  
+  // TODO scale premultiplied RGB back ...
 
   write_png_file(filename, imageDescriptor.width, imageDescriptor.height,
                  RR, GG, BB, AA);
@@ -349,7 +408,8 @@ void cxx_reduce(legion_context_t ctx_,
 {
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
   ImageReduction* compositor = gImageCompositor;
-  compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  // Cf * af + (1-af) * Cb * ab
+  compositor->set_blend_func(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
   compositor->set_blend_equation(GL_FUNC_ADD);
 
   float cameraDirection[] = {
