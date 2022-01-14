@@ -20,6 +20,11 @@ find_package(MPI REQUIRED)
 find_package(PNG REQUIRED)
 #find_package(VTK COMPONENTS VTK::IOXML)
 find_package(VTK COMPONENTS IOXML)
+find_package(ospray 2.0 REQUIRED)
+
+#add_library(vis_ospray render_ospray.cpp)
+#target_link_libraries(vis_ospray ospray::ospray)
+#set_property(TARGET vis_ospray PROPERTY CXX_STANDARD 17)
 
 set(CMAKE_CXX_FLAGS "-fpermissive")
 

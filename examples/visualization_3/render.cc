@@ -24,6 +24,8 @@
 #include <vtkImageData.h>
 #include <vtkXMLImageDataReader.h>
 
+#include "s3d_projection.h"
+
 #define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
 
 using ImageReduction = Legion::Visualization::ImageReduction;
@@ -75,7 +77,14 @@ static void render_task(const Task *task,
   LogicalRegion dataRegion = data.get_logical_region();
   FieldSpace fspace = dataRegion.get_field_space();
   RegionRequirement dataReq = task->regions[0]; // --> lr
+
   int rank = runtime->find_local_MPI_rank();
+
+  if (!task->regions[2].region.exists()) {
+    printf("[render] RANK: %d NOT EXIST\n", rank);
+  }
+  RegionRequirement ghostReq = task->regions[2];
+
   char* argsPtr = (char*)task->args;
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
   Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
@@ -153,14 +162,18 @@ static void render_task(const Task *task,
     AccessorRO<double, 3> data_access(data, *it);
     const double* rawptr = data_access.ptr(bounds.lo);
 
-    size_t num_points = domain.get_volume(); // = size x * size y * size y
-    // printf("size = %lu\n", num_points);
+    // AccessorRO<double, 3> data_access(regions[2], *it);
+
+    //size_t num_points = domain.get_volume(); // = size x * size y * size y
+    //printf("size = %lu\n", num_points);
 
     // for (int i = 0; i < num_points; ++i) {
     //   printf("%f ", rawptr[i]);
     // }
     // printf("\n");
   }
+
+  /* ghost regions */
 
   // {
   //   std::vector<legion_field_id_t> datafield;
@@ -311,6 +324,24 @@ void cxx_preinitialize()
     .add_layout_constraint_set(0/*index*/, soa_layout_id);
   Runtime::preregister_task_variant<int, save_image_task>(registrarSaveImage,
                                                           "save_image_task");
+  // preregister projection functors (non periodic)
+  //const Rect<3> projection_bounds(Point<3>(0,0,0), proc_grid_size - Point<3>(1,1,1));
+  const Rect<3> projection_bounds(Point<3>(0,0,0), /*TODO ???*/Point<3>(0,7,0));
+
+  Runtime::preregister_projection_functor(PROJECT_X_PLUS,
+    new StencilProjectionFunctor<0,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_X_MINUS,
+    new StencilProjectionFunctor<0,false/*plus*/,false/*periodic*/>(projection_bounds));
+
+  Runtime::preregister_projection_functor(PROJECT_Y_PLUS,
+    new StencilProjectionFunctor<1,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Y_MINUS,
+    new StencilProjectionFunctor<1,false/*plus*/,false/*periodic*/>(projection_bounds));
+
+  Runtime::preregister_projection_functor(PROJECT_Z_PLUS,
+    new StencilProjectionFunctor<2,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Z_MINUS,
+    new StencilProjectionFunctor<2,false/*plus*/,false/*periodic*/>(projection_bounds));
 }
 
 // this entry point is called once from the main task
@@ -364,7 +395,6 @@ void cxx_render(legion_runtime_t runtime_,
                 int timestep)
 {
   // Unwrap objects
-
   Runtime *runtime = CObjectWrapper::unwrap(runtime_);
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
 
@@ -399,6 +429,22 @@ void cxx_render(legion_runtime_t runtime_,
   req1.add_field(ImageReduction::FID_FIELD_Z);
   req1.add_field(ImageReduction::FID_FIELD_USERDATA);
   renderLauncher.add_region_requirement(req1);
+  
+  RegionRequirement req2(imageDescriptor.simulationLogicalPartition, PROJECT_X_MINUS, READ_ONLY, EXCLUSIVE, 
+			 imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
+  RegionRequirement req3(imageDescriptor.simulationLogicalPartition, PROJECT_Y_MINUS, READ_ONLY, EXCLUSIVE, 
+			 imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
+
+  for(int i = 0; i < imageDescriptor.numPFields; ++i) {
+    req2.add_field(imageDescriptor.pFields[i]);
+  }
+
+  for(int i = 0; i < imageDescriptor.numPFields; ++i) {
+    req3.add_field(imageDescriptor.pFields[i]);
+  }
+
+  renderLauncher.add_region_requirement(req2);
+  renderLauncher.add_region_requirement(req3);
 
   runtime->execute_index_space(ctx, renderLauncher);
 }

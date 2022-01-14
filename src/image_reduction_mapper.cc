@@ -464,10 +464,17 @@ using namespace Mapping ;
         constraints.add_constraint(FieldConstraint(req.privilege_fields, false /*contiguous*/, false /*inorder*/));
         PhysicalInstance inst;
         bool created;
-        bool ok = runtime->find_or_create_physical_instance(
-          ctx, target_mem, constraints, std::vector<LogicalRegion>{req.region}, inst, created);
-        assert(ok);
-        output.chosen_instances[i].push_back(inst);
+
+	if (req.privilege == NO_ACCESS) {
+	  output.chosen_instances[i].push_back(Legion::Mapping::PhysicalInstance::get_virtual_instance());
+	}
+	else {
+          bool ok = runtime->find_or_create_physical_instance(
+            ctx, target_mem, constraints, std::vector<LogicalRegion>{req.region}, inst, created);
+          assert(ok);
+          output.chosen_instances[i].push_back(inst);
+	}
+
       }
     }
 
