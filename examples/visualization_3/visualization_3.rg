@@ -43,13 +43,15 @@ struct Fields {
   TEMP : double
 }
 
+local sqrt = regentlib.sqrt(double)
+
 task perform_time_step(lr : region(ispace(int3d), Fields))
 where
   reads writes(lr)
 do
   for idx in lr.ispace do
     -- lr[idx].TEMP = c.drand48()
-    lr[idx].TEMP += 10
+    lr[idx].TEMP = sqrt(idx.x * idx.x + idx.y * idx.y + idx.z * idx.z)
   end
 
   -- c.printf("STEP: %d COLOR: %d %d %d Lo: %d %d %d Hi: %d %d %d\n",
@@ -75,8 +77,8 @@ task main()
   render.legion_wait_on_mpi();
 
   var global_grid_size = int3d{16, 32, 16}
-  var proc_grid_size = int3d{1, 8, 1}
-  -- var proc_grid_size = int3d{2, 2, 2}
+  -- var proc_grid_size = int3d{1, 8, 1}
+  var proc_grid_size = int3d{2, 2, 2}
 
   var is_grid = ispace(int3d, global_grid_size)
   var blocking_factor = global_grid_size / proc_grid_size
@@ -95,6 +97,7 @@ task main()
   for color in is_rank do
     var lr = lp_int_rank[color]
     fill(lr.{TEMP}, 1.0)
+    c.printf("rank = %i,%i,%i\n", color.x, color.y, color.z)
   end
 
   initializeVisualization(lr_int, lp_int_rank)

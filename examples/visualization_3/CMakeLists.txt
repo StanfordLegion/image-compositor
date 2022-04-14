@@ -22,10 +22,10 @@ find_package(PNG REQUIRED)
 find_package(VTK COMPONENTS IOXML)
 find_package(ospray 2.0 REQUIRED)
 
-#add_library(vis_ospray render_ospray.cpp)
-#target_link_libraries(vis_ospray ospray::ospray)
-#set_property(TARGET vis_ospray PROPERTY CXX_STANDARD 17)
 
+add_subdirectory(ovr)
+
+set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fpermissive")
 
 add_custom_target(run ALL
@@ -58,6 +58,7 @@ INTERFACE
   VTK::PythonUsed
 
 PRIVATE
+  renderlib
   #ParaView::PythonCatalyst
   VTK::CommonDataModel
   ${VTK_LIBRARIES}
