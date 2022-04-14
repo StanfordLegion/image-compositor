@@ -22,7 +22,6 @@ find_package(PNG REQUIRED)
 find_package(VTK COMPONENTS IOXML)
 find_package(ospray 2.0 REQUIRED)
 
-
 add_subdirectory(ovr)
 
 set (CMAKE_CXX_STANDARD 17)

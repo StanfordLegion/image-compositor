@@ -25,7 +25,7 @@ namespace Legion {
     static const int image_region_dimensions = 3;//(width x height) x layerID
     static const int max_pFields = 32; // max fields in the simulation region
 
-    typedef struct {
+    struct ImageDescriptor {
       int width;
       int height;
       int numImageLayers;
@@ -73,7 +73,7 @@ namespace Legion {
         return std::string(buffer);
       }
 
-    } ImageDescriptor;
+    };
 
   }
 }

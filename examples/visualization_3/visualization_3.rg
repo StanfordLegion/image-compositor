@@ -76,7 +76,7 @@ __demand(__replicable) __forbid(__inner)
 task main()
   render.legion_wait_on_mpi();
 
-  var global_grid_size = int3d{16, 32, 16}
+  var global_grid_size = int3d{16, 16, 16}
   -- var proc_grid_size = int3d{1, 8, 1}
   var proc_grid_size = int3d{2, 2, 2}
 
@@ -113,12 +113,19 @@ task main()
   -- camera.up[1] = 0.9723340719573909
   -- camera.up[2] = -0.2294840237309149
 
-  camera.from[0] = 0.0
-  camera.from[1] = 1000000.0
+  -- camera.from[0] = 20.0
+  -- camera.from[1] = 20.0
+  -- camera.from[2] = 20.0
+  -- camera.from[0] = -5.0
+  -- camera.from[1] = -5.0
+  -- camera.from[2] = -5.0
+  camera.from[0] = 8.0
+  camera.from[1] = -20.0
   camera.from[2] = 0.0
-  camera.at[0] = 0.0
-  camera.at[1] = 0.0
-  camera.at[2] = 0.0
+
+  camera.at[0] = 8.0
+  camera.at[1] = 8.0
+  camera.at[2] = 8.0
   camera.up[0] = 0.0
   camera.up[1] = 0.0
   camera.up[2] = 1.0

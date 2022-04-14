@@ -152,19 +152,19 @@ public:
 /*       } */
 /*     } */
 
-/* #if 1 */
-/*     { */
-/*       struct utsname buf; uname(&buf); Legion::Point<3> dp = point; */
-/*       printf("PROJECT: %d PLUS: %d NODE: %s COLOR: %lld %lld %lld POINT: %lld %lld %lld\n", */
-/*              DIM, PLUS, buf.nodename, dp[0], dp[1], dp[2], p[0], p[1], p[2]); */
-/*     } */
-/* #endif */
+#if 0
+    {
+      struct utsname buf; uname(&buf); Legion::Point<3> dp = point;
+      printf("PROJECT: %d PLUS: %d NODE: %s COLOR: %lld %lld %lld POINT: %lld %lld %lld\n",
+             DIM, PLUS, buf.nodename, dp[0], dp[1], dp[2], p[0], p[1], p[2]);
+    }
+#endif
 
     LogicalRegion<3> rank = runtime->get_logical_subregion_by_color(LogicalPartition<3>(upper_bound), p);
     return rank;
 
-    //LogicalPartition<3> part = runtime->get_logical_partition_by_color(rank, PID_X + DIM);
-    //return runtime->get_logical_subregion_by_color(part, Legion::Point<1>(PLUS ? PCLR_XYZLO : PCLR_XYZHI));
+    // LogicalPartition<3> part = runtime->get_logical_partition_by_color(rank, PID_X + DIM);
+    // return runtime->get_logical_subregion_by_color(part, Legion::Point<1>(PLUS ? PCLR_XYZLO : PCLR_XYZHI));
   }
 
   virtual bool is_functional(void) const { return true; }
