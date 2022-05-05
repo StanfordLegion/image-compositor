@@ -31,7 +31,7 @@ static void create_mappers(Legion::Machine machine,
   for (Legion::Processor proc : local_procs) {
     rt->replace_default_mapper(new Visualization_3_Mapper(rt, machine, proc), proc);
     ImageReductionMapper* irMapper =
-    new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+      new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
     rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
   }
 }

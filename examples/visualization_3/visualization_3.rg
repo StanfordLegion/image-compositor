@@ -113,15 +113,15 @@ task main()
   -- camera.up[1] = 0.9723340719573909
   -- camera.up[2] = -0.2294840237309149
 
-  -- camera.from[0] = 20.0
-  -- camera.from[1] = 20.0
-  -- camera.from[2] = 20.0
-  -- camera.from[0] = -5.0
-  -- camera.from[1] = -5.0
-  -- camera.from[2] = -5.0
-  camera.from[0] = 8.0
-  camera.from[1] = -20.0
-  camera.from[2] = 0.0
+  --camera.from[0] = 20.0
+  --camera.from[1] = 20.0
+  --camera.from[2] = 20.0
+  --camera.from[0] = -5.0
+  --camera.from[1] = -5.0
+  --camera.from[2] = -5.0
+  camera.from[0] = -20.0
+  camera.from[1] = 8.0
+  camera.from[2] = 8.0
 
   camera.at[0] = 8.0
   camera.at[1] = 8.0
