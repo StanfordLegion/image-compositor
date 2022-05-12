@@ -51,7 +51,7 @@ where
 do
   for idx in lr.ispace do
     -- lr[idx].TEMP = c.drand48()
-    lr[idx].TEMP = sqrt(idx.x * idx.x + idx.y * idx.y + idx.z * idx.z)
+    lr[idx].TEMP = sqrt(idx.x * idx.x + idx.y * idx.y + idx.z * idx.z) / sqrt(128 * 128 * 3)
   end
 
   -- c.printf("STEP: %d COLOR: %d %d %d Lo: %d %d %d Hi: %d %d %d\n",
@@ -76,8 +76,9 @@ __demand(__replicable) __forbid(__inner)
 task main()
   render.legion_wait_on_mpi();
 
-  var global_grid_size = int3d{16, 16, 16}
+  var global_grid_size = int3d{128, 128, 128}
   -- var proc_grid_size = int3d{1, 8, 1}
+  -- var proc_grid_size = int3d{8, 1, 1}
   var proc_grid_size = int3d{2, 2, 2}
 
   var is_grid = ispace(int3d, global_grid_size)
@@ -119,13 +120,21 @@ task main()
   --camera.from[0] = -5.0
   --camera.from[1] = -5.0
   --camera.from[2] = -5.0
-  camera.from[0] = -20.0
-  camera.from[1] = 8.0
-  camera.from[2] = 8.0
+  --camera.from[0] = 40.0
+  --camera.from[1] = 40.0
+  --camera.from[2] = 40.0
 
-  camera.at[0] = 8.0
-  camera.at[1] = 8.0
-  camera.at[2] = 8.0
+  camera.from[0] = global_grid_size.x * 5
+  camera.from[1] = global_grid_size.y * 5
+  camera.from[2] = global_grid_size.z * 5
+
+  --camera.from[0] = global_grid_size.x / 2
+  --camera.from[1] = global_grid_size.y / 2 * 10
+  --camera.from[2] = global_grid_size.z / 2
+
+  camera.at[0] = global_grid_size.x / 2
+  camera.at[1] = global_grid_size.y / 2
+  camera.at[2] = global_grid_size.z / 2
   camera.up[0] = 0.0
   camera.up[1] = 0.0
   camera.up[2] = 1.0

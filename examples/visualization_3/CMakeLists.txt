@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(visualization_3)
+project(visualization_3 LANGUAGES C CXX )
 
 set(Legion_DIR $ENV{LG_RT_DIR}/../language/build)
 
@@ -22,7 +22,9 @@ find_package(PNG REQUIRED)
 find_package(VTK COMPONENTS IOXML)
 find_package(ospray 2.0 REQUIRED)
 
-add_subdirectory(ovr)
+add_subdirectory(ovr EXCLUDE_FROM_ALL)
+# include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
+# include_directories(${OptiX_INCLUDE})
 
 set (CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fpermissive")

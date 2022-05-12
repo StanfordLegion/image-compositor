@@ -10,6 +10,7 @@
 
 #include <sstream>
 #include <cstdio>
+
 // #include <vtkCPDataDescription.h>
 // #include <vtkCPInputDataDescription.h>
 // #include <vtkCPProcessor.h>
@@ -26,7 +27,7 @@
 
 #include "s3d_projection.h"
 
-#include "common/imageio.h"
+// #include "common/imageio.h"
 #include "renderer.h"
 
 #define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
@@ -35,15 +36,18 @@ using ImageReduction = Legion::Visualization::ImageReduction;
 using ImageDescriptor = Legion::Visualization::ImageDescriptor;
 using namespace Legion;
 
+// static vtkCPProcessor* VTKProcessor = NULL;
+// static vtkImageData* VTKGrid = NULL;
+
 // global data
 Legion::MapperID imageReductionMapperID = 1;
 static ImageReduction* gImageCompositor = nullptr;
-// static vtkCPProcessor* VTKProcessor = NULL;
-// static vtkImageData* VTKGrid = NULL;
 static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
-static int gImageWidth  = 800; // 2430;
-static int gImageHeight = 600; // 1180;
+static int gImageWidth  = 800;
+static int gImageHeight = 600;
+static int ovrArgc = 1;
+static const char* ovrArgv = "ovr";
 
 struct SaveImageArgs {
   ImageDescriptor imageDescriptor;
@@ -57,6 +61,8 @@ struct SaveImageArgs {
   {};
 };
 
+struct Vec3i { int x, y, z; };
+
 void legion_wait_on_mpi()
 {
   handshake.legion_wait_on_mpi();
@@ -65,6 +71,36 @@ void legion_wait_on_mpi()
 void legion_handoff_to_mpi()
 {
   handshake.legion_handoff_to_mpi();
+}
+
+auto IsRegionExists(const RegionRequirement& req) -> bool {
+  return req.region.exists();
+}
+
+auto GetSize(const Legion::Rect<3>& rect) -> size_t {
+  return size_t(rect.hi[0] - rect.lo[0] + 1) * size_t(rect.hi[1] - rect.lo[1] + 1) * size_t(rect.hi[2] - rect.lo[2] + 1);
+}
+
+auto GetDimensions(const Legion::Rect<3>& rect) -> Vec3i {
+  Vec3i strides;
+  strides.x = rect.hi[0] - rect.lo[0] + 1;
+  strides.y = rect.hi[1] - rect.lo[1] + 1;
+  strides.z = rect.hi[2] - rect.lo[2] + 1;
+  return strides;
+}
+
+auto CopyData3D(const double* _src, double* _dst, Legion::Rect<3> src_ext, Legion::Rect<3> dst_ext, Vec3i src_dim, Vec3i dst_dim)
+{
+  assert(GetSize(src_ext) == GetSize(dst_ext));
+  for (int z = 0; z < src_ext.hi[2] - src_ext.lo[2] + 1; ++z) {
+    for (int y = 0; y < src_ext.hi[1] - src_ext.lo[1] + 1; ++y) {
+      const double* src = _src + src_ext.lo[0] + size_t(y + src_ext.lo[1]) * src_dim.x + size_t(z + src_ext.lo[2]) * src_dim.x * src_dim.y;
+      double* dst = _dst + dst_ext.lo[0] + size_t(y + dst_ext.lo[1]) * dst_dim.x + size_t(z + dst_ext.lo[2]) * dst_dim.x * dst_dim.y;
+      const size_t num_elements =  src_ext.hi[0] - src_ext.lo[0] + 1;
+      assert(num_elements == dst_ext.hi[0] - dst_ext.lo[0] + 1);
+      memcpy(dst, src, sizeof(double) * num_elements);
+    }
+  }
 }
 
 static void render_task(const Task *task,
@@ -91,7 +127,6 @@ static void render_task(const Task *task,
   RegionRequirement gReqYp = task->regions[5];
   RegionRequirement gReqZm = task->regions[6];
   RegionRequirement gReqZp = task->regions[7];
-
   PhysicalRegion gDataXm = regions[2];
   PhysicalRegion gDataXp = regions[3];
   PhysicalRegion gDataYm = regions[4];
@@ -153,148 +188,144 @@ static void render_task(const Task *task,
   //         vtkNew<vtkDoubleArray> arr;
   //         arr->SetName(field_name);
   //         arr->SetNumberOfComponents(1);
-  //         arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.get_volume()));
+  //         arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.GetSize()));
   //         VTKGrid->GetPointData()->AddArray(arr.GetPointer());
   //       }
   //
   //       vtkDoubleArray* arr = vtkDoubleArray::SafeDownCast(VTKGrid->GetPointData()->GetArray(field_name));
   //       AccessorRO<double, 3> data_acc(data, *it);
-  //       arr->SetArray(data_acc.ptr(bounds.lo), domain.get_volume(), 1);
+  //       arr->SetArray(data_acc.ptr(bounds.lo), domain.GetSize(), 1);
   //     }
   //     idd->SetGrid(VTKGrid);
   //   }
   //   VTKProcessor->CoProcess(dataDescription.GetPointer());
   // }
 
-  auto get_region_domain = [&] (PhysicalRegion& r) -> Domain {
+  const auto GetRegionDomain = [&] (const PhysicalRegion& r) -> Domain {
     return runtime->get_index_space_domain(ctx, r.get_logical_region().get_index_space());
   };
 
-  const auto is_region_exists = [] (RegionRequirement& req) -> bool {
-    return req.region.exists();
-  };
+  Legion::Rect<3> boundsWithGhosts;
+  boundsWithGhosts.lo[0] = IsRegionExists(gReqXm) ? bounds.lo[0] - 1 : bounds.lo[0];
+  boundsWithGhosts.hi[0] = IsRegionExists(gReqXp) ? bounds.hi[0] + 0 : bounds.hi[0];
+  boundsWithGhosts.lo[1] = IsRegionExists(gReqYm) ? bounds.lo[1] - 1 : bounds.lo[1];
+  boundsWithGhosts.hi[1] = IsRegionExists(gReqYp) ? bounds.hi[1] + 0 : bounds.hi[1];
+  boundsWithGhosts.lo[2] = IsRegionExists(gReqZm) ? bounds.lo[2] - 1 : bounds.lo[2];
+  boundsWithGhosts.hi[2] = IsRegionExists(gReqZp) ? bounds.hi[2] + 0 : bounds.hi[2];
+  const Vec3i dimsWithGhosts = GetDimensions(boundsWithGhosts);
 
-  const auto get_volume = [] (Legion::Rect<3>& rect) -> size_t {
-    return size_t(rect.hi[0] - rect.lo[0] + 1) * size_t(rect.hi[1] - rect.lo[1] + 1) * size_t(rect.hi[2] - rect.lo[2] + 1);
-  };
-
-  Legion::Rect<3> newBounds;
-  newBounds.lo[0] = is_region_exists(gReqXm) ? bounds.lo[0] - 1 : bounds.lo[0];
-  newBounds.hi[0] = is_region_exists(gReqXp) ? bounds.hi[0] + 1 : bounds.hi[0];
-  newBounds.lo[1] = is_region_exists(gReqYm) ? bounds.lo[1] - 1 : bounds.lo[1];
-  newBounds.hi[1] = is_region_exists(gReqYp) ? bounds.hi[1] + 1 : bounds.hi[1];
-  newBounds.lo[2] = is_region_exists(gReqZm) ? bounds.lo[2] - 1 : bounds.lo[2];
-  newBounds.hi[2] = is_region_exists(gReqZp) ? bounds.hi[2] + 1 : bounds.hi[2];
-
-  Legion::Rect<3> relativeBounds;
-  relativeBounds.lo[0] = bounds.lo[0] - newBounds.lo[0];
-  relativeBounds.hi[0] = bounds.hi[0] - newBounds.lo[0];
-  relativeBounds.lo[1] = bounds.lo[1] - newBounds.lo[1];
-  relativeBounds.hi[1] = bounds.hi[1] - newBounds.lo[1];
-  relativeBounds.lo[2] = bounds.lo[2] - newBounds.lo[2];
-  relativeBounds.hi[2] = bounds.hi[2] - newBounds.lo[2];
-
-  size_t numVoxels = 
-    size_t(newBounds.hi[0] - newBounds.lo[0] + 1) * 
-    size_t(newBounds.hi[1] - newBounds.lo[1] + 1) * 
-    size_t(newBounds.hi[2] - newBounds.lo[2] + 1);
-  printf("rank: %d, num Voxels: %zu\n", rank, numVoxels);
-
-  struct Vec3i { int x, y, z; };
-  Vec3i dst_dim;
-  dst_dim.x = newBounds.hi[0] - newBounds.lo[0] + 1;
-  dst_dim.y = newBounds.hi[1] - newBounds.lo[1] + 1;
-  dst_dim.z = newBounds.hi[2] - newBounds.lo[2] + 1;
-
-  auto copy_data_3d = [&] (const double* _src, double* _dst,
-			   Legion::Rect<3> src_ext, Legion::Rect<3> dst_ext,
-			   Vec3i src_dim, Vec3i dst_dim)
-    {
-      assert(get_volume(src_ext) == get_volume(dst_ext));
-      for (int z = 0; z < src_ext.hi[2] - src_ext.lo[2] + 1; ++z) {
-        for (int y = 0; y < src_ext.hi[1] - src_ext.lo[1] + 1; ++y) {
-          const double* src = _src + src_ext.lo[0] + size_t(y + src_ext.lo[1]) * src_dim.x + size_t(z + src_ext.lo[2]) * src_dim.x * src_dim.y;
-          double* dst = _dst + dst_ext.lo[0] + size_t(y + dst_ext.lo[1]) * dst_dim.x + size_t(z + dst_ext.lo[2]) * dst_dim.x * dst_dim.y;
-          size_t num_elements =  src_ext.hi[0] - src_ext.lo[0] + 1;
-          assert(num_elements == dst_ext.hi[0] - dst_ext.lo[0] + 1);
-          memcpy(dst, src, sizeof(double) * num_elements);
-        }
-      }
-    };
+  const size_t totalNumVoxels = GetSize(boundsWithGhosts);
+  printf("rank: %d, num Voxels: %zu\n", rank, totalNumVoxels);
 
   /* allocate new data for rendering */
   assert(dataReq.privilege_fields.size() == 1);
-  std::shared_ptr<char[]> newData(new char[sizeof(double) * numVoxels]);
+  std::shared_ptr<char[]> dataWithGhost(new char[sizeof(double) * totalNumVoxels]);
+
+  const auto CopyGhostLo = [GetRegionDomain, dimsWithGhosts, boundsWithGhosts] (std::set<FieldID>::iterator& it, double* dst, int axis, PhysicalRegion& ghost_data)
+  {
+    const Domain ghost_domain = GetRegionDomain(ghost_data);
+    const Legion::Rect<3> ghost_bounds = ghost_domain;
+
+    AccessorRO<double, 3> dataAccess(ghost_data, *it);
+    const double* rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+
+    Legion::Rect<3> src_ext;
+    src_ext.hi[axis] = src_ext.lo[axis] = ghost_bounds.hi[axis] - ghost_bounds.lo[axis];
+    for (int a = 0; a < 3; ++a) {
+      if (a == axis) continue;
+      src_ext.lo[a] = 0;
+      src_ext.hi[a] = ghost_bounds.hi[a] - ghost_bounds.lo[a];
+    }
+
+    const Vec3i src_dim = GetDimensions(ghost_bounds);
+
+    Legion::Rect<3> dst_ext;
+    dst_ext.lo[axis] = ghost_bounds.hi[axis] - boundsWithGhosts.lo[axis];
+    dst_ext.hi[axis] = ghost_bounds.hi[axis] - boundsWithGhosts.lo[axis];
+    for (int a = 0; a < 3; ++a) {
+      if (a == axis) continue;
+      dst_ext.lo[a] = ghost_bounds.lo[a] - boundsWithGhosts.lo[a];
+      dst_ext.hi[a] = ghost_bounds.hi[a] - boundsWithGhosts.lo[a];
+    }
+
+    CopyData3D(rawptr, dst, src_ext, dst_ext, src_dim, dimsWithGhosts);
+  };
 
   int index = 0;
   for (std::set<FieldID>::iterator it = dataReq.privilege_fields.begin(); it != dataReq.privilege_fields.end(); ++it, ++index)
   {
     FieldID fid = *it;
-    const char *field_name;
-    runtime->retrieve_name(fspace, fid, field_name);
-    printf("field name: %s\n", field_name);
+
+    const char *fieldName;
+    runtime->retrieve_name(fspace, fid, fieldName);
+    printf("field name: %s\n", fieldName);
 
     /* copy the main domain */
     {
-      AccessorRO<double, 3> data_access(data, *it);
-      const double* rawptr = data_access.ptr(bounds.lo);
+      AccessorRO<double, 3> dataAccess(data, *it);
+      const double* rawptr = dataAccess.ptr(bounds.lo);
 
-      Legion::Rect<3> src_ext;
-      src_ext.lo[0] = src_ext.lo[1] = src_ext.lo[2] = 0;
-      src_ext.hi[0] = bounds.hi[0] - bounds.lo[0];
-      src_ext.hi[1] = bounds.hi[1] - bounds.lo[1];
-      src_ext.hi[2] = bounds.hi[2] - bounds.lo[2];
-      Vec3i src_dim;
-      src_dim.x = src_ext.hi[0] + 1;
-      src_dim.y = src_ext.hi[1] + 1;
-      src_dim.z = src_ext.hi[2] + 1;
+      Legion::Rect<3> srcExt;
+      srcExt.lo[0] = srcExt.lo[1] = srcExt.lo[2] = 0;
+      srcExt.hi[0] = bounds.hi[0] - bounds.lo[0];
+      srcExt.hi[1] = bounds.hi[1] - bounds.lo[1];
+      srcExt.hi[2] = bounds.hi[2] - bounds.lo[2];
+      const Vec3i srcDim = GetDimensions(bounds);
 
-      copy_data_3d(rawptr, (double*)newData.get() + index * numVoxels, src_ext, relativeBounds, src_dim, dst_dim);
-    }
+      Legion::Rect<3> dstExt;
+      dstExt.lo[0] = bounds.lo[0] - boundsWithGhosts.lo[0];
+      dstExt.hi[0] = bounds.hi[0] - boundsWithGhosts.lo[0];
+      dstExt.lo[1] = bounds.lo[1] - boundsWithGhosts.lo[1];
+      dstExt.hi[1] = bounds.hi[1] - boundsWithGhosts.lo[1];
+      dstExt.lo[2] = bounds.lo[2] - boundsWithGhosts.lo[2];
+      dstExt.hi[2] = bounds.hi[2] - boundsWithGhosts.lo[2];
 
-    if (!is_region_exists(gReqXm)) { printf("[render] RANK: %d X_MINUS NOT EXIST\n", rank); } else {
-      Domain gDomainXm = get_region_domain(gDataXm); printf("[render] RANK: %d X_MINUS size = %lu\n", rank, gDomainXm.get_volume());
-    }
-    if (!is_region_exists(gReqXp)) { printf("[render] RANK: %d X_PLUS  NOT EXIST\n", rank); } else {
-      Domain gDomainXp = get_region_domain(gDataXp); printf("[render] RANK: %d X_PLUS  size = %lu\n", rank, gDomainXp.get_volume());
-    }
-    if (!is_region_exists(gReqYm)) { printf("[render] RANK: %d Y_MINUS NOT EXIST\n", rank); } else {
-      Domain gDomainYm = get_region_domain(gDataYm); printf("[render] RANK: %d Y_MINUS size = %lu\n", rank, gDomainYm.get_volume());
-    }
-    if (!is_region_exists(gReqYp)) { printf("[render] RANK: %d Y_PLUS  NOT EXIST\n", rank); } else {
-      Domain gDomainYp = get_region_domain(gDataYp); printf("[render] RANK: %d Y_PLUS  size = %lu\n", rank, gDomainYp.get_volume());
-    }
-    if (!is_region_exists(gReqZm)) { printf("[render] RANK: %d Z_MINUS NOT EXIST\n", rank); } else {
-      Domain gDomainZm = get_region_domain(gDataZm); printf("[render] RANK: %d Z_MINUS size = %lu\n", rank, gDomainZm.get_volume());
-    }
-    if (!is_region_exists(gReqZp)) { printf("[render] RANK: %d Z_PLUS  NOT EXIST\n", rank); } else {
-      Domain gDomainZp = get_region_domain(gDataZp); printf("[render] RANK: %d Z_PLUS  size = %lu\n", rank, gDomainZp.get_volume());
+      CopyData3D(rawptr, (double*)dataWithGhost.get() + index * totalNumVoxels, srcExt, dstExt, srcDim, dimsWithGhosts);
     }
 
-    for (int i = 0; i < numVoxels; ++i) {
-      printf("%f ", ((double*)newData.get())[i]);
-    } printf("\n");
+    // if (!IsRegionExists(gReqXm)) { printf("[render] RANK: %d X_MINUS NOT EXIST\n", rank); } else {
+    //   Domain gDomainXm = GetRegionDomain(gDataXm); printf("[render] RANK: %d X_MINUS size = %lu\n", rank, gDomainXm.get_volume());
+    // }
+    // if (!IsRegionExists(gReqXp)) { printf("[render] RANK: %d X_PLUS  NOT EXIST\n", rank); } else {
+    //   Domain gDomainXp = GetRegionDomain(gDataXp); printf("[render] RANK: %d X_PLUS  size = %lu\n", rank, gDomainXp.get_volume());
+    // }
+    // if (!IsRegionExists(gReqYm)) { printf("[render] RANK: %d Y_MINUS NOT EXIST\n", rank); } else {
+    //   Domain gDomainYm = GetRegionDomain(gDataYm); printf("[render] RANK: %d Y_MINUS size = %lu\n", rank, gDomainYm.get_volume());
+    // }
+    // if (!IsRegionExists(gReqYp)) { printf("[render] RANK: %d Y_PLUS  NOT EXIST\n", rank); } else {
+    //   Domain gDomainYp = GetRegionDomain(gDataYp); printf("[render] RANK: %d Y_PLUS  size = %lu\n", rank, gDomainYp.get_volume());
+    // }
+    // if (!IsRegionExists(gReqZm)) { printf("[render] RANK: %d Z_MINUS NOT EXIST\n", rank); } else {
+    //   Domain gDomainZm = GetRegionDomain(gDataZm); printf("[render] RANK: %d Z_MINUS size = %lu\n", rank, gDomainZm.get_volume());
+    // }
+    // if (!IsRegionExists(gReqZp)) { printf("[render] RANK: %d Z_PLUS  NOT EXIST\n", rank); } else {
+    //   Domain gDomainZp = GetRegionDomain(gDataZp); printf("[render] RANK: %d Z_PLUS  size = %lu\n", rank, gDomainZp.get_volume());
+    // }
+
+    if (IsRegionExists(gReqXm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 0, gDataXm);
+    if (IsRegionExists(gReqYm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 1, gDataYm);
+    if (IsRegionExists(gReqZm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 2, gDataZm);
   }
 
   /* setup renderer */
   ovr::Scene scene;
   {
     ovr::array_3d_scalar_t output = std::make_shared<ovr::Array<3>>();
-    output->dims.x = dst_dim.x;
-    output->dims.y = dst_dim.y;
-    output->dims.z = dst_dim.z;
+    output->dims.x = dimsWithGhosts.x;
+    output->dims.y = dimsWithGhosts.y;
+    output->dims.z = dimsWithGhosts.z;
     output->type = ovr::VALUE_TYPE_DOUBLE;
-    output->acquire_data(std::move(newData));
+    output->acquire_data(std::move(dataWithGhost));
 
     ovr::scene::Volume volume;
     volume.type = ovr::scene::Volume::STRUCTURED_REGULAR_VOLUME;
     volume.structured_regular.data = output;
-    volume.structured_regular.grid_origin.x = newBounds.lo[0];
-    volume.structured_regular.grid_origin.y = newBounds.lo[1];
-    volume.structured_regular.grid_origin.z = newBounds.lo[2];
+    volume.structured_regular.grid_origin.x = boundsWithGhosts.lo[0];
+    volume.structured_regular.grid_origin.y = boundsWithGhosts.lo[1];
+    volume.structured_regular.grid_origin.z = boundsWithGhosts.lo[2];
 
     ovr::scene::TransferFunction tfn;
-    tfn.value_range = ovr::vec2f(0.f, 20.f);
+    tfn.value_range = ovr::vec2f(0.f, 1.f);
     tfn.color = ovr::CreateColorMap("diverging/RdBu");
     tfn.opacity = ovr::CreateArray1DScalar(std::vector<float>{ 0.f, 1.f });
 
@@ -308,7 +339,9 @@ static void render_task(const Task *task,
     instance.transform = ovr::affine3f::translate(ovr::vec3f(0));
 
     scene.instances.push_back(instance);
-    scene.spp = 8;
+
+    scene.spp = 1;
+    scene.volume_sampling_rate = 100.f;
   }
 
   ovr::Camera cam;
@@ -322,21 +355,18 @@ static void render_task(const Task *task,
   cam.at.y = camera->at[1];
   cam.at.z = camera->at[2];
 
-  static int ac = 1;
-  static const char* av = "ovr";
   static auto ren = create_renderer("ospray");
-  ren->init(ac, &av, scene, cam);
-  ren->set_fbsize(ovr::vec2i(gImageWidth, gImageHeight));
-  ren->set_sample_per_pixel(8);
+  ren->init(ovrArgc, &ovrArgv, scene, cam);
+
   ren->set_path_tracing(false);
+  ren->set_frame_accumulation(false); // frame accumulation gives artifacts
+  ren->set_fbsize(ovr::vec2i(gImageWidth, gImageHeight));
+
   ren->commit();
   ren->render();
 
   ovr::MainRenderer::FrameBufferData frame;
   ren->mapframe(&frame);
-
-  // ovr::save_image("input" + std::to_string(rank) + ".png", (ovr::vec4f*)frame.rgba->to_cpu()->data(),
-  //                 /**/ gImageWidth, gImageHeight);
 
   float* pixels = (float*)frame.rgba->to_cpu()->data();
 
@@ -401,7 +431,7 @@ static void render_task(const Task *task,
     u[*pir] = 0;
   }
 
-  //  delete pngimage;
+  // delete pngimage;
 }
 
 static int save_image_task(const Task *task,
@@ -489,25 +519,41 @@ void cxx_preinitialize()
     Point<3>(0,0,0),
     Point<3>(1,1,1)
     // Point<3>(0,7,0)
+    // Point<3>(7,0,0)
   );
 
-  Runtime::preregister_projection_functor(PROJECT_X_PLUS,  new StencilProjectionFunctor< 1,0,0,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_X_MINUS, new StencilProjectionFunctor<-1,0,0,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_X_PLUS,
+    new StencilProjectionFunctor<0,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_X_MINUS,
+    new StencilProjectionFunctor<0,false/*plus*/,false/*periodic*/>(projection_bounds));
 
-  Runtime::preregister_projection_functor(PROJECT_Y_PLUS,  new StencilProjectionFunctor<0, 1,0,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_Y_MINUS, new StencilProjectionFunctor<0,-1,0,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Y_PLUS,
+    new StencilProjectionFunctor<1,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Y_MINUS,
+    new StencilProjectionFunctor<1,false/*plus*/,false/*periodic*/>(projection_bounds));
 
-  Runtime::preregister_projection_functor(PROJECT_Z_PLUS,  new StencilProjectionFunctor<0,0, 1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_Z_MINUS, new StencilProjectionFunctor<0,0,-1,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Z_PLUS,
+    new StencilProjectionFunctor<2,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Z_MINUS,
+    new StencilProjectionFunctor<2,false/*plus*/,false/*periodic*/>(projection_bounds));
 
-  Runtime::preregister_projection_functor(PROJECT_CPPP, new StencilProjectionFunctor< 1, 1, 1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CPPM, new StencilProjectionFunctor< 1, 1,-1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CPMP, new StencilProjectionFunctor< 1,-1, 1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CPMM, new StencilProjectionFunctor< 1,-1,-1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CMPP, new StencilProjectionFunctor<-1, 1, 1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CMPM, new StencilProjectionFunctor<-1, 1,-1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CMMP, new StencilProjectionFunctor<-1,-1, 1,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_CMMM, new StencilProjectionFunctor<-1,-1,-1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_X_PLUS,  new StencilProjectionFunctor< 1,0,0,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_X_MINUS, new StencilProjectionFunctor<-1,0,0,false/*periodic*/>(projection_bounds));
+
+  // Runtime::preregister_projection_functor(PROJECT_Y_PLUS,  new StencilProjectionFunctor<0, 1,0,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_Y_MINUS, new StencilProjectionFunctor<0,-1,0,false/*periodic*/>(projection_bounds));
+
+  // Runtime::preregister_projection_functor(PROJECT_Z_PLUS,  new StencilProjectionFunctor<0,0, 1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_Z_MINUS, new StencilProjectionFunctor<0,0,-1,false/*periodic*/>(projection_bounds));
+
+  // Runtime::preregister_projection_functor(PROJECT_CPPP, new StencilProjectionFunctor< 1, 1, 1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CPPM, new StencilProjectionFunctor< 1, 1,-1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CPMP, new StencilProjectionFunctor< 1,-1, 1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CPMM, new StencilProjectionFunctor< 1,-1,-1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CMPP, new StencilProjectionFunctor<-1, 1, 1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CMPM, new StencilProjectionFunctor<-1, 1,-1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CMMP, new StencilProjectionFunctor<-1,-1, 1,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_CMMM, new StencilProjectionFunctor<-1,-1,-1,false/*periodic*/>(projection_bounds));
 }
 
 // this entry point is called once from the main task
@@ -624,8 +670,7 @@ void cxx_render(legion_runtime_t runtime_,
   runtime->execute_index_space(ctx, renderLauncher);
 }
 
-void cxx_reduce(legion_context_t ctx_,
-                Camera camera)
+void cxx_reduce(legion_context_t ctx_, Camera camera)
 {
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
   ImageReduction* compositor = gImageCompositor;
@@ -672,10 +717,7 @@ void cxx_saveImage(legion_runtime_t runtime_,
 }
 
 // this is provided for debugging the renderer
-void cxx_saveIndividualImages(legion_runtime_t runtime_,
-                              legion_context_t ctx_,
-                              const char* outDir,
-                              int timestep)
+void cxx_saveIndividualImages(legion_runtime_t runtime_, legion_context_t ctx_, const char* outDir, int timestep)
 {
   Runtime *runtime = CObjectWrapper::unwrap(runtime_);
   Context ctx = CObjectWrapper::unwrap(ctx_)->context();
