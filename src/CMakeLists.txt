@@ -17,6 +17,10 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion)
 
+if(BUILD_WITH_GPU)
+  enable_language(CUDA)
+endif()
+
 include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime/legion $ENV{LEGION_DIR}/runtime/realm)
 
 list(APPEND FRAMEWORK_SRC
@@ -24,6 +28,10 @@ list(APPEND FRAMEWORK_SRC
   image_reduction_composite.cc
   image_reduction_mapper.cc
 )
+
+if(BUILD_WITH_GPU)
+  set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
+endif()
 
 add_library(ImageCompositor ${FRAMEWORK_SRC})
 add_library(ImageCompositor_ SHARED ${FRAMEWORK_SRC})

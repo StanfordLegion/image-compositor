@@ -1,0 +1,2 @@
+GPU: make -j && mpirun -np 4 visualization_3 -pipeline volume.py -logfile run_%.logls -ll:gpu 1
+CPU: make -j && mpirun -np 4 visualization_3 -pipeline volume.py -logfile run_%.logls

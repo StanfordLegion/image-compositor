@@ -79,7 +79,7 @@ task main()
   var global_grid_size = int3d{128, 128, 128}
   -- var proc_grid_size = int3d{1, 8, 1}
   -- var proc_grid_size = int3d{8, 1, 1}
-  var proc_grid_size = int3d{2, 2, 2}
+  var proc_grid_size = int3d{2, 2, 1}
 
   var is_grid = ispace(int3d, global_grid_size)
   var blocking_factor = global_grid_size / proc_grid_size
@@ -124,13 +124,13 @@ task main()
   --camera.from[1] = 40.0
   --camera.from[2] = 40.0
 
-  camera.from[0] = global_grid_size.x * 5
-  camera.from[1] = global_grid_size.y * 5
-  camera.from[2] = global_grid_size.z * 5
+  --camera.from[0] = global_grid_size.x * 5
+  --camera.from[1] = global_grid_size.y * 5
+  --camera.from[2] = global_grid_size.z * 5
 
-  --camera.from[0] = global_grid_size.x / 2
-  --camera.from[1] = global_grid_size.y / 2 * 10
-  --camera.from[2] = global_grid_size.z / 2
+  camera.from[0] = global_grid_size.x / 2
+  camera.from[1] = global_grid_size.y / 2 * 10
+  camera.from[2] = global_grid_size.z / 2
 
   camera.at[0] = global_grid_size.x / 2
   camera.at[1] = global_grid_size.y / 2

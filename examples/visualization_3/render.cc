@@ -355,7 +355,11 @@ static void render_task(const Task *task,
   cam.at.y = camera->at[1];
   cam.at.z = camera->at[2];
 
+#if OVR_BUILD_OPTIX7
+  static auto ren = create_renderer("optix7");
+#else
   static auto ren = create_renderer("ospray");
+#endif
   ren->init(ovrArgc, &ovrArgv, scene, cam);
 
   ren->set_path_tracing(false);
@@ -492,21 +496,16 @@ void cxx_preinitialize()
   // Preregister render task
   gRenderTaskID = Legion::Runtime::generate_static_task_id();
   TaskVariantRegistrar registrar(gRenderTaskID, "render_task");
+#if OVR_BUILD_OPTIX7
+  registrar.add_constraint(ProcessorConstraint(Processor::TOC_PROC))
+#else
   registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
+#endif
     .add_layout_constraint_set(0/*index*/, soa_layout_id)
     .add_layout_constraint_set(1/*index*/, soa_layout_id)
     .add_layout_constraint_set(2/*index*/, soa_layout_id);
   Runtime::preregister_task_variant<render_task>(registrar, "render_task");
 
-  // // Preregister render task (CUDA variant)
-  // gRenderTaskID = <same id reused>
-  // TaskVariantRegistrar registrar(gRenderTaskID, "render_task_cuda");
-  // registrar.add_constraint(ProcessorConstraint(Processor::TOC_PROC))
-  //   .add_layout_constraint_set(0/*index*/, soa_layout_id)
-  //   .add_layout_constraint_set(1/*index*/, soa_layout_id)
-  //   .add_layout_constraint_set(2/*index*/, soa_layout_id);
-  // Runtime::preregister_task_variant<render_task>(registrar, "render_task_cuda");
-  
   // Preregister save image task
   gSaveImageTaskID = Legion::Runtime::generate_static_task_id();
   TaskVariantRegistrar registrarSaveImage(gSaveImageTaskID, "save_image_task");
@@ -517,9 +516,10 @@ void cxx_preinitialize()
   // TODO in this project, the "projection_bounds" is hard-coded.
   const Rect<3> projection_bounds(
     Point<3>(0,0,0),
-    Point<3>(1,1,1)
+    // Point<3>(1,1,1)
     // Point<3>(0,7,0)
     // Point<3>(7,0,0)
+    Point<3>(1,1,0)
   );
 
   Runtime::preregister_projection_functor(PROJECT_X_PLUS,

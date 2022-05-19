@@ -1,6 +1,45 @@
 cmake_minimum_required(VERSION 3.1)
 project(visualization_3 LANGUAGES C CXX )
 
+option(BUILD_WITH_GPU "Enable GPU rendering" OFF)
+
+if(BUILD_WITH_GPU)
+  set(OVR_BUILD_OPTIX7 ON)
+  set(OVR_BUILD_OSPRAY OFF)
+  set(OVR_BUILD_TORCH  OFF)
+  add_subdirectory(ovr EXCLUDE_FROM_ALL)
+  include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
+  include_directories(${OptiX_INCLUDE})  
+else()
+  set(OVR_BUILD_OPTIX7 OFF)
+  set(OVR_BUILD_OSPRAY ON)
+  set(OVR_BUILD_TORCH  OFF)
+  find_package(ospray 2.0 REQUIRED)
+  add_subdirectory(ovr EXCLUDE_FROM_ALL)
+endif()
+
+if(BUILD_WITH_GPU)
+  # adapted from https://stackoverflow.com/a/69353718
+  if(NOT CMAKE_CUDA_ARCHITECTURES)
+    find_package(CUDA REQUIRED)
+    include(FindCUDA/select_compute_arch)
+    CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+    string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
+    string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
+    string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+  endif()
+
+  set(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
+  message(STATUS "Automatically detected GPU architectures: ${CUDA_ARCH_LIST}")
+  
+  # we can only enable CUDA if CMAKE_CUDA_ARCHITECTURES is set
+  if (CMAKE_CUDA_ARCHITECTURES)
+    enable_language(CUDA)
+  else()
+    message(FATAL_ERROR "Cannot utomatically detected GPU architecture")
+  endif()
+endif()
+
 set(Legion_DIR $ENV{LG_RT_DIR}/../language/build)
 
 if(NOT Legion_SOURCE_DIR)
@@ -19,18 +58,12 @@ pkg_check_modules(GLU REQUIRED IMPORTED_TARGET glu)
 find_package(MPI REQUIRED)
 find_package(PNG REQUIRED)
 #find_package(VTK COMPONENTS VTK::IOXML)
-find_package(VTK COMPONENTS IOXML)
-find_package(ospray 2.0 REQUIRED)
+# find_package(VTK COMPONENTS IOXML)
 
-add_subdirectory(ovr EXCLUDE_FROM_ALL)
-# include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
-# include_directories(${OptiX_INCLUDE})
-
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-fpermissive")
 
-add_custom_target(run ALL
-  DEPENDS libviz_3.so)
+add_custom_target(run ALL DEPENDS libviz_3.so)
 
 add_custom_command(OUTPUT libviz_3.so
   COMMAND regent.py ${CMAKE_CURRENT_LIST_DIR}/visualization_3.rg
@@ -39,14 +72,19 @@ add_custom_command(OUTPUT libviz_3.so
 add_library(libviz_3 SHARED IMPORTED)
 set_target_properties(libviz_3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libviz_3.so)
 
+if(NOT IMAGE_COMPOSITOR_DIR)
+  message(FATAL_ERROR "Path IMAGE_COMPOSITOR_DIR not set.")
+endif()
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include)
 # add_library(imageCompositor STATIC IMPORTED)
-# SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ../../build/src/libImageCompositor.a)
+# SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor.a)
 add_library(imageCompositor SHARED IMPORTED)
-SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/../../build/src/libImageCompositor_.so)
+SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor_.so)
 
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
 add_dependencies(visualization_3 run)
+
 target_include_directories(visualization_3 PRIVATE ${MPI_C_INCLUDE_PATH})
   
 target_link_libraries(visualization_3
@@ -55,19 +93,23 @@ PUBLIC
   ${MPI_CXX_LIBRARIES}
   PNG::PNG
 
-INTERFACE
-  VTK::PythonUsed
+# INTERFACE
+#   VTK::PythonUsed
 
 PRIVATE
   renderlib
-  #ParaView::PythonCatalyst
-  VTK::CommonDataModel
-  ${VTK_LIBRARIES}
-  VTK::IOXML
-  )
+  # ParaView::PythonCatalyst
+  # VTK::CommonDataModel  VTK::IOXML ${VTK_LIBRARIES}
+)
 
 # vtk_module_autoinit is needed
-vtk_module_autoinit(
-  TARGETS visualization_3e
-  MODULES ${VTK_LIBRARIES}
-)
+# vtk_module_autoinit(
+#   TARGETS visualization_3e
+#   MODULES ${VTK_LIBRARIES}
+# )
+
+if(BUILD_WITH_GPU)
+  target_compile_definitions(visualization_3 PUBLIC OVR_BUILD_OPTIX7)
+else()
+  target_compile_definitions(visualization_3 PUBLIC OVR_BUILD_OSPRAY)
+endif()
