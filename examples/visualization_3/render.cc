@@ -120,26 +120,26 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
 
   // Access ghost regions
   RegionRequirement gReqXm = task->regions[2];
-  RegionRequirement gReqXp = task->regions[3];
-  RegionRequirement gReqYm = task->regions[4];
-  RegionRequirement gReqYp = task->regions[5];
-  RegionRequirement gReqZm = task->regions[6];
-  RegionRequirement gReqZp = task->regions[7];
-  RegionRequirement gReqCm = task->regions[8];
-  RegionRequirement gReqZ0 = task->regions[9];
-  RegionRequirement gReqY0 = task->regions[10];
-  RegionRequirement gReqX0 = task->regions[11];
+  RegionRequirement gReqYm = task->regions[3];
+  RegionRequirement gReqZm = task->regions[4];
+  RegionRequirement gReqCm = task->regions[5];
+  RegionRequirement gReqZ0 = task->regions[6];
+  RegionRequirement gReqY0 = task->regions[7];
+  RegionRequirement gReqX0 = task->regions[8];
+  // RegionRequirement gReqXp = task->regions[3];
+  // RegionRequirement gReqYp = task->regions[5];
+  // RegionRequirement gReqZp = task->regions[7];
 
   PhysicalRegion gDataXm = regions[2];
-  PhysicalRegion gDataXp = regions[3];
-  PhysicalRegion gDataYm = regions[4];
-  PhysicalRegion gDataYp = regions[5];
-  PhysicalRegion gDataZm = regions[6];
-  PhysicalRegion gDataZp = regions[7];
-  PhysicalRegion gDataCm = regions[8];
-  PhysicalRegion gDataZ0 = regions[9];
-  PhysicalRegion gDataY0 = regions[10];
-  PhysicalRegion gDataX0 = regions[11]; 
+  PhysicalRegion gDataYm = regions[3];
+  PhysicalRegion gDataZm = regions[4];
+  PhysicalRegion gDataCm = regions[5];
+  PhysicalRegion gDataZ0 = regions[6];
+  PhysicalRegion gDataY0 = regions[7];
+  PhysicalRegion gDataX0 = regions[8]; 
+  // PhysicalRegion gDataXp = regions[3];
+  // PhysicalRegion gDataYp = regions[5];
+  // PhysicalRegion gDataZp = regions[7];
 
   // Access camera information
   char* argsPtr = (char*)task->args;
@@ -214,11 +214,11 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
 
   Legion::Rect<3> boundsWithGhosts;
   boundsWithGhosts.lo[0] = IsRegionExists(gReqXm) ? bounds.lo[0] - 1 : bounds.lo[0];
-  boundsWithGhosts.hi[0] = IsRegionExists(gReqXp) ? bounds.hi[0] + 0 : bounds.hi[0];
   boundsWithGhosts.lo[1] = IsRegionExists(gReqYm) ? bounds.lo[1] - 1 : bounds.lo[1];
-  boundsWithGhosts.hi[1] = IsRegionExists(gReqYp) ? bounds.hi[1] + 0 : bounds.hi[1];
   boundsWithGhosts.lo[2] = IsRegionExists(gReqZm) ? bounds.lo[2] - 1 : bounds.lo[2];
-  boundsWithGhosts.hi[2] = IsRegionExists(gReqZp) ? bounds.hi[2] + 0 : bounds.hi[2];
+  boundsWithGhosts.hi[0] = /*IsRegionExists(gReqXp) ? bounds.hi[0] + 0 :*/ bounds.hi[0];
+  boundsWithGhosts.hi[1] = /*IsRegionExists(gReqYp) ? bounds.hi[1] + 0 :*/ bounds.hi[1];
+  boundsWithGhosts.hi[2] = /*IsRegionExists(gReqZp) ? bounds.hi[2] + 0 :*/ bounds.hi[2];
   const Vec3i dimsWithGhosts = GetDimensions(boundsWithGhosts);
 
   const size_t totalNumVoxels = GetSize(boundsWithGhosts);
@@ -395,12 +395,6 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
     output->dims.y = dimsWithGhosts.y;
     output->dims.z = dimsWithGhosts.z;
     output->type = ovr::VALUE_TYPE_DOUBLE;
-
-    // if (rank == 7)
-    // for (int z = 0; z < dimsWithGhosts.z; ++z)
-    // for (int y = 0; y < dimsWithGhosts.y; ++y)
-    // for (int x = 0; x < dimsWithGhosts.x; ++x)
-    //   printf("[render] RANK: %d value: %f\n", rank, ((double*)dataWithGhost.get())[z*dimsWithGhosts.x*dimsWithGhosts.y + y*dimsWithGhosts.x + x]);
 
     output->acquire_data(std::move(dataWithGhost));
 
@@ -609,20 +603,12 @@ void cxx_preinitialize()
     // Point<3>(1,1,0)
   );
 
-  Runtime::preregister_projection_functor(PROJECT_X_PLUS,
-    new StencilProjectionFunctor<0,true/*plus*/,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_X_MINUS,
-    new StencilProjectionFunctor<0,false/*plus*/,false/*periodic*/>(projection_bounds));
-
-  Runtime::preregister_projection_functor(PROJECT_Y_PLUS,
-    new StencilProjectionFunctor<1,true/*plus*/,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_Y_MINUS,
-    new StencilProjectionFunctor<1,false/*plus*/,false/*periodic*/>(projection_bounds));
-
-  Runtime::preregister_projection_functor(PROJECT_Z_PLUS,
-    new StencilProjectionFunctor<2,true/*plus*/,false/*periodic*/>(projection_bounds));
-  Runtime::preregister_projection_functor(PROJECT_Z_MINUS,
-    new StencilProjectionFunctor<2,false/*plus*/,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_X_PLUS,  new StencilProjectionFunctor<0,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_X_MINUS, new StencilProjectionFunctor<0,false/*plus*/,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_Y_PLUS,  new StencilProjectionFunctor<1,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Y_MINUS, new StencilProjectionFunctor<1,false/*plus*/,false/*periodic*/>(projection_bounds));
+  // Runtime::preregister_projection_functor(PROJECT_Z_PLUS,  new StencilProjectionFunctor<2,true/*plus*/,false/*periodic*/>(projection_bounds));
+  Runtime::preregister_projection_functor(PROJECT_Z_MINUS, new StencilProjectionFunctor<2,false/*plus*/,false/*periodic*/>(projection_bounds));
 
   Runtime::preregister_projection_functor(PROJECT_XM_YM_ZM,
     new StencilProjectionFunctorXYZ<-1,false/*periodic*/>(projection_bounds));
@@ -722,11 +708,11 @@ void cxx_render(legion_runtime_t runtime_,
 
   // Requirements for ghost regions
   RegionRequirement req_xm(imageDescriptor.simulationLogicalPartition, PROJECT_X_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  RegionRequirement req_xp(imageDescriptor.simulationLogicalPartition, PROJECT_X_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_ym(imageDescriptor.simulationLogicalPartition, PROJECT_Y_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  RegionRequirement req_yp(imageDescriptor.simulationLogicalPartition, PROJECT_Y_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_zm(imageDescriptor.simulationLogicalPartition, PROJECT_Z_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  RegionRequirement req_zp(imageDescriptor.simulationLogicalPartition, PROJECT_Z_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
+  // RegionRequirement req_xp(imageDescriptor.simulationLogicalPartition, PROJECT_X_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
+  // RegionRequirement req_yp(imageDescriptor.simulationLogicalPartition, PROJECT_Y_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
+  // RegionRequirement req_zp(imageDescriptor.simulationLogicalPartition, PROJECT_Z_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
 
   RegionRequirement req_cm(imageDescriptor.simulationLogicalPartition, PROJECT_XM_YM_ZM, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_cz0(imageDescriptor.simulationLogicalPartition, PROJECT_XY_MINUS_Z0, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
@@ -735,11 +721,11 @@ void cxx_render(legion_runtime_t runtime_,
 
   for(int i = 0; i < imageDescriptor.numPFields; ++i) {
     req_xm.add_field(imageDescriptor.pFields[i]);
-    req_xp.add_field(imageDescriptor.pFields[i]);
     req_ym.add_field(imageDescriptor.pFields[i]);
-    req_yp.add_field(imageDescriptor.pFields[i]);
     req_zm.add_field(imageDescriptor.pFields[i]);
-    req_zp.add_field(imageDescriptor.pFields[i]);
+    // req_xp.add_field(imageDescriptor.pFields[i]);
+    // req_yp.add_field(imageDescriptor.pFields[i]);
+    // req_zp.add_field(imageDescriptor.pFields[i]);
     req_cm.add_field(imageDescriptor.pFields[i]);
     req_cz0.add_field(imageDescriptor.pFields[i]);
     req_cy0.add_field(imageDescriptor.pFields[i]);
@@ -747,11 +733,11 @@ void cxx_render(legion_runtime_t runtime_,
   }
 
   renderLauncher.add_region_requirement(req_xm);
-  renderLauncher.add_region_requirement(req_xp);
   renderLauncher.add_region_requirement(req_ym);
-  renderLauncher.add_region_requirement(req_yp);
   renderLauncher.add_region_requirement(req_zm);
-  renderLauncher.add_region_requirement(req_zp);
+  // renderLauncher.add_region_requirement(req_xp);
+  // renderLauncher.add_region_requirement(req_yp);
+  // renderLauncher.add_region_requirement(req_zp);
   renderLauncher.add_region_requirement(req_cm);
   renderLauncher.add_region_requirement(req_cz0);
   renderLauncher.add_region_requirement(req_cy0);

@@ -11,11 +11,11 @@ enum { PID_X = 0, PID_Y = 1, PID_Z = 2, PID_SUBRANK = 3 };
 // Enumeration for Projection IDs
 enum {
   // 0 is a reserved projection ID
-  PROJECT_X_PLUS = 1,
+  // PROJECT_X_PLUS = 1,
   PROJECT_X_MINUS = 2,
-  PROJECT_Y_PLUS = 3,
+  // PROJECT_Y_PLUS = 3,
   PROJECT_Y_MINUS = 4,
-  PROJECT_Z_PLUS = 5,
+  // PROJECT_Z_PLUS = 5,
   PROJECT_Z_MINUS = 6,
 
   PROJECT_XM_YM_ZM = 7,
