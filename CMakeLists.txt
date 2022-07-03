@@ -17,8 +17,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion_ImageCompositor)
 
-option(BUILD_WITH_GPU "Enable GPU rendering" OFF)
-
 #------------------------------------------------------------------------------#
 # Build type and shared vs static library
 #------------------------------------------------------------------------------#

@@ -5,6 +5,7 @@
 //
 
 #include "legion/legion_c.h"
+#include "mappers/logging_wrapper.h"
 #include "mappers/default_mapper.h"
 #include "visualization_3_mapper.h"
 #include "image_reduction_mapper.h"
@@ -30,9 +31,10 @@ static void create_mappers(Legion::Machine machine,
                            const std::set<Legion::Processor>& local_procs) {
   for (Legion::Processor proc : local_procs) {
     rt->replace_default_mapper(new Visualization_3_Mapper(rt, machine, proc), proc);
-    ImageReductionMapper* irMapper =
-      new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
-    rt->add_mapper(imageReductionMapperID, (Mapping::Mapper*)irMapper, proc);
+    Mapping::Mapper* mapper = nullptr;
+    mapper = (Mapping::Mapper*)new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+    mapper = new Legion::Mapping::LoggingWrapper(mapper);
+    rt->add_mapper(imageReductionMapperID, mapper, proc);
   }
 }
 

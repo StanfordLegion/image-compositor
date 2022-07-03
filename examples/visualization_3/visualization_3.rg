@@ -45,6 +45,7 @@ struct Fields {
 
 local sqrt = regentlib.sqrt(double)
 
+__demand(__cuda)
 task perform_time_step(lr : region(ispace(int3d), Fields))
 where
   reads writes(lr)
@@ -79,7 +80,9 @@ task main()
   var global_grid_size = int3d{128, 128, 128}
   -- var proc_grid_size = int3d{1, 8, 1}
   -- var proc_grid_size = int3d{8, 1, 1}
-  var proc_grid_size = int3d{2, 2, 1}
+  -- var proc_grid_size = int3d{2, 2, 2}
+  var proc_grid_size = int3d{4, 1, 1}
+  -- var proc_grid_size = int3d{1, 1, 1}
 
   var is_grid = ispace(int3d, global_grid_size)
   var blocking_factor = global_grid_size / proc_grid_size
@@ -92,7 +95,8 @@ task main()
 
   var lr_int = region(is_grid, Fields)
 
-  var raw_rank_part = c.legion_logical_partition_create(__runtime(), __context(), __raw(lr_int), ip_rank)
+  var raw_rank_part = c.legion_logical_partition_create(__runtime(), __raw(lr_int), ip_rank)
+  -- var raw_rank_part = c.legion_logical_partition_create(__runtime(), __context(), __raw(lr_int), ip_rank)
   var lp_int_rank = __import_partition(disjoint, lr_int, is_rank, raw_rank_part)
 
   for color in is_rank do
@@ -127,7 +131,6 @@ task main()
   --camera.from[0] = global_grid_size.x * 5
   --camera.from[1] = global_grid_size.y * 5
   --camera.from[2] = global_grid_size.z * 5
-
   camera.from[0] = global_grid_size.x / 2
   camera.from[1] = global_grid_size.y / 2 * 10
   camera.from[2] = global_grid_size.z / 2
@@ -140,7 +143,7 @@ task main()
   camera.up[2] = 1.0
 
   var args = c.legion_runtime_get_input_args()
-  var steps = 20
+  var steps = 10
   for i = 0, args.argc do
     if c.strcmp(args.argv[i], "-t") == 0 then
       steps = c.atoi(args.argv[i+1])

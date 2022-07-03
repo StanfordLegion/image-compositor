@@ -64,7 +64,10 @@ void read_png_file(const char *filename, PNGImage *image) {
 void write_png_file(char *filename, int width, int height,
                     float *R, float *G, float *B, float *A) {
   FILE *fp = fopen(filename, "wb");
-  if(!fp) abort();
+  if(!fp) {
+    printf("[write_png_file] unable to open image %s\n", filename);
+    abort();
+  }
 
   png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   if (!png) abort();

@@ -11,23 +11,9 @@
 #include <sstream>
 #include <cstdio>
 
-// #include <vtkCPDataDescription.h>
-// #include <vtkCPInputDataDescription.h>
-// #include <vtkCPProcessor.h>
-// #include <vtkCPPythonScriptPipeline.h>
-// #include <vtkCellData.h>
-// #include <vtkCellType.h>
-// #include <vtkDoubleArray.h>
-// #include <vtkFloatArray.h>
-// #include <vtkNew.h>
-// #include <vtkPointData.h>
-// #include <vtkPoints.h>
-// #include <vtkImageData.h>
-// #include <vtkXMLImageDataReader.h>
-
 #include "s3d_projection.h"
 
-// #include "common/imageio.h"
+#include "common/imageio.h"
 #include "renderer.h"
 
 #define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
@@ -35,9 +21,6 @@
 using ImageReduction = Legion::Visualization::ImageReduction;
 using ImageDescriptor = Legion::Visualization::ImageDescriptor;
 using namespace Legion;
-
-// static vtkCPProcessor* VTKProcessor = NULL;
-// static vtkImageData* VTKGrid = NULL;
 
 // global data
 Legion::MapperID imageReductionMapperID = 1;
@@ -73,15 +56,18 @@ void legion_handoff_to_mpi()
   handshake.legion_handoff_to_mpi();
 }
 
-auto IsRegionExists(const RegionRequirement& req) -> bool {
+auto IsRegionExists(const RegionRequirement& req) -> bool 
+{
   return req.region.exists();
 }
 
-auto GetSize(const Legion::Rect<3>& rect) -> size_t {
+auto GetSize(const Legion::Rect<3>& rect) -> size_t 
+{
   return size_t(rect.hi[0] - rect.lo[0] + 1) * size_t(rect.hi[1] - rect.lo[1] + 1) * size_t(rect.hi[2] - rect.lo[2] + 1);
 }
 
-auto GetDimensions(const Legion::Rect<3>& rect) -> Vec3i {
+auto GetDimensions(const Legion::Rect<3>& rect) -> Vec3i 
+{
   Vec3i strides;
   strides.x = rect.hi[0] - rect.lo[0] + 1;
   strides.y = rect.hi[1] - rect.lo[1] + 1;
@@ -102,6 +88,29 @@ auto CopyData3D(const double* _src, double* _dst, Legion::Rect<3> src_ext, Legio
     }
   }
 }
+
+#if OVR_BUILD_OPTIX7
+__global__
+void copy_framebuffer_cuda(const int width, const int height, float* framebuffer, 
+                           ImageReduction::PixelField* r,
+                           ImageReduction::PixelField* g,
+                           ImageReduction::PixelField* b,
+                           ImageReduction::PixelField* a,
+                           ImageReduction::PixelField* z,
+                           ImageReduction::PixelField* u)
+{
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < width*height)
+  {
+    r[i] = framebuffer[4 * i + 0]; 
+    g[i] = framebuffer[4 * i + 1]; 
+    b[i] = framebuffer[4 * i + 2]; 
+    a[i] = framebuffer[4 * i + 3]; 
+    z[i] = 0.f;
+    u[i] = 0.f;
+  }
+}
+#endif
 
 static void render_task(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
 {
@@ -126,9 +135,6 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   RegionRequirement gReqZ0 = task->regions[6];
   RegionRequirement gReqY0 = task->regions[7];
   RegionRequirement gReqX0 = task->regions[8];
-  // RegionRequirement gReqXp = task->regions[3];
-  // RegionRequirement gReqYp = task->regions[5];
-  // RegionRequirement gReqZp = task->regions[7];
 
   PhysicalRegion gDataXm = regions[2];
   PhysicalRegion gDataYm = regions[3];
@@ -136,77 +142,13 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   PhysicalRegion gDataCm = regions[5];
   PhysicalRegion gDataZ0 = regions[6];
   PhysicalRegion gDataY0 = regions[7];
-  PhysicalRegion gDataX0 = regions[8]; 
-  // PhysicalRegion gDataXp = regions[3];
-  // PhysicalRegion gDataYp = regions[5];
-  // PhysicalRegion gDataZp = regions[7];
+  PhysicalRegion gDataX0 = regions[8];
 
   // Access camera information
   char* argsPtr = (char*)task->args;
   ImageDescriptor* imageDescriptor = (ImageDescriptor*)(argsPtr);
   Camera* camera = (Camera*)(argsPtr + sizeof(ImageDescriptor));
   int* timestep = (int*)(argsPtr + sizeof(ImageDescriptor) + sizeof(Camera));
-
-  // printf("[render] RANK: %d TIMESTEP: %d\n"
-  //        "         Lo: %lld %lld %lld Hi: %lld %lld %lld\n"
-  //        "         Camera Up: %f %f %f, At: %f %f %f, From: %f %f %f\n", 
-  //        rank, *timestep,
-  //        bounds.lo[0], bounds.lo[1], bounds.lo[2],
-  //        bounds.hi[0], bounds.hi[1], bounds.hi[2],
-  //        camera->up[0],   camera->up[1],   camera->up[2],
-  //        camera->at[0],   camera->at[1],   camera->at[2],
-  //        camera->from[0], camera->from[1], camera->from[2]);
-
-  // if(VTKGrid == NULL)
-  // {
-  //   VTKGrid = vtkImageData::New();
-  //   VTKGrid->SetExtent(bounds.lo[0], bounds.hi[0],
-  //                      bounds.lo[1], bounds.hi[1],
-  //                      bounds.lo[2], bounds.hi[2]);
-  //   VTKGrid->SetSpacing(1000, 1000, 1000);
-  //   VTKGrid->SetOrigin(bounds.lo[0], bounds.lo[1], bounds.lo[2]);
-  // }
-  //
-  // vtkNew<vtkCPDataDescription> dataDescription;
-  // dataDescription->SetTimeData((*timestep)*0.1, *timestep);
-  //
-  // for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
-  //     it != dataReq.privilege_fields.end(); ++it)
-  // {
-  //   FieldID fid = *it;
-  //   const char *field_name;
-  //   runtime->retrieve_name(fspace, fid, field_name);
-  //   dataDescription->AddInput(field_name);
-  // }
-  //
-  // if (VTKProcessor->RequestDataDescription(dataDescription.GetPointer()) != 0)
-  // {
-  //   for(std::set<FieldID>::iterator it = dataReq.privilege_fields.begin();
-  //       it != dataReq.privilege_fields.end(); ++it)
-  //   {
-  //     FieldID fid = *it;
-  //     const char *field_name;
-  //     runtime->retrieve_name(fspace, fid, field_name);
-  //     vtkCPInputDataDescription* idd = dataDescription->GetInputDescriptionByName(field_name);
-  //     if (idd->IsFieldNeeded(field_name, vtkDataObject::POINT) == true)
-  //     {
-  //       if (VTKGrid->GetPointData()->GetNumberOfArrays() == 0)
-  //       {
-  //         vtkNew<vtkDoubleArray> arr;
-  //         arr->SetName(field_name);
-  //         arr->SetNumberOfComponents(1);
-  //         arr->SetNumberOfTuples(static_cast<vtkIdType>(domain.GetSize()));
-  //         VTKGrid->GetPointData()->AddArray(arr.GetPointer());
-  //       }
-  //
-  //       vtkDoubleArray* arr = vtkDoubleArray::SafeDownCast(VTKGrid->GetPointData()->GetArray(field_name));
-  //       AccessorRO<double, 3> data_acc(data, *it);
-  //       arr->SetArray(data_acc.ptr(bounds.lo), domain.GetSize(), 1);
-  //     }
-  //     idd->SetGrid(VTKGrid);
-  //   }
-  //   VTKProcessor->CoProcess(dataDescription.GetPointer());
-  // }
 
   const auto GetRegionDomain = [&] (const PhysicalRegion& r) -> Domain {
     return runtime->get_index_space_domain(ctx, r.get_logical_region().get_index_space());
@@ -292,10 +234,6 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   {
     FieldID fid = *it;
 
-    // const char *fieldName;
-    // runtime->retrieve_name(fspace, fid, fieldName);
-    // printf("field name: %s\n", fieldName);
-
     /* copy the main domain */
     {
       AccessorRO<double, 3> dataAccess(data, *it);
@@ -319,69 +257,33 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
       CopyData3D(rawptr, (double*)dataWithGhost.get() + index * totalNumVoxels, srcExt, dstExt, srcDim, dimsWithGhosts);
     }
 
-    // if (!IsRegionExists(gReqXm)) { printf("[render] RANK: %d X_MINUS NOT EXIST\n", rank); } else {
-    //   Domain gDomainXm = GetRegionDomain(gDataXm); printf("[render] RANK: %d X_MINUS size = %lu\n", rank, gDomainXm.get_volume());
-    // }
-    // if (!IsRegionExists(gReqXp)) { printf("[render] RANK: %d X_PLUS  NOT EXIST\n", rank); } else {
-    //   Domain gDomainXp = GetRegionDomain(gDataXp); printf("[render] RANK: %d X_PLUS  size = %lu\n", rank, gDomainXp.get_volume());
-    // }
-    // if (!IsRegionExists(gReqYm)) { printf("[render] RANK: %d Y_MINUS NOT EXIST\n", rank); } else {
-    //   Domain gDomainYm = GetRegionDomain(gDataYm); printf("[render] RANK: %d Y_MINUS size = %lu\n", rank, gDomainYm.get_volume());
-    // }
-    // if (!IsRegionExists(gReqYp)) { printf("[render] RANK: %d Y_PLUS  NOT EXIST\n", rank); } else {
-    //   Domain gDomainYp = GetRegionDomain(gDataYp); printf("[render] RANK: %d Y_PLUS  size = %lu\n", rank, gDomainYp.get_volume());
-    // }
-    // if (!IsRegionExists(gReqZm)) { printf("[render] RANK: %d Z_MINUS NOT EXIST\n", rank); } else {
-    //   Domain gDomainZm = GetRegionDomain(gDataZm); printf("[render] RANK: %d Z_MINUS size = %lu\n", rank, gDomainZm.get_volume());
-    // }
-    // if (!IsRegionExists(gReqZp)) { printf("[render] RANK: %d Z_PLUS  NOT EXIST\n", rank); } else {
-    //   Domain gDomainZp = GetRegionDomain(gDataZp); printf("[render] RANK: %d Z_PLUS  size = %lu\n", rank, gDomainZp.get_volume());
-    // }
-
     if (IsRegionExists(gReqXm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 0, gDataXm);
     if (IsRegionExists(gReqYm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 1, gDataYm);
     if (IsRegionExists(gReqZm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 2, gDataZm);
-
+    
     if (IsRegionExists(gReqZ0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 2, gDataZ0);
     if (IsRegionExists(gReqY0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 1, gDataY0);
     if (IsRegionExists(gReqX0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 0, gDataX0);
-
+    
     if (IsRegionExists(gReqCm)) {
-      // printf("[render] RANK: %d TIMESTEP: %d\n"
-      //       "         Lo: %lld %lld %lld Hi: %lld %lld %lld\n", 
-      //       rank, *timestep,
-      //       boundsWithGhosts.lo[0], boundsWithGhosts.lo[1], boundsWithGhosts.lo[2],
-      //       boundsWithGhosts.hi[0], boundsWithGhosts.hi[1], boundsWithGhosts.hi[2]);
-
       const Domain ghost_domain = GetRegionDomain(gDataCm);
       const Legion::Rect<3> ghost_bounds = ghost_domain;
-
+    
       AccessorRO<double, 3> dataAccess(gDataCm, *it);
       const double* rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
-
+    
       Legion::Rect<3> src_ext;
       src_ext.hi[0] = src_ext.lo[0] = ghost_bounds.hi[0] - ghost_bounds.lo[0];
       src_ext.hi[1] = src_ext.lo[1] = ghost_bounds.hi[1] - ghost_bounds.lo[1];
       src_ext.hi[2] = src_ext.lo[2] = ghost_bounds.hi[2] - ghost_bounds.lo[2];
-
+    
       const Vec3i src_dim = GetDimensions(ghost_bounds);
-
+    
       Legion::Rect<3> dst_ext;
       dst_ext.lo[0] = dst_ext.hi[0] = ghost_bounds.hi[0] - boundsWithGhosts.lo[0];
       dst_ext.lo[1] = dst_ext.hi[1] = ghost_bounds.hi[1] - boundsWithGhosts.lo[1];
       dst_ext.lo[2] = dst_ext.hi[2] = ghost_bounds.hi[2] - boundsWithGhosts.lo[2];
-
-      // printf("[render] RANK: %d TIMESTEP: %d\n"
-      //       "    Src Lo: %lld %lld %lld Hi: %lld %lld %lld\n"
-      //       "    Dst Lo: %lld %lld %lld Hi: %lld %lld %lld\n"
-      //       "    dimsWithGhosts: %d %d %d\n", 
-      //       rank, *timestep,
-      //       src_ext.lo[0], src_ext.lo[1], src_ext.lo[2],
-      //       src_ext.hi[0], src_ext.hi[1], src_ext.hi[2],
-      //       dst_ext.lo[0], dst_ext.lo[1], dst_ext.lo[2],
-      //       dst_ext.hi[0], dst_ext.hi[1], dst_ext.hi[2],
-      //       dimsWithGhosts.x, dimsWithGhosts.y, dimsWithGhosts.z);
-
+    
       double* dst = (double*)dataWithGhost.get() + index * totalNumVoxels;
       CopyData3D(rawptr, (double*)dataWithGhost.get() + index * totalNumVoxels, src_ext, dst_ext, src_dim, dimsWithGhosts);
     }
@@ -396,6 +298,17 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
     output->dims.z = dimsWithGhosts.z;
     output->type = ovr::VALUE_TYPE_DOUBLE;
 
+    std::ofstream fw("rank" + std::to_string(rank)+ "data.txt", std::ofstream::out);
+    double* d = (double*)dataWithGhost.get();
+    for (int z = 0; z < dimsWithGhosts.z; ++z) {
+      for (int y = 0; y < dimsWithGhosts.y; ++y) {
+        for (int x = 0; x < dimsWithGhosts.x; ++x) {
+          fw << d[x + dimsWithGhosts.x * y + dimsWithGhosts.x * dimsWithGhosts.y * z] << "\n";
+        }
+      }
+    }
+    fw.close();
+
     output->acquire_data(std::move(dataWithGhost));
 
     ovr::scene::Volume volume;
@@ -405,10 +318,20 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
     volume.structured_regular.grid_origin.y = boundsWithGhosts.lo[1];
     volume.structured_regular.grid_origin.z = boundsWithGhosts.lo[2];
 
+    std::cout << rank << " bounds " << bounds.lo[0] << " " << bounds.lo[1] << " " << bounds.lo[2] << std::endl
+                      << "        " << bounds.hi[0] << " " << bounds.hi[1] << " " << bounds.hi[2] << std::endl;
+    std::cout << rank << " dimsWithGhosts " << dimsWithGhosts.x << " " << dimsWithGhosts.y << " " << dimsWithGhosts.z << std::endl;
+    std::cout << rank << " grid_origin " << volume.structured_regular.grid_origin.x << " " << volume.structured_regular.grid_origin.y << " " << volume.structured_regular.grid_origin.z << std::endl;
+
+    std::vector<float> alphas;
+    for (int i = 0; i <= 1024; ++i) {
+      alphas.push_back(i / 1024.f);
+    }
+
     ovr::scene::TransferFunction tfn;
     tfn.value_range = ovr::vec2f(0.f, 1.f);
     tfn.color = ovr::CreateColorMap("diverging/RdBu");
-    tfn.opacity = ovr::CreateArray1DScalar(std::vector<float>{ 0.f, 1.f });
+    tfn.opacity = ovr::CreateArray1DScalar(alphas);
 
     ovr::scene::Model model;
     model.type = ovr::scene::Model::VOLUMETRIC_MODEL;
@@ -453,44 +376,13 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   ovr::MainRenderer::FrameBufferData frame;
   ren->mapframe(&frame);
 
+#if OVR_BUILD_OPTIX7
+  float* d_pixels = (float*)frame.rgba->to_cuda()->data();
+#else
   float* pixels = (float*)frame.rgba->to_cpu()->data();
+#endif
+  // ovr::save_image("input" + std::to_string(rank) + ".png", (ovr::vec4f*)pixels, gImageWidth, gImageHeight);
 
-  /* retrieve RGBA channel and depth information */
-// #if 0
-//   PNGImage *pngimage = new PNGImage();
-//   std::stringstream ss;
-//   ss << "rank" << 0 /*rank*/ << "/RenderView1_" << *timestep << ".png";
-//   read_png_file(ss.str().c_str(), pngimage);
-//   ss.str(std::string());
-//   ss.clear();
-//   ss << "rank" << 0 /*rank*/ << "/z_buffer_" << *timestep << ".vti";
-//   vtkXMLImageDataReader *reader = vtkXMLImageDataReader::New();
-//   reader->SetFileName(ss.str().c_str());
-//   reader->Update();
-//   vtkImageData *buffer = reader->GetOutput();
-//   vtkFloatArray *z_buf = vtkFloatArray::SafeDownCast(buffer->GetPointData()->GetArray(0));
-// #endif
-
-  // std::stringstream tilename;
-  // // tilename << "tile-" << 7 - rank << ".dat"; 
-  // tilename << "tile-" << rank << ".dat";
-  // FILE* file = fopen(tilename.str().c_str(), "rb");
-  // if (!file) {
-  //   fprintf(stderr, "fopen('%s', 'rb') failed: %d", tilename.str().c_str(), errno);
-  //   return;
-  // }
-  // int width, height;
-  // fscanf(file, "P6\n%i %i\n255\n", &width, &height);
-  // uint8_t* pixels = new uint8_t[width * height * 4];
-  // for (int y = 0; y < height; y++) {
-  //   unsigned char* in = &pixels[4 * (height - 1 - y) * width];
-  //   fread(in, sizeof(char), 4 * width, file);
-  // }
-  // float depth;
-  // fscanf(file, "\nDEPTH\n%f\n", &depth);
-  // fclose(file);
-  // std::cout << rank << " w " << width << " h " << height << " d " << depth << std::endl;
- 
   /* put them together */
   std::vector<legion_field_id_t> imageFields;
   image.get_fields(imageFields);
@@ -504,19 +396,29 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
   Legion::Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
 
+#if OVR_BUILD_OPTIX7
+  float* aptr = a.ptr(saveRect.lo); // device pointers
+  float* rptr = r.ptr(saveRect.lo);
+  float* gptr = g.ptr(saveRect.lo);
+  float* bptr = b.ptr(saveRect.lo);
+  float* zptr = z.ptr(saveRect.lo);
+  float* uptr = u.ptr(saveRect.lo);
+  const int threads_per_block = 256;
+  const int num_blocks = (gImageWidth*gImageHeight + (threads_per_block-1)) / threads_per_block;
+  copy_framebuffer_cuda<<<num_blocks,threads_per_block>>>(gImageWidth, gImageHeight, d_pixels, rptr, gptr, bptr, aptr, zptr, uptr);
+#else
   for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
     DomainPoint point(*pir);
     int y = point[1];
     int x = point[0];
-    a[*pir] = pixels[4 * (gImageWidth * y + x) + 3]; // pixels[4 * (gImageWidth * y + x) + 3] / 255.f;
-    r[*pir] = pixels[4 * (gImageWidth * y + x) + 0]; // pixels[4 * (gImageWidth * y + x) + 0] / 255.f;// * a[*pir];
-    g[*pir] = pixels[4 * (gImageWidth * y + x) + 1]; // pixels[4 * (gImageWidth * y + x) + 1] / 255.f;// * a[*pir];
-    b[*pir] = pixels[4 * (gImageWidth * y + x) + 2]; // pixels[4 * (gImageWidth * y + x) + 2] / 255.f;// * a[*pir];
+    a[*pir] = pixels[4 * (gImageWidth * y + x) + 3]; 
+    r[*pir] = pixels[4 * (gImageWidth * y + x) + 0]; 
+    g[*pir] = pixels[4 * (gImageWidth * y + x) + 1]; 
+    b[*pir] = pixels[4 * (gImageWidth * y + x) + 2]; 
     z[*pir] = 0;
     u[*pir] = 0;
   }
-
-  // delete pngimage;
+#endif
 }
 
 static int save_image_task(const Task *task,
@@ -597,17 +499,16 @@ void cxx_preinitialize()
   // TODO in this project, the "projection_bounds" is hard-coded.
   const Rect<3> projection_bounds(
     Point<3>(0,0,0),
-    Point<3>(1,1,1)
+    // Point<3>(1,1,1)
     // Point<3>(0,7,0)
     // Point<3>(7,0,0)
     // Point<3>(1,1,0)
+    Point<3>(3,0,0)
+    // Point<3>(0,0,0)
   );
 
-  // Runtime::preregister_projection_functor(PROJECT_X_PLUS,  new StencilProjectionFunctor<0,true/*plus*/,false/*periodic*/>(projection_bounds));
   Runtime::preregister_projection_functor(PROJECT_X_MINUS, new StencilProjectionFunctor<0,false/*plus*/,false/*periodic*/>(projection_bounds));
-  // Runtime::preregister_projection_functor(PROJECT_Y_PLUS,  new StencilProjectionFunctor<1,true/*plus*/,false/*periodic*/>(projection_bounds));
   Runtime::preregister_projection_functor(PROJECT_Y_MINUS, new StencilProjectionFunctor<1,false/*plus*/,false/*periodic*/>(projection_bounds));
-  // Runtime::preregister_projection_functor(PROJECT_Z_PLUS,  new StencilProjectionFunctor<2,true/*plus*/,false/*periodic*/>(projection_bounds));
   Runtime::preregister_projection_functor(PROJECT_Z_MINUS, new StencilProjectionFunctor<2,false/*plus*/,false/*periodic*/>(projection_bounds));
 
   Runtime::preregister_projection_functor(PROJECT_XM_YM_ZM,
@@ -636,32 +537,6 @@ void cxx_initialize(legion_runtime_t runtime_,
   gImageCompositor = new ImageReduction(region, partition,
                                         pFields, numPFields, imageDescriptor, ctx, runtime,
                                         imageReductionMapperID);
-
-  int rank = runtime->find_local_MPI_rank();
-
-  // if (VTKProcessor == NULL)
-  // {
-  //   std::stringstream ss;
-  //   ss << "rank" << rank;
-  //   VTKProcessor = vtkCPProcessor::New();
-  //   VTKProcessor->Initialize(ss.str().c_str());
-  // }
-  // else
-  // {
-  //   VTKProcessor->RemoveAllPipelines();
-  // }
-
-  // const InputArgs &args = Runtime::get_input_args();
-
-  // for (int i = 0; i < args.argc; i++)
-  // {
-  //   if (!strcmp(args.argv[i], "-pipeline"))
-  //   {
-  //     vtkNew<vtkCPPythonScriptPipeline> pipeline;
-  //     pipeline->Initialize(args.argv[i+1]);
-  //     VTKProcessor->AddPipeline(pipeline.GetPointer());
-  //   }
-  // }
 }
 
 // this entry point is called once from the main task
@@ -710,10 +585,6 @@ void cxx_render(legion_runtime_t runtime_,
   RegionRequirement req_xm(imageDescriptor.simulationLogicalPartition, PROJECT_X_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_ym(imageDescriptor.simulationLogicalPartition, PROJECT_Y_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_zm(imageDescriptor.simulationLogicalPartition, PROJECT_Z_MINUS, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  // RegionRequirement req_xp(imageDescriptor.simulationLogicalPartition, PROJECT_X_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  // RegionRequirement req_yp(imageDescriptor.simulationLogicalPartition, PROJECT_Y_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-  // RegionRequirement req_zp(imageDescriptor.simulationLogicalPartition, PROJECT_Z_PLUS,  READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
-
   RegionRequirement req_cm(imageDescriptor.simulationLogicalPartition, PROJECT_XM_YM_ZM, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_cz0(imageDescriptor.simulationLogicalPartition, PROJECT_XY_MINUS_Z0, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
   RegionRequirement req_cy0(imageDescriptor.simulationLogicalPartition, PROJECT_XZ_MINUS_Y0, READ_ONLY, EXCLUSIVE, imageDescriptor.simulationLogicalRegion, imageReductionMapperID);
@@ -723,9 +594,6 @@ void cxx_render(legion_runtime_t runtime_,
     req_xm.add_field(imageDescriptor.pFields[i]);
     req_ym.add_field(imageDescriptor.pFields[i]);
     req_zm.add_field(imageDescriptor.pFields[i]);
-    // req_xp.add_field(imageDescriptor.pFields[i]);
-    // req_yp.add_field(imageDescriptor.pFields[i]);
-    // req_zp.add_field(imageDescriptor.pFields[i]);
     req_cm.add_field(imageDescriptor.pFields[i]);
     req_cz0.add_field(imageDescriptor.pFields[i]);
     req_cy0.add_field(imageDescriptor.pFields[i]);
@@ -735,9 +603,6 @@ void cxx_render(legion_runtime_t runtime_,
   renderLauncher.add_region_requirement(req_xm);
   renderLauncher.add_region_requirement(req_ym);
   renderLauncher.add_region_requirement(req_zm);
-  // renderLauncher.add_region_requirement(req_xp);
-  // renderLauncher.add_region_requirement(req_yp);
-  // renderLauncher.add_region_requirement(req_zp);
   renderLauncher.add_region_requirement(req_cm);
   renderLauncher.add_region_requirement(req_cz0);
   renderLauncher.add_region_requirement(req_cy0);
