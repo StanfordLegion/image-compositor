@@ -506,6 +506,10 @@ __TRACE
   }
 
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
+  std::cout << "simulationDomain\n"
+            << rect.lo[0] << " " << rect.lo[1] << " " << rect.lo[2] << "\n"
+            << rect.hi[0] << " " << rect.hi[1] << " " << rect.hi[2] << "\n";
+
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
   Point<image_region_dimensions> p0 = Point<image_region_dimensions>::ZEROES();
@@ -517,11 +521,16 @@ __TRACE
     IndexSpace subregion = runtime->get_index_subspace(ctx,
       imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
+    // Legion::Rect<3> subdomain_bounds = subdomain;
+    // std::cout << "subdomain_bounds\n"
+    //           << subdomain_bounds.lo[0] << " " << subdomain_bounds.lo[1] << " " << subdomain_bounds.lo[2] << "\n"
+    //           << subdomain_bounds.hi[0] << " " << subdomain_bounds.hi[1] << " " << subdomain_bounds.hi[2] << "\n";
     Legion::Rect<image_region_dimensions> simulationRect(color, color);
     KDTreeValue simulationValue;
     simulationValue.extent = simulationRect;
     simulationValue.color = color;
     simulationValue.extent2 = zeroRect;
+    simulationValue.world_space_bounds = subdomain;
     simulationElements[index] = simulationValue;
     index++;
   }
@@ -676,6 +685,13 @@ __TRACE
     region = mSourceImage;
   }
 
+  // IndexSpace _indexSpace = region.get_index_space();
+  // Domain _domain = runtime->get_index_space_domain(context, _indexSpace);
+  // Legion::Rect<3> bounds = _domain;
+  // std::cout << "simulationLogicalRegion bounds\n"
+  //           << bounds.lo[0] << " " << bounds.lo[1] << " " << bounds.lo[2] << "\n"
+  //           << bounds.hi[0] << " " << bounds.hi[1] << " " << bounds.hi[2] << "\n";
+
 __TRACE
   IndexTaskLauncher launcher(taskID, domain,
                              TaskArgument(argsBuffer, totalArgLen), argMap, Predicate::TRUE_PRED,
@@ -771,41 +787,100 @@ ImageReduction::findFragmentInKDTree(PhysicalRegion fragment) {
   return simulationNode;
 }
 
+template<int N>
+static Legion::Point<N> cal_center(const Legion::Rect<N>& bbox) {
+  Legion::Point<N> center;
+  for (int i = 0; i < N; ++i) {
+    center[i] = 0.5 * (bbox.lo[i] + bbox.hi[i]);
+  }
+  return center;
+}
+
+template<int N>
+static double cal_distance2(const Legion::Point<N>& a, const Legion::Point<N>& b) {
+  double dist = 0.;
+  for (int i = 0; i < N; ++i) {
+    const double d = (a[i] - b[i]);
+    dist += d*d;
+  }
+  return dist;
+}
+
+template<int N>
+static void print(const Legion::Point<N>& p) {
+  std::cout << "(";
+  for (int i = 0; i < N; ++i) {
+    std::cout << p[i] << " ";
+  }
+  std::cout << ")";
+}
 
 bool ImageReduction::flipRegions(PhysicalRegion fragment0,
                                  PhysicalRegion fragment1,
-                                 float cameraDirection[image_region_dimensions]) {
+                                 bool cameraIsOrthographic,
+                                 float cameraData[image_region_dimensions]) 
+{
   if(mSimulationKDTree == nullptr) return false;
-  if(cameraDirection == nullptr) return false;
+  if(cameraData == nullptr) return false;
+
   KDNode<image_region_dimensions, long long int>* node0 = findFragmentInKDTree(fragment0);
   KDNode<image_region_dimensions, long long int>* node1 = findFragmentInKDTree(fragment1);
-  unsigned axis0 = node0->mLevel % image_region_dimensions; // image_region_dimensions === 3
-  unsigned axis1 = node1->mLevel % image_region_dimensions;
-  float splittingPlaneNormal[image_region_dimensions] = { 0 };
-  if(axis0 == axis1) {
-    if(axis0 == 0) splittingPlaneNormal[1] = 1;
-    else splittingPlaneNormal[0] = 1;
-  } else {
-    unsigned axisSum = axis0 + axis1;
-    switch(axisSum) {
-      case 1: splittingPlaneNormal[2] = 1; break;
-      case 2: splittingPlaneNormal[1] = 1; break;
-      case 3: splittingPlaneNormal[0] = 1; break;
+
+  std::cout 
+          << std::endl << "frag 0 bbox " 
+          << node0->mValue.world_space_bounds.lo[0] << " " << node0->mValue.world_space_bounds.lo[1] << " " << node0->mValue.world_space_bounds.lo[2] << ", "
+          << node0->mValue.world_space_bounds.hi[0] << " " << node0->mValue.world_space_bounds.hi[1] << " " << node0->mValue.world_space_bounds.hi[2] << " "
+          << std::endl << "frag 1 bbox " 
+          << node1->mValue.world_space_bounds.lo[0] << " " << node1->mValue.world_space_bounds.lo[1] << " " << node1->mValue.world_space_bounds.lo[2] << ", "
+          << node1->mValue.world_space_bounds.hi[0] << " " << node1->mValue.world_space_bounds.hi[1] << " " << node1->mValue.world_space_bounds.hi[2] << " "
+          << std::endl;
+
+  if (cameraIsOrthographic) {
+    unsigned axis0 = node0->mLevel % image_region_dimensions; // image_region_dimensions === 3
+    unsigned axis1 = node1->mLevel % image_region_dimensions;
+    float splittingPlaneNormal[image_region_dimensions] = { 0 };
+    if (axis0 == axis1) {
+      if(axis0 == 0) splittingPlaneNormal[1] = 1;
+      else splittingPlaneNormal[0] = 1;
+    } else {
+      unsigned axisSum = axis0 + axis1;
+      switch(axisSum) {
+        case 1: splittingPlaneNormal[2] = 1; break;
+        case 2: splittingPlaneNormal[1] = 1; break;
+        case 3: splittingPlaneNormal[0] = 1; break;
+      }
     }
+
+    // Legion::Domain domain0 = fragment0.get_bounds<image_region_dimensions, long long>();
+    // Legion::Domain domain1 = fragment1.get_bounds<image_region_dimensions, long long>();
+    // std::cout << "splittingPlaneNormal " 
+    //         << splittingPlaneNormal[0] << " "
+    //         << splittingPlaneNormal[1] << " "
+    //         << splittingPlaneNormal[2] << std::endl;
+    // std::cout << "cameraDirection " 
+    //           << cameraDirection[0] << " "
+    //           << cameraDirection[1] << " "
+    //           << cameraDirection[2] << std::endl;
+
+    float dot = 0;
+    for(unsigned i = 0; i < image_region_dimensions; ++i) {
+      dot += splittingPlaneNormal[i] * cameraData[i]; // what is the equivalent for perspective projection ???
+    }
+    return dot < 0;
   }
-  // std::cout << "splittingPlaneNormal " 
-  //           << splittingPlaneNormal[0] << " "
-  //           << splittingPlaneNormal[1] << " "
-  //           << splittingPlaneNormal[2] << std::endl;
-  // std::cout << "cameraDirection " 
-  //           << cameraDirection[0] << " "
-  //           << cameraDirection[1] << " "
-  //           << cameraDirection[2] << std::endl;
-  float dot = 0;
-  for(unsigned i = 0; i < image_region_dimensions; ++i) {
-    dot += splittingPlaneNormal[i] * cameraDirection[i];
+  else {
+    Legion::Point<image_region_dimensions> center0, center1, camPos;
+    center0 = cal_center(node0->mValue.world_space_bounds);
+    center1 = cal_center(node1->mValue.world_space_bounds);
+    for (int i = 0; i < image_region_dimensions; ++i) {
+      camPos[i] = cameraData[i];
+    }
+    std::cout << "center0 "; print(center0); std::cout << std::endl;
+    std::cout << "center1 "; print(center1); std::cout << std::endl;
+    std::cout << "camPos  "; print(camPos); std::cout << std::endl;
+
+    return cal_distance2(center0, camPos) > cal_distance2(center1, camPos);
   }
-  return dot < 0;
 }
 
 
@@ -818,7 +893,7 @@ void ImageReduction::composite_task(const Task *task,
 #endif
 
 #if NULL_COMPOSITE_TASKS
-  return;//performance testing
+  return; // performance testing
 #endif
 
   CompositeArguments args = ((CompositeArguments*)task->args)[0];
@@ -831,8 +906,7 @@ void ImageReduction::composite_task(const Task *task,
   int Z1 = domain1.lo()[2];
 
   ImageReductionComposite::CompositeFunction* compositeFunction;
-  compositeFunction = ImageReductionComposite::compositeFunctionPointer(
-                                                                        args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
+  compositeFunction = ImageReductionComposite::compositeFunctionPointer(args.depthFunction, args.blendFunctionSource, args.blendFunctionDestination, args.blendEquation);
 
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0(fragment0, FID_FIELD_R);
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > g0(fragment0, FID_FIELD_G);
@@ -848,11 +922,9 @@ void ImageReduction::composite_task(const Task *task,
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > z1(fragment1, FID_FIELD_Z);
   const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > userdata1(fragment1, FID_FIELD_USERDATA);
 
-  bool flip = flipRegions(fragment0, fragment1, args.cameraDirection);
-  // std::cout << " flip " << flip << std::endl;
-  // std::cout << " Z0 " << Z0 << " Z1 " << Z1 << std::endl;
+  bool flip = flipRegions(fragment0, fragment1, args.cameraIsOrthographic, args.cameraData);
 #if 0
-std::cout << __FUNCTION__ << " Z0 " << Z0 << " Z1 " << Z1 << " (r0,g0,b0) << " << r0[0] << " " << g0[0] << " " << b0[0] << " (r1,g1,b1) " << r1[0] << " " << g1[0] << " " << b1[0] << std::endl;
+  std::cout << __FUNCTION__ << " Z0 " << Z0 << " Z1 " << Z1 << " (r0,g0,b0) << " << r0[0] << " " << g0[0] << " " << b0[0] << " (r1,g1,b1) " << r1[0] << " " << g1[0] << " " << b1[0] << std::endl;
 #endif
   compositeFunction(r0, g0, b0, a0, z0, userdata0, r1, g1, b1, a1, z1, userdata1,
                     args.imageDescriptor.width, args.imageDescriptor.height, Z0, Z1, flip);
@@ -871,7 +943,8 @@ FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, i
                                               LogicalRegion image,
                                               Runtime* runtime, Context context,
                                               int maxTreeLevel,
-                                              float cameraDirection[image_region_dimensions]) {
+                                              bool cameraIsOrthographic, float cameraData[image_region_dimensions])
+{
   Domain launchDomain = (*mHierarchicalTreeDomain)[treeLevel - 1];
   int index = (treeLevel - 1) * 2;
   CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
@@ -884,7 +957,8 @@ FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, i
   args.blendFunctionSource = blendFuncSource;
   args.blendFunctionDestination = blendFuncDestination;
   args.blendEquation = blendEquation;
-  memcpy(args.cameraDirection, cameraDirection, sizeof(args.cameraDirection));
+  args.cameraIsOrthographic = cameraIsOrthographic;
+  memcpy(args.cameraData, cameraData, sizeof(args.cameraData));
   IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
                                           TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false,
                                           gMapperID);
@@ -902,25 +976,34 @@ FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, i
   FutureMap futures = runtime->execute_index_space(context, treeCompositeLauncher);
 
   if(treeLevel > 1) {
-
     futures = launchTreeReduction(imageDescriptor, treeLevel - 1, depthFunc,
                                   blendFuncSource, blendFuncDestination, blendEquation, compositeTaskID,
-                                  sourcePartition, image, runtime, context, maxTreeLevel, cameraDirection);
+                                  sourcePartition, image, runtime, context, maxTreeLevel, 
+                                  cameraIsOrthographic, cameraData);
   }
 
   return futures;
-
 }
 
-
-
-FutureMap ImageReduction::reduceImages(Context context, float cameraDirection[]) {
+FutureMap ImageReduction::reduceImagesOrthographic(Context context, float cameraDirection[]) {
   int maxTreeLevel = numTreeLevels(mImageDescriptor);
   if(maxTreeLevel > 0) {
     return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction,
                                mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
                                mCompositeTaskID, mCompositeImagePartition, mSourceImage, mRuntime,
-                               context, maxTreeLevel, cameraDirection);
+                               context, maxTreeLevel, true, cameraDirection);
+  } else {
+    return FutureMap();
+  }
+}
+
+FutureMap ImageReduction::reduceImagesPerspective(Context context, float cameraLocation[]) {
+  int maxTreeLevel = numTreeLevels(mImageDescriptor);
+  if(maxTreeLevel > 0) {
+    return launchTreeReduction(mImageDescriptor, maxTreeLevel, mDepthFunction,
+                               mGlBlendFunctionSource, mGlBlendFunctionDestination, mGlBlendEquation,
+                               mCompositeTaskID, mCompositeImagePartition, mSourceImage, mRuntime,
+                               context, maxTreeLevel, false, cameraLocation);
   } else {
     return FutureMap();
   }

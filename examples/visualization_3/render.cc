@@ -626,8 +626,8 @@ void cxx_reduce(legion_context_t ctx_, Camera camera)
     (float)(camera.at[1] - camera.from[1]),
     (float)(camera.at[2] - camera.from[2])
   };
-
-  compositor->reduceImages(ctx, cameraDirection);
+  // compositor->reduceImagesOrthographic(ctx, cameraDirection);
+  compositor->reduceImagesPerspective(ctx, camera.from);
 }
 
 // save the final image to disk

@@ -77,7 +77,7 @@ __demand(__replicable) __forbid(__inner)
 task main()
   render.legion_wait_on_mpi();
 
-  var global_grid_size = int3d{128, 128, 128}
+  var global_grid_size = int3d{120, 120, 120}
   -- var proc_grid_size = int3d{1, 8, 1}
   -- var proc_grid_size = int3d{8, 1, 1}
   -- var proc_grid_size = int3d{2, 2, 2}
