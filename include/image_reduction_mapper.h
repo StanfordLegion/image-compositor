@@ -22,8 +22,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
-using namespace Legion ;
-using namespace Mapping ;
+// using namespace Legion ;
+// using namespace Mapping ;
+
+namespace Legion {
+  namespace Visualization {
 
     /**
      * \class ImageReductionMapper
@@ -33,7 +36,7 @@ using namespace Mapping ;
      * you an inherit from the null mapper and only implement
      * mapper calls that are invoked.
      */
-    class ImageReductionMapper : public Mapper {
+    class ImageReductionMapper : public Mapping::Mapper {
     public:
       enum MappingKind {
         TASK_MAPPING,
@@ -45,240 +48,240 @@ using namespace Mapping ;
         PARTITION_MAPPING,
       };
 
-      ImageReductionMapper(MapperRuntime *rt, Machine machine, Processor local); 
+      ImageReductionMapper(Mapping::MapperRuntime *rt, Machine machine, Processor local); 
       virtual ~ImageReductionMapper(void);
     private:
       void report_unimplemented(const char *func_name, unsigned line) const;
     public:
       virtual const char* get_mapper_name(void) const;
-      virtual MapperSyncModel get_mapper_sync_model(void) const;
+      virtual Mapping::Mapper::MapperSyncModel get_mapper_sync_model(void) const;
     public: // Task mapping calls
-      virtual void select_task_options(const MapperContext    ctx,
+      virtual void select_task_options(const Mapping::MapperContext    ctx,
                                        const Task&            task,
                                              TaskOptions&     output);
-      virtual void premap_task(const MapperContext      ctx,
+      virtual void premap_task(const Mapping::MapperContext      ctx,
                                const Task&              task, 
                                const PremapTaskInput&   input,
                                PremapTaskOutput&        output);
-      virtual void slice_task(const MapperContext      ctx,
+      virtual void slice_task(const Mapping::MapperContext      ctx,
                               const Task&              task, 
                               const SliceTaskInput&    input,
                                     SliceTaskOutput&   output);
-      virtual void map_task(const MapperContext      ctx,
+      virtual void map_task(const Mapping::MapperContext      ctx,
                             const Task&              task,
                             const MapTaskInput&      input,
                                   MapTaskOutput&     output);
-      virtual void map_replicate_task(const MapperContext      ctx,
+      virtual void map_replicate_task(const Mapping::MapperContext      ctx,
                                       const Task&              task,
                                       const MapTaskInput&      input,
                                       const MapTaskOutput&     default_output,
                                       MapReplicateTaskOutput&  output);
-      virtual void select_task_variant(const MapperContext          ctx,
+      virtual void select_task_variant(const Mapping::MapperContext          ctx,
                                        const Task&                  task,
                                        const SelectVariantInput&    input,
                                              SelectVariantOutput&   output);
-      virtual void postmap_task(const MapperContext      ctx,
+      virtual void postmap_task(const Mapping::MapperContext      ctx,
                                 const Task&              task,
                                 const PostMapInput&      input,
                                       PostMapOutput&     output);
-      virtual void select_task_sources(const MapperContext        ctx,
+      virtual void select_task_sources(const Mapping::MapperContext        ctx,
                                        const Task&                task,
                                        const SelectTaskSrcInput&  input,
                                              SelectTaskSrcOutput& output);
       virtual void create_task_temporary_instance(
-                                    const MapperContext              ctx,
+                                    const Mapping::MapperContext              ctx,
                                     const Task&                      task,
                                     const CreateTaskTemporaryInput&  input,
                                           CreateTaskTemporaryOutput& output);
-      virtual void speculate(const MapperContext      ctx,
+      virtual void speculate(const Mapping::MapperContext      ctx,
                              const Task&              task,
                                    SpeculativeOutput& output);
-      virtual void report_profiling(const MapperContext      ctx,
+      virtual void report_profiling(const Mapping::MapperContext      ctx,
                                     const Task&              task,
                                     const TaskProfilingInfo& input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Task&                        task,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Inline mapping calls
-      virtual void map_inline(const MapperContext        ctx,
+      virtual void map_inline(const Mapping::MapperContext        ctx,
                               const InlineMapping&       inline_op,
                               const MapInlineInput&      input,
                                     MapInlineOutput&     output);
-      virtual void select_inline_sources(const MapperContext        ctx,
+      virtual void select_inline_sources(const Mapping::MapperContext        ctx,
                                        const InlineMapping&         inline_op,
                                        const SelectInlineSrcInput&  input,
                                              SelectInlineSrcOutput& output);
       virtual void create_inline_temporary_instance(
-                                  const MapperContext                ctx,
+                                  const Mapping::MapperContext                ctx,
                                   const InlineMapping&               inline_op,
                                   const CreateInlineTemporaryInput&  input,
                                         CreateInlineTemporaryOutput& output);
-      virtual void report_profiling(const MapperContext         ctx,
+      virtual void report_profiling(const Mapping::MapperContext         ctx,
                                     const InlineMapping&        inline_op,
                                     const InlineProfilingInfo&  input);
     public: // Copy mapping calls
-      virtual void map_copy(const MapperContext      ctx,
+      virtual void map_copy(const Mapping::MapperContext      ctx,
                             const Copy&              copy,
                             const MapCopyInput&      input,
                                   MapCopyOutput&     output);
-      virtual void select_copy_sources(const MapperContext          ctx,
+      virtual void select_copy_sources(const Mapping::MapperContext          ctx,
                                        const Copy&                  copy,
                                        const SelectCopySrcInput&    input,
                                              SelectCopySrcOutput&   output);
       virtual void create_copy_temporary_instance(
-                                  const MapperContext              ctx,
+                                  const Mapping::MapperContext              ctx,
                                   const Copy&                      copy,
                                   const CreateCopyTemporaryInput&  input,
                                         CreateCopyTemporaryOutput& output);
-      virtual void speculate(const MapperContext      ctx,
+      virtual void speculate(const Mapping::MapperContext      ctx,
                              const Copy& copy,
                                    SpeculativeOutput& output);
-      virtual void report_profiling(const MapperContext      ctx,
+      virtual void report_profiling(const Mapping::MapperContext      ctx,
                                     const Copy&              copy,
                                     const CopyProfilingInfo& input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Copy&                        copy,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Close mapping calls
-      virtual void map_close(const MapperContext       ctx,
+      virtual void map_close(const Mapping::MapperContext       ctx,
                              const Close&              close,
                              const MapCloseInput&      input,
                                    MapCloseOutput&     output);
-      virtual void select_close_sources(const MapperContext        ctx,
+      virtual void select_close_sources(const Mapping::MapperContext        ctx,
                                         const Close&               close,
                                         const SelectCloseSrcInput&  input,
                                               SelectCloseSrcOutput& output);
       virtual void create_close_temporary_instance(
-                                  const MapperContext               ctx,
+                                  const Mapping::MapperContext               ctx,
                                   const Close&                      close,
                                   const CreateCloseTemporaryInput&  input,
                                         CreateCloseTemporaryOutput& output);
-      virtual void report_profiling(const MapperContext       ctx,
+      virtual void report_profiling(const Mapping::MapperContext       ctx,
                                     const Close&              close,
                                     const CloseProfilingInfo& input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Close&                       close,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Acquire mapping calls
-      virtual void map_acquire(const MapperContext         ctx,
+      virtual void map_acquire(const Mapping::MapperContext         ctx,
                                const Acquire&              acquire,
                                const MapAcquireInput&      input,
                                      MapAcquireOutput&     output);
-      virtual void speculate(const MapperContext         ctx,
+      virtual void speculate(const Mapping::MapperContext         ctx,
                              const Acquire&              acquire,
                                    SpeculativeOutput&    output);
-      virtual void report_profiling(const MapperContext         ctx,
+      virtual void report_profiling(const Mapping::MapperContext         ctx,
                                     const Acquire&              acquire,
                                     const AcquireProfilingInfo& input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Acquire&                     acquire,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Release mapping calls
-      virtual void map_release(const MapperContext         ctx,
+      virtual void map_release(const Mapping::MapperContext         ctx,
                                const Release&              release,
                                const MapReleaseInput&      input,
                                      MapReleaseOutput&     output);
-      virtual void select_release_sources(const MapperContext       ctx,
+      virtual void select_release_sources(const Mapping::MapperContext       ctx,
                                      const Release&                 release,
                                      const SelectReleaseSrcInput&   input,
                                            SelectReleaseSrcOutput&  output);
       virtual void create_release_temporary_instance(
-                                   const MapperContext                 ctx,
+                                   const Mapping::MapperContext                 ctx,
                                    const Release&                      release,
                                    const CreateReleaseTemporaryInput&  input,
                                          CreateReleaseTemporaryOutput& output);
-      virtual void speculate(const MapperContext         ctx,
+      virtual void speculate(const Mapping::MapperContext         ctx,
                              const Release&              release,
                                    SpeculativeOutput&    output);
-      virtual void report_profiling(const MapperContext         ctx,
+      virtual void report_profiling(const Mapping::MapperContext         ctx,
                                     const Release&              release,
                                     const ReleaseProfilingInfo& input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Release&                     release,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Partition mapping calls
-      virtual void select_partition_projection(const MapperContext  ctx,
+      virtual void select_partition_projection(const Mapping::MapperContext  ctx,
                           const Partition&                          partition,
                           const SelectPartitionProjectionInput&     input,
                                 SelectPartitionProjectionOutput&    output);
-      virtual void map_partition(const MapperContext        ctx,
+      virtual void map_partition(const Mapping::MapperContext        ctx,
                                  const Partition&           partition,
                                  const MapPartitionInput&   input,
                                        MapPartitionOutput&  output);
       virtual void select_partition_sources(
-                                   const MapperContext             ctx,
+                                   const Mapping::MapperContext             ctx,
                                    const Partition&                partition,
                                    const SelectPartitionSrcInput&  input,
                                          SelectPartitionSrcOutput& output);
       virtual void create_partition_temporary_instance(
-                              const MapperContext                   ctx,
+                              const Mapping::MapperContext                   ctx,
                               const Partition&                      partition,
                               const CreatePartitionTemporaryInput&  input,
                                     CreatePartitionTemporaryOutput& output);
-      virtual void report_profiling(const MapperContext              ctx,
+      virtual void report_profiling(const Mapping::MapperContext              ctx,
                                     const Partition&                 partition,
                                     const PartitionProfilingInfo&    input);
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Partition&                   partition,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Fill mapper calls
       virtual void select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Fill&                        fill,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output);
     public: // Task execution mapping calls
-      virtual void configure_context(const MapperContext         ctx,
+      virtual void configure_context(const Mapping::MapperContext         ctx,
                                      const Task&                 task,
                                            ContextConfigOutput&  output);
-      virtual void select_tunable_value(const MapperContext         ctx,
+      virtual void select_tunable_value(const Mapping::MapperContext         ctx,
                                         const Task&                 task,
                                         const SelectTunableInput&   input,
                                               SelectTunableOutput&  output);
     public: // Must epoch mapping
       virtual void select_sharding_functor(
-                          const MapperContext                    ctx,
+                          const Mapping::MapperContext                    ctx,
                           const MustEpoch&                       epoch,
                           const SelectShardingFunctorInput&      input,
                                 MustEpochShardingFunctorOutput&  output);
-      virtual void map_must_epoch(const MapperContext           ctx,
+      virtual void map_must_epoch(const Mapping::MapperContext           ctx,
                                   const MapMustEpochInput&      input,
                                         MapMustEpochOutput&     output);
     public: // Dataflow graph mapping
-      virtual void map_dataflow_graph(const MapperContext           ctx,
+      virtual void map_dataflow_graph(const Mapping::MapperContext           ctx,
                                       const MapDataflowGraphInput&  input,
                                             MapDataflowGraphOutput& output);
     public: // Memoization control
-      virtual void memoize_operation(const MapperContext  ctx,
+      virtual void memoize_operation(const Mapping::MapperContext  ctx,
                                      const Mappable&      mappable,
                                      const MemoizeInput&  input,
                                            MemoizeOutput& output);
     public: // Mapping control and stealing
-      virtual void select_tasks_to_map(const MapperContext          ctx,
+      virtual void select_tasks_to_map(const Mapping::MapperContext          ctx,
                                        const SelectMappingInput&    input,
                                              SelectMappingOutput&   output);
-      virtual void select_steal_targets(const MapperContext         ctx,
+      virtual void select_steal_targets(const Mapping::MapperContext         ctx,
                                         const SelectStealingInput&  input,
                                               SelectStealingOutput& output);
-      virtual void permit_steal_request(const MapperContext         ctx,
+      virtual void permit_steal_request(const Mapping::MapperContext         ctx,
                                         const StealRequestInput&    intput,
                                               StealRequestOutput&   output);
     public: // handling
-      virtual void handle_message(const MapperContext           ctx,
+      virtual void handle_message(const Mapping::MapperContext           ctx,
                                   const MapperMessage&          message);
-      virtual void handle_task_result(const MapperContext           ctx,
+      virtual void handle_task_result(const Mapping::MapperContext           ctx,
                                       const MapperTaskResult&       result);
 
     protected:
@@ -287,32 +290,32 @@ using namespace Mapping ;
       static void default_decompose_points(
                             const DomainT<DIM,coord_t> &point_space,
                             const std::vector<Processor> &targets,
-                            const Point<DIM,coord_t> &blocking,
+                            const Legion::Point<DIM,coord_t> &blocking,
                             bool recurse, bool stealable,
                             std::vector<TaskSlice> &slices);
      template<int DIM>
-      static Point<DIM,coord_t> default_select_num_blocks(
+      static Legion::Point<DIM,coord_t> default_select_num_blocks(
                             long long int factor,
-                            const Rect<DIM,coord_t> &rect_to_factor);
+                            const Legion::Rect<DIM,coord_t> &rect_to_factor);
 
-     void default_policy_select_sources(MapperContext ctx,
-                                   const PhysicalInstance &target,
-                                   const std::vector<PhysicalInstance> &sources,
-                                   std::deque<PhysicalInstance> &ranking);
+     void default_policy_select_sources(Mapping::MapperContext ctx,
+                                   const Mapping::PhysicalInstance &target,
+                                   const std::vector<Mapping::PhysicalInstance> &sources,
+                                   std::deque<Mapping::PhysicalInstance> &ranking);
 
-     void default_policy_select_constraints(MapperContext ctx,
+     void default_policy_select_constraints(Mapping::MapperContext ctx,
                      LayoutConstraintSet &constraints, Memory target_memory,
                      const RegionRequirement &req);
 
-     bool default_make_instance(MapperContext ctx,
+     bool default_make_instance(Mapping::MapperContext ctx,
         Memory target_memory, const LayoutConstraintSet &constraints,
-        PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
+        Mapping::PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
         const RegionRequirement &req, size_t *footprint);
 
 
      static inline bool physical_sort_func(
-                         const std::pair<PhysicalInstance,unsigned> &left,
-                         const std::pair<PhysicalInstance,unsigned> &right)
+                         const std::pair<Mapping::PhysicalInstance,unsigned> &left,
+                         const std::pair<Mapping::PhysicalInstance,unsigned> &right)
     { return (left.second < right.second); }
 
 
@@ -338,8 +341,8 @@ using namespace Mapping ;
 
     };
 
-  //}; // namespace Mapping
-//}; // namespace Legion
+  }; // namespace Mapping
+}; // namespace Legion
 
 
 #endif // __IMAGE_REDUCTION_MAPPER_H__

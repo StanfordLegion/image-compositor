@@ -17,13 +17,13 @@
 
 #include "image_reduction_mapper.h"
 
-using namespace Legion ;
-using namespace Mapping ;
+namespace Legion {
+  namespace Visualization {
 
     Logger log_image_reduction_mapper("image_reduction_mapper");
 
     //--------------------------------------------------------------------------
-    ImageReductionMapper::ImageReductionMapper(MapperRuntime *rt, Machine m, Processor local)
+    ImageReductionMapper::ImageReductionMapper(Mapping::MapperRuntime *rt, Machine m, Processor local)
       : Mapper(rt), machine(m), node_id(local.address_space()),
         local_proc(local), local_kind(local.kind()),
         mapper_name("image_reduction_mapper")
@@ -162,14 +162,14 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    Mapper::MapperSyncModel ImageReductionMapper::get_mapper_sync_model(void) const
+    Mapping::Mapper::MapperSyncModel ImageReductionMapper::get_mapper_sync_model(void) const
     //--------------------------------------------------------------------------
     {
       return SERIALIZED_REENTRANT_MAPPER_MODEL;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_task_options(const MapperContext    ctx,
+    void ImageReductionMapper::select_task_options(const Mapping::MapperContext    ctx,
                                          const Task&            task,
                                                TaskOptions&     output)
     //--------------------------------------------------------------------------
@@ -182,7 +182,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::premap_task(const MapperContext      ctx,
+    void ImageReductionMapper::premap_task(const Mapping::MapperContext      ctx,
                                  const Task&              task,
                                  const PremapTaskInput&   input,
                                        PremapTaskOutput&  output)
@@ -312,7 +312,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::slice_task(const MapperContext      ctx,
+    void ImageReductionMapper::slice_task(const Mapping::MapperContext      ctx,
                                 const Task&              task,
                                 const SliceTaskInput&    input,
                                       SliceTaskOutput&   output)
@@ -411,7 +411,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_task(const MapperContext      ctx,
+    void ImageReductionMapper::map_task(const Mapping::MapperContext      ctx,
                               const Task&              task,
                               const MapTaskInput&      input,
                                     MapTaskOutput&     output)
@@ -462,7 +462,7 @@ using namespace Mapping ;
         const RegionRequirement req = task.regions[i];
         LayoutConstraintSet constraints;
         constraints.add_constraint(FieldConstraint(req.privilege_fields, false /*contiguous*/, false /*inorder*/));
-        PhysicalInstance inst;
+        Mapping::PhysicalInstance inst;
         bool created;
 
 	if (req.privilege == NO_ACCESS) {
@@ -479,7 +479,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_replicate_task(const MapperContext      ctx,
+    void ImageReductionMapper::map_replicate_task(const Mapping::MapperContext      ctx,
                                         const Task&              task,
                                         const MapTaskInput&      input,
                                         const MapTaskOutput&     default_output,
@@ -490,7 +490,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_task_variant(const MapperContext          ctx,
+    void ImageReductionMapper::select_task_variant(const Mapping::MapperContext          ctx,
                                          const Task&                  task,
                                          const SelectVariantInput&    input,
                                                SelectVariantOutput&   output)
@@ -500,7 +500,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::postmap_task(const MapperContext      ctx,
+    void ImageReductionMapper::postmap_task(const Mapping::MapperContext      ctx,
                                   const Task&              task,
                                   const PostMapInput&      input,
                                         PostMapOutput&     output)
@@ -510,7 +510,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_task_sources(const MapperContext        ctx,
+    void ImageReductionMapper::select_task_sources(const Mapping::MapperContext        ctx,
                                          const Task&                task,
                                          const SelectTaskSrcInput&  input,
                                                SelectTaskSrcOutput& output)
@@ -521,10 +521,10 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::default_policy_select_sources(MapperContext ctx,
-                                   const PhysicalInstance &target,
-                                   const std::vector<PhysicalInstance> &sources,
-                                   std::deque<PhysicalInstance> &ranking)
+    void ImageReductionMapper::default_policy_select_sources(Mapping::MapperContext ctx,
+                                   const Mapping::PhysicalInstance &target,
+                                   const std::vector<Mapping::PhysicalInstance> &sources,
+                                   std::deque<Mapping::PhysicalInstance> &ranking)
     //--------------------------------------------------------------------------
     {
       // For right now we'll rank instances by the bandwidth of the memory
@@ -534,11 +534,11 @@ using namespace Mapping ;
       Memory destination_memory = target.get_location();
       std::vector<MemoryMemoryAffinity> affinity(1);
       // fill in a vector of the sources with their bandwidths and sort them
-      std::vector<std::pair<PhysicalInstance,
+      std::vector<std::pair<Mapping::PhysicalInstance,
                           unsigned/*bandwidth*/> > band_ranking(sources.size());
       for (unsigned idx = 0; idx < sources.size(); idx++)
       {
-        const PhysicalInstance &instance = sources[idx];
+        const Mapping::PhysicalInstance &instance = sources[idx];
         Memory location = instance.get_location();
         std::map<Memory,unsigned>::const_iterator finder =
           source_memories.find(location);
@@ -554,16 +554,16 @@ using namespace Mapping ;
           }
           source_memories[location] = memory_bandwidth;
           band_ranking[idx] =
-            std::pair<PhysicalInstance,unsigned>(instance, memory_bandwidth);
+            std::pair<Mapping::PhysicalInstance,unsigned>(instance, memory_bandwidth);
         }
         else
           band_ranking[idx] =
-            std::pair<PhysicalInstance,unsigned>(instance, finder->second);
+            std::pair<Mapping::PhysicalInstance,unsigned>(instance, finder->second);
       }
       // Sort them by bandwidth
       std::sort(band_ranking.begin(), band_ranking.end(), physical_sort_func);
       // Iterate from largest bandwidth to smallest
-      for (std::vector<std::pair<PhysicalInstance,unsigned> >::
+      for (std::vector<std::pair<Mapping::PhysicalInstance,unsigned> >::
             const_reverse_iterator it = band_ranking.rbegin();
             it != band_ranking.rend(); it++)
         ranking.push_back(it->first);
@@ -574,7 +574,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_task_temporary_instance(
-                                    const MapperContext              ctx,
+                                    const Mapping::MapperContext              ctx,
                                     const Task&                      task,
                                     const CreateTaskTemporaryInput&  input,
                                           CreateTaskTemporaryOutput& output)
@@ -584,7 +584,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::speculate(const MapperContext      ctx,
+    void ImageReductionMapper::speculate(const Mapping::MapperContext      ctx,
                                const Task&              task,
                                      SpeculativeOutput& output)
     //--------------------------------------------------------------------------
@@ -593,7 +593,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext       ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext       ctx,
                                       const Task&               task,
                                       const TaskProfilingInfo&  input)
     //--------------------------------------------------------------------------
@@ -603,7 +603,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Task&                        task,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -613,7 +613,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_inline(const MapperContext        ctx,
+    void ImageReductionMapper::map_inline(const Mapping::MapperContext        ctx,
                                 const InlineMapping&       inline_op,
                                 const MapInlineInput&      input,
                                       MapInlineOutput&     output)
@@ -623,7 +623,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_inline_sources(const MapperContext     ctx,
+    void ImageReductionMapper::select_inline_sources(const Mapping::MapperContext     ctx,
                                         const InlineMapping&         inline_op,
                                         const SelectInlineSrcInput&  input,
                                               SelectInlineSrcOutput& output)
@@ -634,7 +634,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_inline_temporary_instance(
-                                  const MapperContext                ctx,
+                                  const Mapping::MapperContext                ctx,
                                   const InlineMapping&               inline_op,
                                   const CreateInlineTemporaryInput&  input,
                                         CreateInlineTemporaryOutput& output)
@@ -644,7 +644,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext         ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext         ctx,
                                       const InlineMapping&        inline_op,
                                       const InlineProfilingInfo&  input)
     //--------------------------------------------------------------------------
@@ -653,7 +653,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_copy(const MapperContext      ctx,
+    void ImageReductionMapper::map_copy(const Mapping::MapperContext      ctx,
                               const Copy&              copy,
                               const MapCopyInput&      input,
                                     MapCopyOutput&     output)
@@ -663,7 +663,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_copy_sources(const MapperContext          ctx,
+    void ImageReductionMapper::select_copy_sources(const Mapping::MapperContext          ctx,
                                          const Copy&                  copy,
                                          const SelectCopySrcInput&    input,
                                                SelectCopySrcOutput&   output)
@@ -674,7 +674,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_copy_temporary_instance(
-                                  const MapperContext              ctx,
+                                  const Mapping::MapperContext              ctx,
                                   const Copy&                      copy,
                                   const CreateCopyTemporaryInput&  input,
                                         CreateCopyTemporaryOutput& output)
@@ -684,7 +684,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::speculate(const MapperContext      ctx,
+    void ImageReductionMapper::speculate(const Mapping::MapperContext      ctx,
                                const Copy&              copy,
                                      SpeculativeOutput& output)
     //--------------------------------------------------------------------------
@@ -693,7 +693,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext      ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext      ctx,
                                       const Copy&              copy,
                                       const CopyProfilingInfo& input)
     //--------------------------------------------------------------------------
@@ -703,7 +703,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Copy&                        copy,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -713,7 +713,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_close(const MapperContext       ctx,
+    void ImageReductionMapper::map_close(const Mapping::MapperContext       ctx,
                                const Close&              close,
                                const MapCloseInput&      input,
                                      MapCloseOutput&     output)
@@ -723,7 +723,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_close_sources(const MapperContext        ctx,
+    void ImageReductionMapper::select_close_sources(const Mapping::MapperContext        ctx,
                                           const Close&               close,
                                           const SelectCloseSrcInput&  input,
                                                 SelectCloseSrcOutput& output)
@@ -734,7 +734,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_close_temporary_instance(
-                                  const MapperContext               ctx,
+                                  const Mapping::MapperContext               ctx,
                                   const Close&                      close,
                                   const CreateCloseTemporaryInput&  input,
                                         CreateCloseTemporaryOutput& output)
@@ -744,7 +744,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext       ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext       ctx,
                                       const Close&              close,
                                       const CloseProfilingInfo& input)
     //--------------------------------------------------------------------------
@@ -754,7 +754,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Close&                       close,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -764,7 +764,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_acquire(const MapperContext         ctx,
+    void ImageReductionMapper::map_acquire(const Mapping::MapperContext         ctx,
                                  const Acquire&              acquire,
                                  const MapAcquireInput&      input,
                                        MapAcquireOutput&     output)
@@ -774,7 +774,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::speculate(const MapperContext         ctx,
+    void ImageReductionMapper::speculate(const Mapping::MapperContext         ctx,
                                const Acquire&              acquire,
                                      SpeculativeOutput&    output)
     //--------------------------------------------------------------------------
@@ -783,7 +783,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext         ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext         ctx,
                                       const Acquire&              acquire,
                                       const AcquireProfilingInfo& input)
     //--------------------------------------------------------------------------
@@ -793,7 +793,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Acquire&                     acquire,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -804,7 +804,7 @@ using namespace Mapping ;
 
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_release(const MapperContext         ctx,
+    void ImageReductionMapper::map_release(const Mapping::MapperContext         ctx,
                                  const Release&              release,
                                  const MapReleaseInput&      input,
                                        MapReleaseOutput&     output)
@@ -814,7 +814,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_release_sources(const MapperContext      ctx,
+    void ImageReductionMapper::select_release_sources(const Mapping::MapperContext      ctx,
                                         const Release&                 release,
                                         const SelectReleaseSrcInput&   input,
                                               SelectReleaseSrcOutput&  output)
@@ -824,7 +824,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::speculate(const MapperContext         ctx,
+    void ImageReductionMapper::speculate(const Mapping::MapperContext         ctx,
                                const Release&              release,
                                      SpeculativeOutput&    output)
     //--------------------------------------------------------------------------
@@ -834,7 +834,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_release_temporary_instance(
-                                   const MapperContext                 ctx,
+                                   const Mapping::MapperContext                 ctx,
                                    const Release&                      release,
                                    const CreateReleaseTemporaryInput&  input,
                                          CreateReleaseTemporaryOutput& output)
@@ -844,7 +844,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext         ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext         ctx,
                                       const Release&              release,
                                       const ReleaseProfilingInfo& input)
     //--------------------------------------------------------------------------
@@ -854,7 +854,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Release&                     release,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -864,7 +864,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_partition_projection(const MapperContext  ctx,
+    void ImageReductionMapper::select_partition_projection(const Mapping::MapperContext  ctx,
                         const Partition&                          partition,
                         const SelectPartitionProjectionInput&     input,
                               SelectPartitionProjectionOutput&    output)
@@ -877,7 +877,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_partition(const MapperContext        ctx,
+    void ImageReductionMapper::map_partition(const Mapping::MapperContext        ctx,
                                const Partition&           partition,
                                const MapPartitionInput&   input,
                                      MapPartitionOutput&  output)
@@ -894,7 +894,7 @@ using namespace Mapping ;
       std::vector<unsigned> to_erase;
       std::set<FieldID> missing_fields =
         partition.requirement.privilege_fields;
-      for (std::vector<PhysicalInstance>::const_iterator it =
+      for (std::vector<Mapping::PhysicalInstance>::const_iterator it =
             output.chosen_instances.begin(); it !=
             output.chosen_instances.end(); it++)
       {
@@ -967,9 +967,9 @@ using namespace Mapping ;
     }
 
    //--------------------------------------------------------------------------
-    bool ImageReductionMapper::default_make_instance(MapperContext ctx,
+    bool ImageReductionMapper::default_make_instance(Mapping::MapperContext ctx,
         Memory target_memory, const LayoutConstraintSet &constraints,
-        PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
+        Mapping::PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
         const RegionRequirement &req, size_t *footprint)
     //--------------------------------------------------------------------------
     {
@@ -995,7 +995,7 @@ using namespace Mapping ;
 
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::default_policy_select_constraints(MapperContext ctx,
+    void ImageReductionMapper::default_policy_select_constraints(Mapping::MapperContext ctx,
                      LayoutConstraintSet &constraints, Memory target_memory,
                      const RegionRequirement &req)
     //--------------------------------------------------------------------------
@@ -1045,7 +1045,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_partition_sources(
-                                     const MapperContext             ctx,
+                                     const Mapping::MapperContext             ctx,
                                      const Partition&                partition,
                                      const SelectPartitionSrcInput&  input,
                                            SelectPartitionSrcOutput& output)
@@ -1056,7 +1056,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::create_partition_temporary_instance(
-                            const MapperContext                   ctx,
+                            const Mapping::MapperContext                   ctx,
                             const Partition&                      partition,
                             const CreatePartitionTemporaryInput&  input,
                                   CreatePartitionTemporaryOutput& output)
@@ -1066,7 +1066,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::report_profiling(const MapperContext              ctx,
+    void ImageReductionMapper::report_profiling(const Mapping::MapperContext              ctx,
                                     const Partition&                 partition,
                                     const PartitionProfilingInfo&    input)
     //--------------------------------------------------------------------------
@@ -1076,7 +1076,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Partition&                   partition,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -1087,7 +1087,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                ctx,
+                                 const Mapping::MapperContext                ctx,
                                  const Fill&                        fill,
                                  const SelectShardingFunctorInput&  input,
                                        SelectShardingFunctorOutput& output)
@@ -1097,7 +1097,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::configure_context(const MapperContext         ctx,
+    void ImageReductionMapper::configure_context(const Mapping::MapperContext         ctx,
                                        const Task&                 task,
                                              ContextConfigOutput&  output)
     //--------------------------------------------------------------------------
@@ -1105,7 +1105,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_tunable_value(const MapperContext         ctx,
+    void ImageReductionMapper::select_tunable_value(const Mapping::MapperContext         ctx,
                                           const Task&                 task,
                                           const SelectTunableInput&   input,
                                                 SelectTunableOutput&  output)
@@ -1116,7 +1116,7 @@ using namespace Mapping ;
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_sharding_functor(
-                                 const MapperContext                   ctx,
+                                 const Mapping::MapperContext                   ctx,
                                  const MustEpoch&                      epoch,
                                  const SelectShardingFunctorInput&     input,
                                        MustEpochShardingFunctorOutput& output)
@@ -1126,7 +1126,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_must_epoch(const MapperContext           ctx,
+    void ImageReductionMapper::map_must_epoch(const Mapping::MapperContext           ctx,
                                     const MapMustEpochInput&      input,
                                           MapMustEpochOutput&     output)
     //--------------------------------------------------------------------------
@@ -1135,7 +1135,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::map_dataflow_graph(const MapperContext           ctx,
+    void ImageReductionMapper::map_dataflow_graph(const Mapping::MapperContext           ctx,
                                         const MapDataflowGraphInput&  input,
                                               MapDataflowGraphOutput& output)
     //--------------------------------------------------------------------------
@@ -1144,7 +1144,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::memoize_operation(const MapperContext  ctx,
+    void ImageReductionMapper::memoize_operation(const Mapping::MapperContext  ctx,
                                        const Mappable&      mappable,
                                        const MemoizeInput&  input,
                                              MemoizeOutput& output)
@@ -1154,7 +1154,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_tasks_to_map(const MapperContext          ctx,
+    void ImageReductionMapper::select_tasks_to_map(const Mapping::MapperContext          ctx,
                                          const SelectMappingInput&    input,
                                                SelectMappingOutput&   output)
     //--------------------------------------------------------------------------
@@ -1167,7 +1167,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::select_steal_targets(const MapperContext         ctx,
+    void ImageReductionMapper::select_steal_targets(const Mapping::MapperContext         ctx,
                                           const SelectStealingInput&  input,
                                                 SelectStealingOutput& output)
     //--------------------------------------------------------------------------
@@ -1175,7 +1175,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::permit_steal_request(const MapperContext         ctx,
+    void ImageReductionMapper::permit_steal_request(const Mapping::MapperContext         ctx,
                                           const StealRequestInput&    input,
                                                 StealRequestOutput&   output)
     //--------------------------------------------------------------------------
@@ -1184,7 +1184,7 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::handle_message(const MapperContext           ctx,
+    void ImageReductionMapper::handle_message(const Mapping::MapperContext           ctx,
                                     const MapperMessage&          message)
     //--------------------------------------------------------------------------
     {
@@ -1192,9 +1192,12 @@ using namespace Mapping ;
     }
 
     //--------------------------------------------------------------------------
-    void ImageReductionMapper::handle_task_result(const MapperContext           ctx,
+    void ImageReductionMapper::handle_task_result(const Mapping::MapperContext           ctx,
                                         const MapperTaskResult&       result)
     //--------------------------------------------------------------------------
     {
       report_unimplemented(__func__, __LINE__);
     }
+
+  }
+}

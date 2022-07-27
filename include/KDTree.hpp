@@ -14,7 +14,7 @@
 #include "legion_visualization.h"
 #include "legion.h"
 
-using namespace Legion::Visualization;
+// using namespace Legion::Visualization;
 
 namespace Legion{
   namespace Visualization{

@@ -32,7 +32,7 @@ static void create_mappers(Legion::Machine machine,
   for (Legion::Processor proc : local_procs) {
     rt->replace_default_mapper(new Visualization_3_Mapper(rt, machine, proc), proc);
     Mapping::Mapper* mapper = nullptr;
-    mapper = (Mapping::Mapper*)new ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
+    mapper = (Mapping::Mapper*)new Legion::Visualization::ImageReductionMapper(rt->get_mapper_runtime(), machine, proc);
     mapper = new Legion::Mapping::LoggingWrapper(mapper);
     rt->add_mapper(imageReductionMapperID, mapper, proc);
   }
