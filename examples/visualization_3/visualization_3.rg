@@ -73,7 +73,7 @@ do
                         __fields(lr.{TEMP}), 1)
 end
 
-__demand(__replicable) __forbid(__inner)
+__demand(__replicable, __inner)
 task main()
   render.legion_wait_on_mpi();
 

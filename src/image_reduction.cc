@@ -376,8 +376,8 @@ void ImageReduction::partitionImageByKDTree(LogicalRegion image,
                                             LogicalPartition sourcePartition, Context ctx, Runtime* runtime, ImageDescriptor imageDescriptor) {
 __TRACE
   mRenderImageColorSpace = imageDescriptor.simulationColorSpace;
-  Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
-  mSimulationKDTree->getColorMap(coloring);
+  // Legion::Point<image_region_dimensions> *coloring = new Legion::Point<image_region_dimensions>[mSimulationKDTree->size()];
+  // mSimulationKDTree->getColorMap(coloring);
 __TRACE
   // create a logical region to hold the coloring and extent
   Point<image_region_dimensions> p0 = mImageDescriptor.origin();
@@ -388,12 +388,14 @@ __TRACE
   mRuntime->attach_name(coloringFields, "render image coloring fields");
 
 __TRACE
-  FieldAllocator coloringAllocator = mRuntime->create_field_allocator(ctx, coloringFields);
-  FieldID fidColor = coloringAllocator.allocate_field(sizeof(Point<image_region_dimensions>), FID_FIELD_COLOR);
-  assert(fidColor == FID_FIELD_COLOR);
-  FieldID fidExtent = coloringAllocator.allocate_field(sizeof(Rect<image_region_dimensions>), FID_FIELD_EXTENT);
-  assert(fidExtent == FID_FIELD_EXTENT);
+  // FieldAllocator coloringAllocator = mRuntime->create_field_allocator(ctx, coloringFields);
+  // FieldID fidColor = coloringAllocator.allocate_field(sizeof(Point<image_region_dimensions>), FID_FIELD_COLOR);
+  // assert(fidColor == FID_FIELD_COLOR);
+  // FieldID fidExtent = coloringAllocator.allocate_field(sizeof(Rect<image_region_dimensions>), FID_FIELD_EXTENT);
+  // assert(fidExtent == FID_FIELD_EXTENT);
 
+#if 0
+  IndexPartition renderImageIP; {
 __TRACE
   LogicalRegion coloringExtentRegion = mRuntime->create_logical_region(ctx, coloringIndexSpace, coloringFields);
 
@@ -431,12 +433,42 @@ std::cout << "coloring[" << i << "] extent " << rect << " color " << coloring[i]
     coloringExtentRegion, coloringExtentRegion, FID_FIELD_COLOR,
     coloringIndexSpace, AUTO_GENERATE_ID, gMapperID);
   LogicalPartition coloringPartition = runtime->get_logical_partition(ctx, coloringExtentRegion, coloringIP);
-  IndexPartition renderImageIP = mRuntime->create_partition_by_image_range(
+
+  renderImageIP = mRuntime->create_partition_by_image_range(
     ctx, mSourceIndexSpace, coloringPartition, coloringExtentRegion,
     FID_FIELD_EXTENT, coloringIndexSpace, DISJOINT_COMPLETE_KIND, AUTO_GENERATE_ID,
     gMapperID);
+  }
+
+#else
+
+  std::map<DomainPoint, Domain> domains;
+  size_t count = 0;
+
+  for(Domain::DomainPointIterator it(runtime->get_index_space_domain(ctx, coloringIndexSpace)); it; it++) {
+    DomainPoint color(it.p);
+    Rect<3> base = imageBounds;
+    base.lo.z = base.hi.z = count++;
+    domains[color] = Domain(base);
+    // std::cout << count << " point: " << color << " domains[color]: " << domains[color] << std::endl;
+  }
+
+  IndexPartition renderImageIP = 
+    mRuntime->create_partition_by_domain(ctx, mSourceIndexSpace, domains, coloringIndexSpace, true, DISJOINT_COMPLETE_KIND);
+
+#endif
+
   mRenderImagePartition = runtime->get_logical_partition(ctx, mSourceImage, renderImageIP);
   mRuntime->attach_name(mRenderImagePartition, "render image partition");
+
+  // Legion::Rect<3> parent_bound = runtime->get_index_space_domain(ctx, mSourceIndexSpace);
+  // std::cout << "parent_bound " << parent_bound << std::endl;
+  // for(Domain::DomainPointIterator it(runtime->get_index_space_domain(ctx, coloringIndexSpace)); it; it++) {
+  //   DomainPoint color(it.p);
+  //   IndexSpace subregion = runtime->get_index_subspace(ctx, mRenderImagePartition.get_index_partition(), color);
+  //   Legion::Rect<3> subdomain_bounds = runtime->get_index_space_domain(ctx, subregion);
+  //   std::cout << "color: " << color  << " subdomain_bounds " << subdomain_bounds << std::endl;
+  // }
 }
 
 
@@ -460,7 +492,7 @@ int ImageReduction::subtreeHeight(ImageDescriptor imageDescriptor) {
 
 
 static int level2FunctorID(int level, int more) {
-  return 100 + level * 2 + more;//TODO assign ids dynamically
+  return 100 + level * 2 + more; //TODO assign ids dynamically
 }
 
 
@@ -506,9 +538,7 @@ __TRACE
   }
 
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
-  std::cout << "simulationDomain\n"
-            << rect.lo[0] << " " << rect.lo[1] << " " << rect.lo[2] << "\n"
-            << rect.hi[0] << " " << rect.hi[1] << " " << rect.hi[2] << "\n";
+  std::cout << "simulationDomain " << rect << std::endl;
 
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
@@ -521,10 +551,7 @@ __TRACE
     IndexSpace subregion = runtime->get_index_subspace(ctx,
       imageDescriptor.simulationLogicalPartition.get_index_partition(), color);
     Domain subdomain = runtime->get_index_space_domain(ctx, subregion);
-    // Legion::Rect<3> subdomain_bounds = subdomain;
-    // std::cout << "subdomain_bounds\n"
-    //           << subdomain_bounds.lo[0] << " " << subdomain_bounds.lo[1] << " " << subdomain_bounds.lo[2] << "\n"
-    //           << subdomain_bounds.hi[0] << " " << subdomain_bounds.hi[1] << " " << subdomain_bounds.hi[2] << "\n";
+    // std::cout << "subdomain " << Legion::Rect<3>(subdomain) << std::endl;
     Legion::Rect<image_region_dimensions> simulationRect(color, color);
     KDTreeValue simulationValue;
     simulationValue.extent = simulationRect;
