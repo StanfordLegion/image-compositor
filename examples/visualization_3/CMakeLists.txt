@@ -1,20 +1,20 @@
 cmake_minimum_required(VERSION 3.1)
 project(visualization_3 LANGUAGES C CXX)
 
-option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" OFF)
+option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" ON)
 
 # include rendering library
+set(OVR_BUILD_TORCH OFF)
+set(OVR_BUILD_OSPRAY ON)
+find_package(ospray 2.0 REQUIRED)
+find_package(TBB REQUIRED)
 if(BUILD_WITH_OPTIX7)
   set(OVR_BUILD_OPTIX7 ON)
-  set(OVR_BUILD_OSPRAY OFF)
   include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
   include_directories(${OptiX_INCLUDE})
-  else()
+else()
   set(OVR_BUILD_OPTIX7 OFF)
-  set(OVR_BUILD_OSPRAY ON)
-  find_package(ospray 2.0 REQUIRED)
 endif()
-set(OVR_BUILD_TORCH OFF)
 add_subdirectory(ovr EXCLUDE_FROM_ALL)
 
 # adapted from https://stackoverflow.com/a/69353718
@@ -25,9 +25,9 @@ if(NOT CMAKE_CUDA_ARCHITECTURES)
   string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
   string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
   string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+  set(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
 endif()
 # print debug messages
-set(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
 message(STATUS "Automatically detected GPU architectures: ${CUDA_ARCH_LIST}")
 # we can only enable CUDA if CMAKE_CUDA_ARCHITECTURES is set
 if (CMAKE_CUDA_ARCHITECTURES)

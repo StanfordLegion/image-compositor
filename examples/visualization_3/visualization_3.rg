@@ -80,8 +80,8 @@ task main()
   var global_grid_size = int3d{120, 120, 120}
   -- var proc_grid_size = int3d{1, 8, 1}
   -- var proc_grid_size = int3d{8, 1, 1}
-  -- var proc_grid_size = int3d{2, 2, 2}
-  var proc_grid_size = int3d{4, 1, 1}
+  var proc_grid_size = int3d{2, 2, 1}
+  -- var proc_grid_size = int3d{4, 1, 1}
   -- var proc_grid_size = int3d{1, 1, 1}
 
   var is_grid = ispace(int3d, global_grid_size)

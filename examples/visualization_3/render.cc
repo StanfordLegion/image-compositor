@@ -29,8 +29,6 @@ static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
 static int gImageWidth  = 800;
 static int gImageHeight = 600;
-static int ovrArgc = 1;
-static const char* ovrArgv = "ovr";
 
 struct SaveImageArgs {
   ImageDescriptor imageDescriptor;
@@ -89,7 +87,6 @@ auto CopyData3D(const double* _src, double* _dst, Legion::Rect<3> src_ext, Legio
   }
 }
 
-#if OVR_BUILD_OPTIX7
 __global__
 void copy_framebuffer_cuda(const int width, const int height, float* framebuffer, 
                            ImageReduction::PixelField* r,
@@ -110,14 +107,14 @@ void copy_framebuffer_cuda(const int width, const int height, float* framebuffer
     u[i] = 0.f;
   }
 }
-#endif
 
-static void render_task(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
+static ovr::MainRenderer::FrameBufferData
+render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime, 
+                   std::shared_ptr<ovr::MainRenderer> renderer)
 {
   const int rank = runtime->find_local_MPI_rank();
 
   PhysicalRegion data  = regions[0];
-  PhysicalRegion image = regions[1];
 
   IndexSpace indexSpace = data.get_logical_region().get_index_space();
   Domain domain = runtime->get_index_space_domain(ctx, indexSpace);
@@ -359,29 +356,33 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   cam.at.y = camera->at[1];
   cam.at.z = camera->at[2];
 
-#if OVR_BUILD_OPTIX7
-  static auto ren = create_renderer("optix7");
-#else
-  static auto ren = create_renderer("ospray");
-#endif
-  ren->init(ovrArgc, &ovrArgv, scene, cam);
+  scene.camera = cam;
+  scene.ao_samples = 0;
 
-  ren->set_path_tracing(false);
-  ren->set_frame_accumulation(false); // frame accumulation gives artifacts
-  ren->set_fbsize(ovr::vec2i(gImageWidth, gImageHeight));
-
-  ren->commit();
-  ren->render();
-
+  // render
   ovr::MainRenderer::FrameBufferData frame;
-  ren->mapframe(&frame);
+  {
+    static const char* argv = "ovr";
+    renderer->set_path_tracing(false);
+    renderer->set_frame_accumulation(false); // frame accumulation gives artifacts
+    renderer->set_fbsize(ovr::vec2i(gImageWidth, gImageHeight));
+    renderer->init(1, &argv, scene, scene.camera);
+    renderer->commit();
+    renderer->render();
+    renderer->mapframe(&frame);
+  }
 
-#if OVR_BUILD_OPTIX7
-  float* d_pixels = (float*)frame.rgba->to_cuda()->data();
-#else
-  float* pixels = (float*)frame.rgba->to_cpu()->data();
-#endif
-  // ovr::save_image("input" + std::to_string(rank) + ".png", (ovr::vec4f*)pixels, gImageWidth, gImageHeight);
+  return frame;
+}
+
+static void render_task_gpu(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
+{
+  static auto ren = create_renderer("optix7");
+
+  ovr::MainRenderer::FrameBufferData frame = render_task_common(task, regions, ctx, runtime, ren);
+  float* pixels = (float*)frame.rgba->to_cuda()->data();
+
+  PhysicalRegion image = regions[1];
 
   /* put them together */
   std::vector<legion_field_id_t> imageFields;
@@ -396,7 +397,6 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
   Legion::Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
 
-#if OVR_BUILD_OPTIX7
   float* aptr = a.ptr(saveRect.lo); // device pointers
   float* rptr = r.ptr(saveRect.lo);
   float* gptr = g.ptr(saveRect.lo);
@@ -405,8 +405,31 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
   float* uptr = u.ptr(saveRect.lo);
   const int threads_per_block = 256;
   const int num_blocks = (gImageWidth*gImageHeight + (threads_per_block-1)) / threads_per_block;
-  copy_framebuffer_cuda<<<num_blocks,threads_per_block>>>(gImageWidth, gImageHeight, d_pixels, rptr, gptr, bptr, aptr, zptr, uptr);
-#else
+  copy_framebuffer_cuda<<<num_blocks,threads_per_block>>>(gImageWidth, gImageHeight, pixels, rptr, gptr, bptr, aptr, zptr, uptr);
+}
+
+static void render_task_cpu(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
+{
+  static auto ren = create_renderer("ospray");
+
+  ovr::MainRenderer::FrameBufferData frame = render_task_common(task, regions, ctx, runtime, ren);
+  float* pixels = (float*)frame.rgba->to_cpu()->data();
+
+  PhysicalRegion image = regions[1];
+
+  /* put them together */
+  std::vector<legion_field_id_t> imageFields;
+  image.get_fields(imageFields);
+  AccessorWO<ImageReduction::PixelField, 3> r(image, imageFields[0]);
+  AccessorWO<ImageReduction::PixelField, 3> g(image, imageFields[1]);
+  AccessorWO<ImageReduction::PixelField, 3> b(image, imageFields[2]);
+  AccessorWO<ImageReduction::PixelField, 3> a(image, imageFields[3]);
+  AccessorWO<ImageReduction::PixelField, 3> z(image, imageFields[4]);
+  AccessorWO<ImageReduction::PixelField, 3> u(image, imageFields[5]);
+
+  IndexSpace saveIndexSpace = image.get_logical_region().get_index_space();
+  Legion::Rect<3> saveRect = runtime->get_index_space_domain(ctx, saveIndexSpace);
+
   for(PointInRectIterator<3> pir(saveRect); pir(); pir++) {
     DomainPoint point(*pir);
     int y = point[1];
@@ -418,7 +441,6 @@ static void render_task(const Task *task, const std::vector<PhysicalRegion> &reg
     z[*pir] = 0;
     u[*pir] = 0;
   }
-#endif
 }
 
 static int save_image_task(const Task *task,
@@ -478,16 +500,22 @@ void cxx_preinitialize()
 
   // Preregister render task
   gRenderTaskID = Legion::Runtime::generate_static_task_id();
-  TaskVariantRegistrar registrar(gRenderTaskID, "render_task");
-#if OVR_BUILD_OPTIX7
-  registrar.add_constraint(ProcessorConstraint(Processor::TOC_PROC))
-#else
-  registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
-#endif
-    .add_layout_constraint_set(0/*index*/, soa_layout_id)
-    .add_layout_constraint_set(1/*index*/, soa_layout_id)
-    .add_layout_constraint_set(2/*index*/, soa_layout_id);
-  Runtime::preregister_task_variant<render_task>(registrar, "render_task");
+  {
+    TaskVariantRegistrar reg_gpu(gRenderTaskID, "render_task");
+    reg_gpu.add_constraint(ProcessorConstraint(Processor::TOC_PROC))
+      .add_layout_constraint_set(0/*index*/, soa_layout_id)
+      .add_layout_constraint_set(1/*index*/, soa_layout_id)
+      .add_layout_constraint_set(2/*index*/, soa_layout_id);
+    Runtime::preregister_task_variant<render_task_gpu>(reg_gpu, "render_task");
+  }
+  // {
+  //   TaskVariantRegistrar reg_cpu(gRenderTaskID, "render_task");
+  //   reg_cpu.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
+  //     .add_layout_constraint_set(0/*index*/, soa_layout_id)
+  //     .add_layout_constraint_set(1/*index*/, soa_layout_id)
+  //     .add_layout_constraint_set(2/*index*/, soa_layout_id);
+  //   Runtime::preregister_task_variant<render_task_cpu>(reg_cpu, "render_task");
+  // }
 
   // Preregister save image task
   gSaveImageTaskID = Legion::Runtime::generate_static_task_id();
@@ -502,8 +530,8 @@ void cxx_preinitialize()
     // Point<3>(1,1,1)
     // Point<3>(0,7,0)
     // Point<3>(7,0,0)
-    // Point<3>(1,1,0)
-    Point<3>(3,0,0)
+    Point<3>(1,1,0)
+    // Point<3>(3,0,0)
     // Point<3>(0,0,0)
   );
 
