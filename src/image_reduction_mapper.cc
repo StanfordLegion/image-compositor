@@ -419,37 +419,30 @@ namespace Legion {
     {
       Processor::Kind target_kind = task.target_proc.kind();
 
-      std::vector<VariantID> variants;
+      std::vector<VariantID> gpu_variants;
+      std::vector<VariantID> cpu_variants;
       runtime->find_valid_variants(ctx, task.task_id,
-                                   variants, Processor::TOC_PROC);
-      if(variants.size() == 1) {
-        output.chosen_variant = variants[0];
+                                    gpu_variants, Processor::TOC_PROC);
+      runtime->find_valid_variants(ctx, task.task_id,
+                                    cpu_variants, Processor::LOC_PROC);
+
+      if (cpu_variants.empty())
+        throw std::runtime_error("a task should always have a CPU variant");
+
+      if (!local_gpus.empty() && !gpu_variants.empty()) {
+        output.chosen_variant = gpu_variants[0];
         int idx = mapped_task_count++ % local_gpus.size();
         output.target_procs.push_back(local_gpus[idx]);
-      } else {
-        std::vector<VariantID> variants;
-        runtime->find_valid_variants(ctx, task.task_id,
-                                     variants, Processor::LOC_PROC);
-        if(variants.size() == 1) {
-          output.chosen_variant = variants[0];
-          int idx = mapped_task_count++ % local_cpus.size();
-          output.target_procs.push_back(local_cpus[idx]);
-        } else {
-          std::vector<VariantID> variants;
-          runtime->find_valid_variants(ctx, task.task_id,
-                                       variants, Processor::PROC_SET);
-          if(variants.size() > 0) {
-            output.chosen_variant = variants[0];
-            output.target_procs.push_back(task.target_proc);
-          } else {
-            assert(0 == "unable to find a valid task variant");
-          }
-        }
+      } 
+      else {
+        output.chosen_variant = cpu_variants[0];
+        int idx = mapped_task_count++ % local_cpus.size();
+        output.target_procs.push_back(local_cpus[idx]);
       }
 
       // Find the visible memories from the processor for the given kind
       Machine::MemoryQuery visible_memories(machine);
-      visible_memories.has_affinity_to(task.target_proc);
+      visible_memories.best_affinity_to(task.target_proc);
       if (visible_memories.count() == 0)
       {
         log_image_reduction_mapper.error("No visible memories from processor " IDFMT "! "
@@ -465,16 +458,15 @@ namespace Legion {
         Mapping::PhysicalInstance inst;
         bool created;
 
-	if (req.privilege == NO_ACCESS) {
-	  output.chosen_instances[i].push_back(Legion::Mapping::PhysicalInstance::get_virtual_instance());
-	}
-	else {
+        if (req.privilege == NO_ACCESS) {
+          output.chosen_instances[i].push_back(Legion::Mapping::PhysicalInstance::get_virtual_instance());
+        }
+        else {
           bool ok = runtime->find_or_create_physical_instance(
             ctx, target_mem, constraints, std::vector<LogicalRegion>{req.region}, inst, created);
           assert(ok);
           output.chosen_instances[i].push_back(inst);
-	}
-
+        }
       }
     }
 

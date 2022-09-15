@@ -508,14 +508,14 @@ void cxx_preinitialize()
       .add_layout_constraint_set(2/*index*/, soa_layout_id);
     Runtime::preregister_task_variant<render_task_gpu>(reg_gpu, "render_task");
   }
-  // {
-  //   TaskVariantRegistrar reg_cpu(gRenderTaskID, "render_task");
-  //   reg_cpu.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
-  //     .add_layout_constraint_set(0/*index*/, soa_layout_id)
-  //     .add_layout_constraint_set(1/*index*/, soa_layout_id)
-  //     .add_layout_constraint_set(2/*index*/, soa_layout_id);
-  //   Runtime::preregister_task_variant<render_task_cpu>(reg_cpu, "render_task");
-  // }
+  {
+    TaskVariantRegistrar reg_cpu(gRenderTaskID, "render_task");
+    reg_cpu.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
+      .add_layout_constraint_set(0/*index*/, soa_layout_id)
+      .add_layout_constraint_set(1/*index*/, soa_layout_id)
+      .add_layout_constraint_set(2/*index*/, soa_layout_id);
+    Runtime::preregister_task_variant<render_task_cpu>(reg_cpu, "render_task");
+  }
 
   // Preregister save image task
   gSaveImageTaskID = Legion::Runtime::generate_static_task_id();
