@@ -442,7 +442,7 @@ namespace Legion {
 
       // Find the visible memories from the processor for the given kind
       Machine::MemoryQuery visible_memories(machine);
-      visible_memories.best_affinity_to(task.target_proc);
+      visible_memories.best_affinity_to(output.target_procs[0]);
       if (visible_memories.count() == 0)
       {
         log_image_reduction_mapper.error("No visible memories from processor " IDFMT "! "

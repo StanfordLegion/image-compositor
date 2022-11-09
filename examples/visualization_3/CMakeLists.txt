@@ -8,6 +8,7 @@ set(OVR_BUILD_TORCH OFF)
 set(OVR_BUILD_OSPRAY ON)
 find_package(ospray 2.0 REQUIRED)
 find_package(TBB REQUIRED)
+include_directories(${TBB_DIR}/../../../include) # why ??
 if(BUILD_WITH_OPTIX7)
   set(OVR_BUILD_OPTIX7 ON)
   include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
@@ -64,7 +65,7 @@ set_target_properties(libviz_3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINA
 
 if(NOT IMAGE_COMPOSITOR_DIR)
   # message(FATAL_ERROR "Path IMAGE_COMPOSITOR_DIR not set.")
-  message(MESSAGE "Using default IMAGE_COMPOSITOR_DIR")
+  message(STATUS "Using default IMAGE_COMPOSITOR_DIR")
   set(IMAGE_COMPOSITOR_DIR ../../../build)
 endif()
 
