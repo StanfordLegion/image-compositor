@@ -13,3 +13,6 @@ legion_defines.h
 realm_defines.h
 __pycache__
 .vscode/
+
+deps/
+upstream/

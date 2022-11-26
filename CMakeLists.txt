@@ -144,3 +144,30 @@ include_directories( include )
 
 add_subdirectory(src)
 
+
+#------------------------------------------------------------------------------#
+# Compile OVR Visualization Library
+#------------------------------------------------------------------------------#
+option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" ON)
+
+# include rendering library
+set(OVR_BUILD_TORCH  OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_OSPRAY ON  CACHE BOOL "" FORCE)
+set(OVR_BUILD_OPENGL OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_VIDI3D OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_USD    OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_APPS    OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+
+find_package(ospray 2.0 REQUIRED)
+find_package(TBB REQUIRED)
+if(BUILD_WITH_OPTIX7)
+  set(OVR_BUILD_OPTIX7 ON)
+else()
+  set(OVR_BUILD_OPTIX7 OFF)
+endif()
+
+# TODO need to explain why
+include_directories(${TBB_DIR}/../../../include)
+
+add_subdirectory(deps/open-volume-renderer)
