@@ -13,9 +13,9 @@
 
 #include "s3d_projection.h"
 
-#include "common/imageio.h"
-#include "renderer.h"
-#include "serializer/serializer.h"
+#include <ovr/common/imageio.h>
+#include <ovr/renderer.h>
+#include <ovr/serializer/serializer.h>
 
 #define _T {std::cout<<__FILE__<<" "<<__LINE__<<" "<<__FUNCTION__<<std::endl;}
 

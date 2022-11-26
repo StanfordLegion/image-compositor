@@ -3,20 +3,6 @@ project(visualization_3 LANGUAGES C CXX)
 
 option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" ON)
 
-# include rendering library
-set(OVR_BUILD_TORCH OFF)
-set(OVR_BUILD_OSPRAY ON)
-find_package(ospray 2.0 REQUIRED)
-find_package(TBB REQUIRED)
-include_directories(${TBB_DIR}/../../../include) # why ??
-if(BUILD_WITH_OPTIX7)
-  set(OVR_BUILD_OPTIX7 ON)
-  include_directories(${CUDA_TOOLKIT_ROOT_DIR}/include)
-  include_directories(${OptiX_INCLUDE})
-else()
-  set(OVR_BUILD_OPTIX7 OFF)
-endif()
-add_subdirectory(ovr EXCLUDE_FROM_ALL)
 
 # adapted from https://stackoverflow.com/a/69353718
 if(NOT CMAKE_CUDA_ARCHITECTURES)
@@ -69,11 +55,29 @@ if(NOT IMAGE_COMPOSITOR_DIR)
   set(IMAGE_COMPOSITOR_DIR ../../../build)
 endif()
 
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include)
 # add_library(imageCompositor STATIC IMPORTED)
 # SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor.a)
 add_library(imageCompositor SHARED IMPORTED)
 SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor_.so)
+
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt)
+# include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/ovr)
+add_library(renderlib SHARED IMPORTED)
+SET_TARGET_PROPERTIES(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/librenderlib.so)
+target_compile_definitions(renderlib INTERFACE OVR_ENABLE_CUDA_DEVICES=1)
+target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7=1)
+target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7=1)
+if(BUILD_WITH_OPTIX7)
+  target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7)
+else()
+  target_compile_definitions(renderlib INTERFACE OVR_BUILD_OSPRAY)
+endif()
+
 
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
 add_dependencies(visualization_3 run)
@@ -92,9 +96,3 @@ PUBLIC
 
 PRIVATE renderlib
 )
-
-if(BUILD_WITH_OPTIX7)
-  target_compile_definitions(visualization_3 PUBLIC OVR_BUILD_OPTIX7)
-else()
-  target_compile_definitions(visualization_3 PUBLIC OVR_BUILD_OSPRAY)
-endif()
