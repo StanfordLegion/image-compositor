@@ -331,7 +331,7 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     // tfn.color = ovr::CreateColorMap("diverging/RdBu");
     // tfn.opacity = ovr::CreateArray1DScalar(alphas);
 
-    ovr::scene::TransferFunction tfn = create_scene_tfn_vidi3d("/home/qwu/ptj_temp.json");
+    ovr::scene::TransferFunction tfn = create_scene_tfn_vidi3d("/home/qwu/legion_s3d/ptj_temp.json");
     tfn.value_range = ovr::vec2f(0.f, 1.f);
 
     ovr::scene::Model model;

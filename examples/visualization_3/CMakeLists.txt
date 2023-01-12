@@ -63,6 +63,7 @@ add_library(imageCompositor SHARED IMPORTED)
 SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor_.so)
 
 
+find_package(TBB REQUIRED)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt)
@@ -94,5 +95,5 @@ PUBLIC
   libviz_3 imageCompositor
   ${MPI_CXX_LIBRARIES}
 
-PRIVATE renderlib
+PRIVATE renderlib TBB::tbb
 )

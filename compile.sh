@@ -5,11 +5,11 @@ cd deps
 
 DEPS=$(pwd)
 
-# wget https://github.com/ospray/ospray/releases/download/v2.9.0/ospray-2.9.0.x86_64.linux.tar.gz
-# tar xzvf ospray-2.9.0.x86_64.linux.tar.gz
+wget https://github.com/ospray/ospray/releases/download/v2.9.0/ospray-2.9.0.x86_64.linux.tar.gz
+tar xzvf ospray-2.9.0.x86_64.linux.tar.gz
 
-# wget https://github.com/oneapi-src/oneTBB/releases/download/v2021.4.0/oneapi-tbb-2021.4.0-lin.tgz
-# tar xzvf oneapi-tbb-2021.4.0-lin.tgz
+wget https://github.com/oneapi-src/oneTBB/releases/download/v2021.4.0/oneapi-tbb-2021.4.0-lin.tgz
+tar xzvf oneapi-tbb-2021.4.0-lin.tgz
 
 mkdir open-volume-renderer
 cd open-volume-renderer
