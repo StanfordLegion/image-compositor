@@ -17,7 +17,9 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion)
 
-enable_language(CUDA)
+if(BUILD_WITH_OPTIX7)
+  enable_language(CUDA)
+endif()
 
 set(Legion_DIR $ENV{LG_RT_DIR}/../language/build)
 if(NOT Legion_SOURCE_DIR)
@@ -31,7 +33,9 @@ list(APPEND FRAMEWORK_SRC
   image_reduction_composite.cc
   image_reduction_mapper.cc
 )
-set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
+if(BUILD_WITH_OPTIX7)
+  set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
+endif()
 
 add_library(ImageCompositor ${FRAMEWORK_SRC})
 add_library(ImageCompositor_ SHARED ${FRAMEWORK_SRC})

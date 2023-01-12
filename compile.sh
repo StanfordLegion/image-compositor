@@ -22,5 +22,9 @@ mkdir -p build
 cd build
 
 pwd
-cmake ../ -Dospray_DIR=${DEPS}/ospray-2.9.0.x86_64.linux/lib/cmake/ospray-2.9.0/ -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb
+
+cmake ../ -DBUILD_WITH_OPTIX7=OFF \
+    -Dospray_DIR=${DEPS}/ospray-2.9.0.x86_64.linux/lib/cmake/ospray-2.9.0/ \
+    -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb
+
 cmake --build . --config Debug --parallel 16
