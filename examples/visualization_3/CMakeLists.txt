@@ -63,21 +63,26 @@ add_library(imageCompositor SHARED IMPORTED)
 SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor_.so)
 
 
-find_package(TBB REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt/cmake")
+find_package(OptiX  REQUIRED)
+find_package(CUDA   REQUIRED)
+find_package(TBB    REQUIRED)
+find_package(ospray REQUIRED)
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt)
-# include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/ovr)
 add_library(renderlib SHARED IMPORTED)
-SET_TARGET_PROPERTIES(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/librenderlib.so)
-target_compile_definitions(renderlib INTERFACE OVR_ENABLE_CUDA_DEVICES=1)
-target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7=1)
-target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7=1)
-if(BUILD_WITH_OPTIX7)
-  target_compile_definitions(renderlib INTERFACE OVR_BUILD_OPTIX7)
-else()
-  target_compile_definitions(renderlib INTERFACE OVR_BUILD_OSPRAY)
-endif()
+set_target_properties(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/librenderlib.so)
+target_link_libraries(renderlib INTERFACE
+  TBB::tbb 
+  OptiX::optix7
+)
+target_compile_definitions(renderlib INTERFACE 
+  OVR_ENABLE_CUDA_DEVICES=1
+  OVR_BUILD_OPTIX7=1
+  OVR_BUILD_OSPRAY=1
+)
 
 
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
@@ -95,5 +100,6 @@ PUBLIC
   libviz_3 imageCompositor
   ${MPI_CXX_LIBRARIES}
 
-PRIVATE renderlib TBB::tbb
+PRIVATE 
+  renderlib
 )
