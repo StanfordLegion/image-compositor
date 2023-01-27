@@ -17,7 +17,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(Legion)
 
-if(BUILD_WITH_OPTIX7)
+if(BUILD_WITH_CUDA)
   enable_language(CUDA)
 endif()
 
@@ -33,7 +33,7 @@ list(APPEND FRAMEWORK_SRC
   image_reduction_composite.cc
   image_reduction_mapper.cc
 )
-if(BUILD_WITH_OPTIX7)
+if(BUILD_WITH_CUDA)
   set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 

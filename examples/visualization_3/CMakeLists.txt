@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(visualization_3 LANGUAGES C CXX)
 
-option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" ON)
+option(BUILD_WITH_CUDA "Enable OptiX rendering" ON)
 
 
 # adapted from https://stackoverflow.com/a/69353718
@@ -64,31 +64,32 @@ SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPO
 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt/cmake")
-find_package(OptiX  REQUIRED)
-find_package(CUDA   REQUIRED)
 find_package(TBB    REQUIRED)
 find_package(ospray REQUIRED)
+if(OVR_BUILD_DEVICE_OPTIX7)
+  find_package(OptiX  REQUIRED)
+  find_package(CUDA   REQUIRED)
+endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/extern)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/extern/gdt)
 add_library(renderlib SHARED IMPORTED)
-set_target_properties(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/librenderlib.so)
-target_link_libraries(renderlib INTERFACE
-  TBB::tbb 
-  OptiX::optix7
-)
-target_compile_definitions(renderlib INTERFACE 
-  OVR_ENABLE_CUDA_DEVICES=1
-  OVR_BUILD_OPTIX7=1
-  OVR_BUILD_OSPRAY=1
-)
-
+set_target_properties(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/deps/open-volume-renderer/librenderlib.so)
+target_link_libraries(renderlib INTERFACE TBB::tbb ospray::ospray)
+target_compile_definitions(renderlib INTERFACE OVR_BUILD_OSPRAY=1)
+if(OVR_BUILD_DEVICE_OPTIX7)
+  target_link_libraries(renderlib INTERFACE OptiX::optix7)
+  target_compile_definitions(renderlib INTERFACE 
+    OVR_ENABLE_CUDA_DEVICES=1
+    OVR_BUILD_OPTIX7=1
+  )
+endif()
 
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
 add_dependencies(visualization_3 run)
 
-if(BUILD_WITH_OPTIX7)
+if(BUILD_WITH_CUDA)
   set_source_files_properties(render.cc PROPERTIES LANGUAGE CUDA)
 endif()
 

@@ -148,7 +148,7 @@ add_subdirectory(src)
 #------------------------------------------------------------------------------#
 # Compile OVR Visualization Library
 #------------------------------------------------------------------------------#
-option(BUILD_WITH_OPTIX7 "Enable OptiX rendering" ON)
+option(BUILD_WITH_CUDA "Enable OptiX rendering" ON)
 
 # include rendering library
 set(OVR_BUILD_TORCH  OFF CACHE BOOL "" FORCE)
@@ -161,11 +161,12 @@ set(OVR_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 
 find_package(ospray 2.0 REQUIRED)
 find_package(TBB REQUIRED)
-if(BUILD_WITH_OPTIX7)
-  set(OVR_BUILD_OPTIX7 ON)
-else()
-  set(OVR_BUILD_OPTIX7 OFF)
-endif()
+
+# if(BUILD_WITH_CUDA)
+#   set(OVR_BUILD_DEVICE_OPTIX7 ON)
+# else()
+#   set(OVR_BUILD_DEVICE_OPTIX7 OFF)
+# endif()
 
 # TODO need to explain why
 include_directories(${TBB_DIR}/../../../include)

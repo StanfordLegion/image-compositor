@@ -88,6 +88,8 @@ auto CopyData3D(const double* _src, double* _dst, Legion::Rect<3> src_ext, Legio
   }
 }
 
+#ifdef OVR_BUILD_OPTIX7
+
 __global__
 void copy_framebuffer_cuda(const int width, const int height, float* framebuffer, 
                            ImageReduction::PixelField* r,
@@ -108,6 +110,15 @@ void copy_framebuffer_cuda(const int width, const int height, float* framebuffer
     u[i] = 0.f;
   }
 }
+
+void
+__global__ print(const double* data)
+{
+  int i = threadIdx.x + blockIdx.x * blockDim.x;
+  printf("value = %f\n", data[i]);
+}
+
+#endif
 
 static ovr::MainRenderer::FrameBufferData
 render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime, 
@@ -174,7 +185,17 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     const Legion::Rect<3> ghost_bounds = ghost_domain;
 
     AccessorRO<double, 3> dataAccess(ghost_data, *it);
-    const double* rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+    const double* _rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+
+#ifdef OVR_BUILD_OPTIX7
+    size_t nn = GetSize(ghost_bounds);
+    std::vector<double> tmp(nn);
+    cudaMemcpy(tmp.data(), _rawptr, nn*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    const double* rawptr = tmp.data();
+#else
+    const double* rawptr = _rawptr;
+#endif
 
     Legion::Rect<3> src_ext;
     src_ext.hi[axis] = src_ext.lo[axis] = ghost_bounds.hi[axis] - ghost_bounds.lo[axis];
@@ -204,7 +225,17 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     const Legion::Rect<3> ghost_bounds = ghost_domain;
 
     AccessorRO<double, 3> dataAccess(ghost_data, *it);
-    const double* rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+    const double* _rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+
+#ifdef OVR_BUILD_OPTIX7
+    size_t nn = GetSize(ghost_bounds);
+    std::vector<double> tmp(nn);
+    cudaMemcpy(tmp.data(), _rawptr, nn*sizeof(double), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    const double* rawptr = tmp.data();
+#else
+    const double* rawptr = _rawptr;
+#endif
 
     Legion::Rect<3> src_ext;
     src_ext.lo[axis] = 0;
@@ -235,7 +266,17 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     /* copy the main domain */
     {
       AccessorRO<double, 3> dataAccess(data, *it);
-      const double* rawptr = dataAccess.ptr(bounds.lo);
+      const double* _rawptr = dataAccess.ptr(bounds.lo);
+
+#ifdef OVR_BUILD_OPTIX7
+      size_t nn = GetSize(ghost_bounds);
+      std::vector<double> tmp(nn);
+      cudaMemcpy(tmp.data(), _rawptr, nn*sizeof(double), cudaMemcpyDeviceToHost);
+      cudaDeviceSynchronize();
+      const double* rawptr = tmp.data();
+#else
+      const double* rawptr = _rawptr;
+#endif
 
       Legion::Rect<3> srcExt;
       srcExt.lo[0] = srcExt.lo[1] = srcExt.lo[2] = 0;
@@ -268,8 +309,18 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
       const Legion::Rect<3> ghost_bounds = ghost_domain;
     
       AccessorRO<double, 3> dataAccess(gDataCm, *it);
-      const double* rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
-    
+      const double* _rawptr = dataAccess.ptr(ghost_bounds.lo); // how dows this work? what is the data layout?
+
+#ifdef OVR_BUILD_OPTIX7
+      size_t nn = GetSize(ghost_bounds);
+      std::vector<double> tmp(nn);
+      cudaMemcpy(tmp.data(), _rawptr, nn*sizeof(double), cudaMemcpyDeviceToHost);
+      cudaDeviceSynchronize();
+      const double* rawptr = tmp.data();
+#else
+      const double* rawptr = _rawptr;
+#endif
+
       Legion::Rect<3> src_ext;
       src_ext.hi[0] = src_ext.lo[0] = ghost_bounds.hi[0] - ghost_bounds.lo[0];
       src_ext.hi[1] = src_ext.lo[1] = ghost_bounds.hi[1] - ghost_bounds.lo[1];
@@ -379,6 +430,8 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
   return frame;
 }
 
+#ifdef OVR_BUILD_OPTIX7
+
 static void render_task_gpu(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
 {
   static auto ren = create_renderer("optix7");
@@ -411,6 +464,8 @@ static void render_task_gpu(const Task *task, const std::vector<PhysicalRegion> 
   const int num_blocks = (gImageWidth*gImageHeight + (threads_per_block-1)) / threads_per_block;
   copy_framebuffer_cuda<<<num_blocks,threads_per_block>>>(gImageWidth, gImageHeight, pixels, rptr, gptr, bptr, aptr, zptr, uptr);
 }
+
+#endif
 
 static void render_task_cpu(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime)
 {
@@ -504,6 +559,7 @@ void cxx_preinitialize()
 
   // Preregister render task
   gRenderTaskID = Legion::Runtime::generate_static_task_id();
+#ifdef OVR_BUILD_OPTIX7
   {
     TaskVariantRegistrar reg_gpu(gRenderTaskID, "render_task");
     reg_gpu.add_constraint(ProcessorConstraint(Processor::TOC_PROC))
@@ -512,6 +568,7 @@ void cxx_preinitialize()
       .add_layout_constraint_set(2/*index*/, soa_layout_id);
     Runtime::preregister_task_variant<render_task_gpu>(reg_gpu, "render_task");
   }
+#endif
   {
     TaskVariantRegistrar reg_cpu(gRenderTaskID, "render_task");
     reg_cpu.add_constraint(ProcessorConstraint(Processor::LOC_PROC))
