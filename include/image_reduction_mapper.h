@@ -312,6 +312,8 @@ namespace Legion {
         Mapping::PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
         const RegionRequirement &req, size_t *footprint);
 
+      typedef std::map<Legion::LogicalRegion,Legion::Mapping::PhysicalInstance> InstanceMap;
+      std::map<Memory, InstanceMap> mem_inst_map;
 
      static inline bool physical_sort_func(
                          const std::pair<Mapping::PhysicalInstance,unsigned> &left,
@@ -328,17 +330,8 @@ namespace Legion {
 
       std::vector<Processor> local_gpus;
       std::vector<Processor> local_cpus;
-      std::vector<Processor> local_ios;
-      std::vector<Processor> local_procsets;
-      std::vector<Processor> local_omps;
-      std::vector<Processor> local_pys;
       std::vector<Processor> remote_gpus;
       std::vector<Processor> remote_cpus;
-      std::vector<Processor> remote_ios;
-      std::vector<Processor> remote_procsets;
-      std::vector<Processor> remote_omps;
-      std::vector<Processor> remote_pys;
-
     };
 
   }; // namespace Mapping

@@ -50,26 +50,6 @@ namespace Legion {
                 local_cpus.push_back(*it);
                 break;
               }
-            case Processor::IO_PROC:
-              {
-                local_ios.push_back(*it);
-                break;
-              }
-            case Processor::PY_PROC:
-              {
-                local_pys.push_back(*it);
-                break;
-              }
-            case Processor::PROC_SET:
-              {
-                local_procsets.push_back(*it);
-                break;
-              }
-            case Processor::OMP_PROC:
-              {
-                local_omps.push_back(*it);
-                break;
-              }
             default: // ignore anything else
               break;
           }
@@ -92,42 +72,6 @@ namespace Legion {
                 remote_cpus.resize(node+1, Processor::NO_PROC);
               if (!remote_cpus[node].exists())
                 remote_cpus[node] = *it;
-              break;
-            }
-          case Processor::IO_PROC:
-            {
-              // See if we already have a target I/O processor for this node
-              if (node >= remote_ios.size())
-                remote_ios.resize(node+1, Processor::NO_PROC);
-              if (!remote_ios[node].exists())
-                remote_ios[node] = *it;
-              break;
-            }
-          case Processor::PY_PROC:
-            {
-              // See if we already have a target I/O processor for this node
-              if (node >= remote_pys.size())
-                remote_pys.resize(node+1, Processor::NO_PROC);
-              if (!remote_pys[node].exists())
-                remote_pys[node] = *it;
-              break;
-            }
-          case Processor::PROC_SET:
-            {
-              // See if we already have a target processor set for this node
-              if (node >= remote_procsets.size())
-                remote_procsets.resize(node+1, Processor::NO_PROC);
-              if (!remote_procsets[node].exists())
-                remote_procsets[node] = *it;
-              break;
-            }
-          case Processor::OMP_PROC:
-            {
-              // See if we already have a target OMP processor for this node
-              if (node >= remote_omps.size())
-                remote_omps.resize(node+1, Processor::NO_PROC);
-              if (!remote_omps[node].exists())
-                remote_omps[node] = *it;
               break;
             }
           default: // ignore anything else
@@ -170,8 +114,8 @@ namespace Legion {
 
     //--------------------------------------------------------------------------
     void ImageReductionMapper::select_task_options(const Mapping::MapperContext    ctx,
-                                         const Task&            task,
-                                               TaskOptions&     output)
+                                                   const Task&            task,
+                                                   TaskOptions&     output)
     //--------------------------------------------------------------------------
     {
 
@@ -453,20 +397,44 @@ namespace Legion {
 
       for (size_t i = 0; i < task.regions.size(); ++i) {
         const RegionRequirement req = task.regions[i];
-        LayoutConstraintSet constraints;
-        constraints.add_constraint(FieldConstraint(req.privilege_fields, false /*contiguous*/, false /*inorder*/));
         Mapping::PhysicalInstance inst;
-        bool created;
 
         if (req.privilege == NO_ACCESS) {
           output.chosen_instances[i].push_back(Legion::Mapping::PhysicalInstance::get_virtual_instance());
         }
         else {
-          bool ok = runtime->find_or_create_physical_instance(
-            ctx, target_mem, constraints, std::vector<LogicalRegion>{req.region}, inst, created);
-          assert(ok);
-          output.chosen_instances[i].push_back(inst);
+          InstanceMap& imap = mem_inst_map[target_mem];
+          InstanceMap::const_iterator it = imap.find(req.region);
+          if(it != imap.end()) {
+            log_image_reduction_mapper.info() << task.get_task_name() << " req: " << i
+                                              << " using existing instance " << it->second
+                                              << " in " << target_mem;
+            inst = it->second;
+          }
+          else
+          {
+            LayoutConstraintSet constraints;
+            constraints.add_constraint(FieldConstraint(req.privilege_fields,
+                                                       false /*contiguous*/, false /*inorder*/));
+
+            bool ok = runtime->create_physical_instance(
+              ctx, target_mem, constraints, std::vector<LogicalRegion>{req.region}, inst);
+            if(!ok)
+            {
+              printf("%s FAILED TO CREATE INSTANCE!!!!!\n", task.get_task_name());
+              log_image_reduction_mapper.info() << task.get_task_name() << " FAILED TO CREATE INSTANCE: "
+                                                << i << " " << req.region;
+            }
+            assert(ok);
+            log_image_reduction_mapper.info() << task.get_task_name() << " new instance for req: " << i
+                                              << " " << req.region << " in " << target_mem << " on "
+                                              << target_mem.kind() << " " << inst;
+
+            InstanceMap& imap = mem_inst_map[target_mem];
+            imap[req.region] = inst;
+          }
         }
+        output.chosen_instances[i].push_back(inst);
       }
     }
 
@@ -1143,7 +1111,7 @@ namespace Legion {
                                              MemoizeOutput& output)
     //--------------------------------------------------------------------------
     {
-      report_unimplemented(__func__, __LINE__);
+      output.memoize = true;
     }
 
     //--------------------------------------------------------------------------
