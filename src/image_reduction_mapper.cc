@@ -404,7 +404,8 @@ namespace Legion {
         }
         else {
           InstanceMap& imap = mem_inst_map[target_mem];
-          InstanceMap::const_iterator it = imap.find(req.region);
+          InstanceMapKey key(req.region, req.instance_fields);
+          InstanceMap::const_iterator it = imap.find(key);
           if(it != imap.end()) {
             log_image_reduction_mapper.info() << task.get_task_name() << " req: " << i
                                               << " using existing instance " << it->second
@@ -431,7 +432,7 @@ namespace Legion {
                                               << target_mem.kind() << " " << inst;
 
             InstanceMap& imap = mem_inst_map[target_mem];
-            imap[req.region] = inst;
+            imap[key] = inst;
           }
         }
         output.chosen_instances[i].push_back(inst);

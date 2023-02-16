@@ -246,16 +246,22 @@ FieldSpace ImageReduction::imageFields(Context context) {
   {
     FieldAllocator allocator = Legion::Runtime::get_runtime()->create_field_allocator(context, fields);
     FieldID fidr = allocator.allocate_field(sizeof(PixelField), FID_FIELD_R);
+    Legion::Runtime::get_runtime()->attach_name(fields, fidr, "R");
     assert(fidr == FID_FIELD_R);
     FieldID fidg = allocator.allocate_field(sizeof(PixelField), FID_FIELD_G);
+    Legion::Runtime::get_runtime()->attach_name(fields, fidg, "G");
     assert(fidg == FID_FIELD_G);
     FieldID fidb = allocator.allocate_field(sizeof(PixelField), FID_FIELD_B);
+    Legion::Runtime::get_runtime()->attach_name(fields, fidb, "B");
     assert(fidb == FID_FIELD_B);
     FieldID fida = allocator.allocate_field(sizeof(PixelField), FID_FIELD_A);
+    Legion::Runtime::get_runtime()->attach_name(fields, fida, "A");
     assert(fida == FID_FIELD_A);
     FieldID fidz = allocator.allocate_field(sizeof(PixelField), FID_FIELD_Z);
+    Legion::Runtime::get_runtime()->attach_name(fields, fidz, "Z");
     assert(fidz == FID_FIELD_Z);
     FieldID fidUserdata = allocator.allocate_field(sizeof(PixelField), FID_FIELD_USERDATA);
+    Legion::Runtime::get_runtime()->attach_name(fields, fidUserdata, "USER");
     assert(fidUserdata == FID_FIELD_USERDATA);
   }
   return fields;

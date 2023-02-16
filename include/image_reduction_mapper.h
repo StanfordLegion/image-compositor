@@ -312,7 +312,8 @@ namespace Legion {
         Mapping::PhysicalInstance &result, MappingKind kind, bool force_new, bool meets,
         const RegionRequirement &req, size_t *footprint);
 
-      typedef std::map<Legion::LogicalRegion,Legion::Mapping::PhysicalInstance> InstanceMap;
+      typedef std::pair<Legion::LogicalRegion,std::vector<Legion::FieldID>> InstanceMapKey;
+      typedef std::map<InstanceMapKey,Legion::Mapping::PhysicalInstance> InstanceMap;
       std::map<Memory, InstanceMap> mem_inst_map;
 
      static inline bool physical_sort_func(
