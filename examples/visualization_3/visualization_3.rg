@@ -19,8 +19,6 @@ local legion_dir  = runtime_dir .. "legion/"
 local mapper_dir  = runtime_dir .. "mappers/"
 local realm_dir   = runtime_dir .. "realm/"
 
-local viz_mapper = terralib.includec("visualization_3_mapper.h", {"-I", root_dir})
-
 render = terralib.includec("render.h", {
   "-I", root_dir,
   "-I", runtime_dir,
@@ -40,19 +38,39 @@ render.legion_handoff_to_mpi.replicable = true
 c.printf.replicable = true
 
 struct Fields {
+  A : double,
+  B : double,
+  C : double
+  CPU_A : double,
+  CPU_B : double,
+  CPU_C : double,
   TEMP : double
 }
 
 local sqrt = regentlib.sqrt(double)
 
 __demand(__cuda)
-task perform_time_step(lr : region(ispace(int3d), Fields))
+task CalcTemp(lr : region(ispace(int3d), Fields))
 where
-  reads writes(lr)
+  reads writes (lr)
 do
   for idx in lr.ispace do
     -- lr[idx].TEMP = c.drand48()
     lr[idx].TEMP = sqrt(idx.x * idx.x + idx.y * idx.y + idx.z * idx.z) / sqrt(128 * 128 * 3)
+  end
+end
+
+__demand(__inline)
+task perform_time_step(is_rank : ispace(int3d),
+                       lr : region(ispace(int3d), Fields),
+                       lp : partition(disjoint, lr, ispace(int3d)))
+where
+  reads writes(lr)
+do
+
+  __demand(__index_launch)
+  for color in is_rank do
+    CalcTemp(lp[color])
   end
 
   -- c.printf("STEP: %d COLOR: %d %d %d Lo: %d %d %d Hi: %d %d %d\n",
@@ -60,6 +78,7 @@ do
   --          color.x, color.y, color.z,
   --          b.lo.x, b.lo.y, b.lo.z,
   --          b.hi.x, b.hi.y, b.hi.z)
+
 end
 
 __demand(__inline)
@@ -101,7 +120,7 @@ task main()
 
   for color in is_rank do
     var lr = lp_int_rank[color]
-    fill(lr.{TEMP}, 1.0)
+    fill(lr.{TEMP, A, B, C}, 1.0)
     c.printf("rank = %i,%i,%i\n", color.x, color.y, color.z)
   end
 
@@ -151,14 +170,12 @@ task main()
   end
 
   for step = 0, steps do
-    __demand(__index_launch)
-    for color in is_rank do
-      perform_time_step(lp_int_rank[color])
-    end
+    c.printf("STEP: %d\n", step)
+    perform_time_step(is_rank, lr_int, lp_int_rank)
 
-    if step % 10 == 0 then
+    if step % 100 == 0 then
       render.cxx_render(__runtime(), __context(), camera, step)
-      render.cxx_saveIndividualImages(__runtime(), __context(), "./individual", step)
+      -- render.cxx_saveIndividualImages(__runtime(), __context(), "./individual", step)
       render.cxx_reduce(__context(), camera)
       render.cxx_saveImage(__runtime(), __context(), ".", step)
     end

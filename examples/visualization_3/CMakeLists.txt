@@ -76,7 +76,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/ex
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/extern/gdt)
 add_library(renderlib SHARED IMPORTED)
 set_target_properties(renderlib PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/deps/open-volume-renderer/librenderlib.so)
-target_link_libraries(renderlib INTERFACE TBB::tbb ospray::ospray)
+target_link_libraries(renderlib INTERFACE TBB::tbb ospray::ospray stdc++fs)
 target_compile_definitions(renderlib INTERFACE OVR_BUILD_OSPRAY=1)
 if(OVR_BUILD_DEVICE_OPTIX7)
   target_link_libraries(renderlib INTERFACE OptiX::optix7)
@@ -89,6 +89,9 @@ endif()
 add_executable(visualization_3 main.cc render.cc render.h image.cc image.h visualization_3_mapper.cc)
 add_dependencies(visualization_3 run)
 
+find_package(ZLIB REQUIRED)
+
+
 if(BUILD_WITH_CUDA)
   set_source_files_properties(render.cc PROPERTIES LANGUAGE CUDA)
 endif()
@@ -100,7 +103,7 @@ PUBLIC
   Legion::LegionRuntime Legion::Legion 
   libviz_3 imageCompositor
   ${MPI_CXX_LIBRARIES}
-
-PRIVATE 
+  z
+PRIVATE
   renderlib
 )

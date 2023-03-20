@@ -41,7 +41,7 @@ inline void ImageReductionComposite::compositePixelsNever(const FieldAccessor<RE
                                                           int Z0,
                                                           int Z1,
                                                           bool flip) {
-  
+
   /*NOP*/
 }
 
@@ -66,8 +66,8 @@ inline void ImageReductionComposite::compositePixelsLess(const FieldAccessor<REA
                                                          int Z0,
                                                          int Z1,
                                                          bool flip){
-  
-  
+
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -99,7 +99,7 @@ inline void ImageReductionComposite::compositePixelsLess(const FieldAccessor<REA
       }
     }
   }
-  
+
 }
 
 
@@ -120,8 +120,8 @@ inline void ImageReductionComposite::compositePixelsEqual(const FieldAccessor<RE
                                                           int Z0,
                                                           int Z1,
                                                           bool flip) {
-  
-  
+
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -153,7 +153,7 @@ inline void ImageReductionComposite::compositePixelsEqual(const FieldAccessor<RE
       }
     }
   }
-  
+
 }
 
 
@@ -174,7 +174,7 @@ inline void ImageReductionComposite::compositePixelsLEqual(const FieldAccessor<R
                                                            int Z0,
                                                            int Z1,
                                                            bool flip) {
-  
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -206,8 +206,8 @@ inline void ImageReductionComposite::compositePixelsLEqual(const FieldAccessor<R
       }
     }
   }
-  
-  
+
+
 }
 
 
@@ -228,8 +228,8 @@ inline void ImageReductionComposite::compositePixelsGreater(const FieldAccessor<
                                                             int Z0,
                                                             int Z1,
                                                             bool flip) {
-  
-  
+
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -261,7 +261,7 @@ inline void ImageReductionComposite::compositePixelsGreater(const FieldAccessor<
       }
     }
   }
-  
+
 }
 
 inline void ImageReductionComposite::compositePixelsNotEqual(const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0,
@@ -281,8 +281,8 @@ inline void ImageReductionComposite::compositePixelsNotEqual(const FieldAccessor
                                                              int Z0,
                                                              int Z1,
                                                              bool flip) {
-  
-  
+
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -314,7 +314,7 @@ inline void ImageReductionComposite::compositePixelsNotEqual(const FieldAccessor
       }
     }
   }
-  
+
 }
 
 
@@ -335,8 +335,8 @@ inline void ImageReductionComposite::compositePixelsGEqual(const FieldAccessor<R
                                                            int Z0,
                                                            int Z1,
                                                            bool flip) {
-  
-  
+
+
   if(flip) {
     for(int y = 0; y < height; ++y) {
       for(int x = 0; x < width; ++x) {
@@ -368,8 +368,8 @@ inline void ImageReductionComposite::compositePixelsGEqual(const FieldAccessor<R
       }
     }
   }
-  
-  
+
+
 }
 
 inline void ImageReductionComposite::compositePixelsAlways(const FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > r0,
@@ -389,7 +389,7 @@ inline void ImageReductionComposite::compositePixelsAlways(const FieldAccessor<R
                                                            int Z0,
                                                            int Z1,
                                                            bool flip) {
-  
+
   // no change */
 }
 
@@ -464,7 +464,7 @@ static inline void gl_one_minus_src_color(
   factors[ImageReduction::FID_FIELD_G] = 1.0f - gSource;
   factors[ImageReduction::FID_FIELD_B] = 1.0f - bSource;
   factors[ImageReduction::FID_FIELD_A] = 1.0f - aSource;
-  
+
 }
 
 
@@ -609,7 +609,7 @@ static inline void gl_one_minus_constant_color(
   factors[ImageReduction::FID_FIELD_G] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_G];
   factors[ImageReduction::FID_FIELD_B] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_B];
   factors[ImageReduction::FID_FIELD_A] = 1.0f - ImageReduction::mGlConstantColor[ImageReduction::FID_FIELD_A];
-  
+
 }
 
 
@@ -714,21 +714,21 @@ void ImageReductionComposite::callScaleFunction(GLenum blendFunction,
       //        case GL_ONE_MINUS_SRC1_ALPHA: return &gl_one_minus_src1_alpha;
     default: assert("unsupported value for glBlendFunctionSource or glBlendFunctionDestination");
   }
-  
+
 }
 
 #if 0 /* for debug purpose */
 #define STACK_BUFFER(TYPE, nElements) (TYPE *)alloca(sizeof(TYPE) * nElements)
   template <typename COMP_T,
-	    int N_COMP,
-	    typename PIXEL_T,
-	    int PIXEL_COMP,
-	    bool FLIP>
+        int N_COMP,
+        typename PIXEL_T,
+        int PIXEL_COMP,
+        bool FLIP>
   inline void writeImage(const std::string &fileName,
-			 const char *const header,
-			 const int sizeX,
-			 const int sizeY,
-			 const PIXEL_T *const pixel)
+             const char *const header,
+             const int sizeX,
+             const int sizeY,
+             const PIXEL_T *const pixel)
   {
     FILE *file = fopen(fileName.c_str(), "wb");
     if (file == nullptr)
@@ -739,8 +739,8 @@ void ImageReductionComposite::callScaleFunction(GLenum blendFunction,
     for (int y = 0; y < sizeY; y++) {
       auto *in = (const COMP_T *)&pixel[(FLIP ? sizeY - 1 - y : y) * sizeX];
       for (int x = 0; x < sizeX; x++)
-	for (int c = 0; c < N_COMP; c++)
-	  out[N_COMP * x + c] = in[PIXEL_COMP * x + (N_COMP == 1 ? 3 : c)];
+    for (int c = 0; c < N_COMP; c++)
+      out[N_COMP * x + c] = in[PIXEL_COMP * x + (N_COMP == 1 ? 3 : c)];
       fwrite(out, N_COMP * sizeX, sizeof(COMP_T), file);
     }
     fprintf(file, "\n");
@@ -748,12 +748,12 @@ void ImageReductionComposite::callScaleFunction(GLenum blendFunction,
   }
 
   inline void writePPM(const std::string &fileName,
-		       const int sizeX,
-		       const int sizeY,
-		       const uint32_t *pixel)
+               const int sizeX,
+               const int sizeY,
+               const uint32_t *pixel)
   {
     writeImage<unsigned char, 3, uint32_t, 4, true>(
-						    fileName, "P6\n%i %i\n255\n", sizeX, sizeY, pixel);
+                            fileName, "P6\n%i %i\n255\n", sizeX, sizeY, pixel);
   }
 #endif
 
@@ -787,7 +787,6 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
 
   for(int y = 0; y < height; ++y) {
     for(int x = 0; x < width; ++x) {
-      
       ImageReduction::PixelField sourceFactor[4];
       ImageReduction::PixelField destinationFactor[4];
 
@@ -823,7 +822,6 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         ImageReduction::PixelField bDestination = b0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = a0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_A];
 
-
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
             r1[x][y][Z1] = rSource + rDestination;
@@ -857,7 +855,7 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
             break;
           default: assert(false);//should never happen
         }
-        
+
         // clamp the result
         r1[x][y][Z1] = std::min(1.0f, std::max(0.0f, r1[x][y][Z1]));
         g1[x][y][Z1] = std::min(1.0f, std::max(0.0f, g1[x][y][Z1]));
@@ -891,8 +889,8 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
                           b1[x][y][Z1],
                           a1[x][y][Z1],
                           destinationFactor);
-        
-        
+
+
         ImageReduction::PixelField rSource = r0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_R];
         ImageReduction::PixelField gSource = g0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bSource = b0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_B];
@@ -901,7 +899,7 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         ImageReduction::PixelField gDestination = g1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_G];
         ImageReduction::PixelField bDestination = b1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_B];
         ImageReduction::PixelField aDestination = a1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_A];
-        
+
         switch(mBlendEquation) {
           case GL_FUNC_ADD:
             r0[x][y][Z0] = rSource + rDestination;
@@ -935,7 +933,7 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
             break;
           default: assert(false);//should never happen
         }
-        
+
         // clamp the result
         r0[x][y][Z0] = std::min(1.0f, std::max(0.0f, r0[x][y][Z0]));
         g0[x][y][Z0] = std::min(1.0f, std::max(0.0f, g0[x][y][Z0]));
@@ -943,7 +941,6 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
         a0[x][y][Z0] = std::min(1.0f, std::max(0.0f, a0[x][y][Z0]));
 
       }
-      
     }
   }
 
@@ -974,4 +971,3 @@ ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFu
 
 }
 }
-

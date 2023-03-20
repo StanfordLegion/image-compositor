@@ -102,11 +102,6 @@ TaskID ImageReduction::mDisplayTaskID = 0;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mImageKDTree = nullptr;
 MapperID gMapperID = 0;
-std::mutex ImageReduction::mMutex0;
-std::mutex ImageReduction::mMutex1;
-std::mutex ImageReduction::mMutex2;
-std::mutex ImageReduction::mMutex3;
-std::mutex ImageReduction::mMutex4;
 
 /**
  * Use this constructor with your simulation partition.
@@ -215,11 +210,12 @@ void ImageReduction::preinitializeBeforeRuntimeStarts() {
 
 void ImageReduction::registerTasks() {
   {
-    mMutex3.lock();
     if(mInitialTaskID == 0)
       mInitialTaskID = Legion::Runtime::generate_static_task_id();
     TaskVariantRegistrar registrar(mInitialTaskID, "initial_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
+    registrar.set_replicable();
+    registrar.set_leaf(true);
     Runtime::preregister_task_variant<initial_task>(registrar, "initial_task");
   }
   {
@@ -227,6 +223,7 @@ void ImageReduction::registerTasks() {
       mCompositeTaskID = Legion::Runtime::generate_static_task_id();
     TaskVariantRegistrar registrar(mCompositeTaskID, "composite_task");
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
+    registrar.set_leaf(true);
     Runtime::preregister_task_variant<composite_task>(registrar, "composite_task");
   }
   {
@@ -236,7 +233,6 @@ void ImageReduction::registerTasks() {
     registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
     Runtime::preregister_task_variant<display_task>(registrar, "display_task");
   }
-  mMutex3.unlock();
 }
 
 
@@ -506,7 +502,6 @@ void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLaye
 
   // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
   // not a problem for multinode runs
-  mMutex0.lock();
   if(mCompositeProjectionFunctor == NULL) {
     mCompositeProjectionFunctor = new std::vector<CompositeProjectionFunctor*>();
 
@@ -529,7 +524,6 @@ void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLaye
       multiplier /= 2;
     }
   }
-  mMutex0.unlock();
 }
 
 
@@ -537,9 +531,7 @@ void ImageReduction::buildKDTrees(ImageDescriptor imageDescriptor,
                                   Context ctx,
                                   Runtime *runtime) {
 __TRACE
-  mMutex4.lock();
   if(mSimulationKDTree != nullptr) {
-    mMutex4.unlock();
     return;
   }
 
@@ -595,7 +587,6 @@ __TRACE
   mImageKDTree = new KDTree<image_region_dimensions, long long int>(imageElements, rect.volume());
   delete [] imageElements;
 __TRACE
-  mMutex4.unlock();
 }
 
 
@@ -618,15 +609,12 @@ __TRACE
 
 
 void ImageReduction::initializeViewMatrix() {
-  mMutex2.lock();
   memset(mGlViewTransform, 0, sizeof(mGlViewTransform));
   mGlViewTransform[0] = mGlViewTransform[5] = mGlViewTransform[10] = mGlViewTransform[15] = 1.0f;
-  mMutex2.unlock();
 }
 
 
 void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor imageDescriptor) {
-  mMutex1.lock();
   if(mHierarchicalTreeDomain == NULL) {
     mHierarchicalTreeDomain = new std::vector<Domain>();
   }
@@ -643,8 +631,6 @@ void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, Imag
     }
     numLeaves *= 2;
   }
-  mMutex1.unlock();
-
 }
 
 
