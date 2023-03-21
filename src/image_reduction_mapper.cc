@@ -17,6 +17,8 @@
 
 #include "image_reduction_mapper.h"
 
+extern int gRenderTaskID;
+
 namespace Legion {
   namespace Visualization {
 
@@ -95,6 +97,21 @@ namespace Legion {
       }
 
       Memory target_mem = visible_memories.first(); // just take the first one
+      // if (task.task_id == gRenderTaskID)
+      // {
+      //   for (Machine::MemoryQuery::iterator it = visible_memories.begin(); it != visible_memories.end(); it++)
+      //   {
+      //     if(it->kind() == Memory::Z_COPY_MEM)
+      //     {
+      //       target_mem = *it;
+      //       break;
+      //     }
+      //   }
+      // }
+      // else
+      // {
+      //   target_mem = visible_memories.first(); // just take the first one
+      // }
 
       for (size_t i = 0; i < task.regions.size(); ++i) {
         const RegionRequirement req = task.regions[i];
@@ -112,6 +129,7 @@ namespace Legion {
                                               << " using existing instance " << it->second
                                               << " in " << target_mem;
             inst = it->second;
+            runtime->acquire_instance(ctx, inst);
           }
           else
           {

@@ -24,6 +24,7 @@
 
 // using namespace Legion ;
 // using namespace Mapping ;
+extern int gRenderTaskID;
 
 namespace Legion {
   namespace Visualization {
