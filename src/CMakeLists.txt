@@ -29,6 +29,7 @@ endif()
 include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime/legion $ENV{LEGION_DIR}/runtime/realm)
 
 list(APPEND FRAMEWORK_SRC
+  image.cc
   image_reduction.cc
   image_reduction_composite.cc
   image_reduction_mapper.cc
@@ -37,8 +38,6 @@ if(BUILD_WITH_CUDA)
   set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 
-add_library(ImageCompositor ${FRAMEWORK_SRC})
-add_library(ImageCompositor_ SHARED ${FRAMEWORK_SRC})
-
-# target_link_libraries(ImageCompositor PUBLIC Legion::LegionRuntime Legion::Legion)
-# target_link_libraries(ImageCompositor_ PUBLIC Legion::LegionRuntime Legion::Legion)
+add_library(ImageCompositor SHARED ${FRAMEWORK_SRC})
+find_package(PNG REQUIRED)
+target_link_libraries(ImageCompositor PUBLIC ../deps/libpng/lib/libpng16.so)

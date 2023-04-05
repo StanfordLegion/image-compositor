@@ -28,6 +28,7 @@ extern int gRenderTaskID;
 
 namespace Legion {
   namespace Visualization {
+    extern int mInitialTaskID;
 
     /**
      * \class ImageReductionMapper
@@ -68,6 +69,10 @@ namespace Legion {
       typedef std::map<InstanceMapKey,Legion::Mapping::PhysicalInstance> InstanceMap;
       std::map<Memory, InstanceMap> mem_inst_map;
       unsigned long         mapped_task_count;
+
+      Memory find_memory(const Task& task,
+                         const RegionRequirement& req,
+                         const Machine::MemoryQuery& visible_memories);
     };
   }; // namespace Mapping
 }; // namespace Legion

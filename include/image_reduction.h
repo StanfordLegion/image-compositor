@@ -477,7 +477,6 @@ namespace Legion {
       static GLenum mGlBlendEquation;
       static GLenum mGlBlendFunctionSource;
       static GLenum mGlBlendFunctionDestination;
-      static TaskID mInitialTaskID;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
       static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;

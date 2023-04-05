@@ -17,8 +17,6 @@
 
 #include "image_reduction_mapper.h"
 
-extern int gRenderTaskID;
-
 namespace Legion {
   namespace Visualization {
 
@@ -96,23 +94,6 @@ namespace Legion {
         assert(false);
       }
 
-      Memory target_mem = visible_memories.first(); // just take the first one
-      // if (task.task_id == gRenderTaskID)
-      // {
-      //   for (Machine::MemoryQuery::iterator it = visible_memories.begin(); it != visible_memories.end(); it++)
-      //   {
-      //     if(it->kind() == Memory::Z_COPY_MEM)
-      //     {
-      //       target_mem = *it;
-      //       break;
-      //     }
-      //   }
-      // }
-      // else
-      // {
-      //   target_mem = visible_memories.first(); // just take the first one
-      // }
-
       for (size_t i = 0; i < task.regions.size(); ++i) {
         const RegionRequirement req = task.regions[i];
         Mapping::PhysicalInstance inst;
@@ -121,6 +102,8 @@ namespace Legion {
           output.chosen_instances[i].push_back(Legion::Mapping::PhysicalInstance::get_virtual_instance());
         }
         else {
+          Memory target_mem = find_memory(task, req, visible_memories);
+
           InstanceMap& imap = mem_inst_map[target_mem];
           InstanceMapKey key(req.region, req.instance_fields);
           InstanceMap::const_iterator it = imap.find(key);
@@ -156,6 +139,27 @@ namespace Legion {
         }
         output.chosen_instances[i].push_back(inst);
       }
+    }
+
+    //--------------------------------------------------------------------------
+    Memory ImageReductionMapper::find_memory(const Task& task,
+                                             const RegionRequirement& req,
+                                             const Machine::MemoryQuery& visible_memories)
+    //--------------------------------------------------------------------------
+    {
+      if (((task.task_id == gRenderTaskID) && (req.privilege == READ_ONLY)) ||
+          (task.task_id == mInitialTaskID))
+      {
+        for (Machine::MemoryQuery::iterator it = visible_memories.begin(); it != visible_memories.end(); it++)
+        {
+          if(it->kind() == Memory::Z_COPY_MEM)
+          {
+            return *it;
+          }
+        }
+      }
+
+      return visible_memories.first();
     }
 
     //--------------------------------------------------------------------------

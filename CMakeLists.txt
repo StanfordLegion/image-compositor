@@ -141,6 +141,7 @@ include_directories( $ENV{LEGION_DIR}/language/build/runtime )
 include_directories( $ENV{LEGION_DIR}/runtime/legion )
 include_directories( $ENV{LEGION_DIR}/runtime/realm )
 include_directories( include )
+include_directories( deps/libpng/include )
 
 add_subdirectory(src)
 

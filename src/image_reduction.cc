@@ -96,7 +96,7 @@ ImageReduction::PixelField ImageReduction::mGlConstantColor[numPixelFields];
 GLenum ImageReduction::mGlBlendEquation = 0;
 GLenum ImageReduction::mGlBlendFunctionSource = 0;
 GLenum ImageReduction::mGlBlendFunctionDestination = 0;
-TaskID ImageReduction::mInitialTaskID = 0;
+int mInitialTaskID = 0;
 TaskID ImageReduction::mCompositeTaskID = 0;
 TaskID ImageReduction::mDisplayTaskID = 0;
 KDTree<image_region_dimensions, long long int>* ImageReduction::mSimulationKDTree = nullptr;

@@ -5,6 +5,13 @@ cd deps
 
 DEPS=$(pwd)
 
+wget https://download.sourceforge.net/libpng/libpng-1.6.39.tar.gz
+tar xvzf libpng-1.6.39.tar.gz
+cd libpng-1.6.39
+./configure --prefix=$DEPS/libpng
+make -j
+make PREFIX=$DEPS/libpng install
+
 wget https://github.com/ospray/ospray/releases/download/v2.9.0/ospray-2.9.0.x86_64.linux.tar.gz
 tar xzvf ospray-2.9.0.x86_64.linux.tar.gz
 
