@@ -141,7 +141,25 @@ include_directories( $ENV{LEGION_DIR}/language/build/runtime )
 include_directories( $ENV{LEGION_DIR}/runtime/legion )
 include_directories( $ENV{LEGION_DIR}/runtime/realm )
 include_directories( include )
-include_directories( deps/libpng/include )
+
+
+include (FindPkgConfig)
+if (NOT PKG_CONFIG_FOUND)
+    message (FATAL_ERROR "pkg-config not found")
+endif ()
+
+# check for libpng
+pkg_check_modules (LIBPNG libpng16 REQUIRED)
+if (NOT LIBPNG_FOUND)
+    message(FATAL_ERROR "You don't seem to have libpng16 development libraries installed")
+else ()
+    include_directories (${LIBPNG_INCLUDE_DIRS})
+    link_directories (${LIBPNG_LIBRARY_DIRS})
+    link_libraries (${LIBPNG_LIBRARIES})
+endif ()
+# add_executable (app_png ${_MYSOURCES} ${LIBPNG_LINK_FLAGS})
+
+# include_directories( deps/libpng/include )
 
 add_subdirectory(src)
 
@@ -162,7 +180,6 @@ set(OVR_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 
 find_package(ospray 2.0 REQUIRED)
 find_package(TBB REQUIRED)
-
 # if(BUILD_WITH_CUDA)
 #   set(OVR_BUILD_DEVICE_OPTIX7 ON)
 # else()

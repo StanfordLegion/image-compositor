@@ -38,6 +38,7 @@ if(BUILD_WITH_CUDA)
   set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
 endif()
 
+
+
 add_library(ImageCompositor SHARED ${FRAMEWORK_SRC})
-find_package(PNG REQUIRED)
-target_link_libraries(ImageCompositor PUBLIC ../deps/libpng/lib/libpng16.so)
+# target_link_libraries(ImageCompositor PUBLIC ../deps/libpng/lib/libpng16.so)
