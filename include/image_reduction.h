@@ -67,7 +67,9 @@ namespace Legion {
         GLenum blendFunctionSource;
         GLenum blendFunctionDestination;
         GLenum blendEquation;
-        GLfloat cameraDirection[image_region_dimensions];
+        /* camera */
+        bool cameraIsOrthographic;
+        GLfloat cameraData[image_region_dimensions];
       } CompositeArguments;
 
       typedef struct {
@@ -149,7 +151,8 @@ namespace Legion {
        * Perform a tree reduction.
        * Be sure to call either set_blend_func or set_depth_func first.
        */
-      FutureMap reduceImages(Context context, float cameraDirection[image_region_dimensions] = nullptr);
+      FutureMap reduceImagesOrthographic(Context context, float cameraDirection[image_region_dimensions]);
+      FutureMap reduceImagesPerspective(Context context, float cameraLocation[image_region_dimensions]);
       /**
        * Move reduced image result to a display.
        *
@@ -321,7 +324,7 @@ namespace Legion {
 
       static KDNode<image_region_dimensions, long long int>* findFragmentInKDTree(PhysicalRegion fragment);
 
-      static bool flipRegions(PhysicalRegion fragment0, PhysicalRegion fragment1, float cameraDirection[image_region_dimensions]);
+      static bool flipRegions(PhysicalRegion fragment0, PhysicalRegion fragment1, bool cameraIsOrthographic, float cameraData[image_region_dimensions]);
 
       static void composite_task(const Task *task,
                                  const std::vector<PhysicalRegion> &regions,
@@ -443,7 +446,7 @@ namespace Legion {
                                            int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image,
                                            Runtime* runtime, Context context,
                                            int maxTreeLevel,
-                                           float cameraDirection[image_region_dimensions]);
+                                           bool cameraIsOrthographic, float cameraData[image_region_dimensions]);
 
 
       ImageDescriptor mImageDescriptor;
@@ -467,21 +470,15 @@ namespace Legion {
     public:
       static int mNodeID;
       static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
-      static std::mutex mMutex0;
       static std::vector<Domain> *mHierarchicalTreeDomain;
-      static std::mutex mMutex1;
       static const int numMatrixElements4x4 = 16;
       static GLfloat mGlViewTransform[numMatrixElements4x4];
-      static std::mutex mMutex2;
       static PixelField mGlConstantColor[numPixelFields];
       static GLenum mGlBlendEquation;
       static GLenum mGlBlendFunctionSource;
       static GLenum mGlBlendFunctionDestination;
-      static TaskID mInitialTaskID;
-      static std::mutex mMutex3;
       static TaskID mCompositeTaskID;
       static TaskID mDisplayTaskID;
-      static std::mutex mMutex4;
       static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
       static KDTree<image_region_dimensions, long long int>* mImageKDTree;
     };

@@ -142,5 +142,51 @@ include_directories( $ENV{LEGION_DIR}/runtime/legion )
 include_directories( $ENV{LEGION_DIR}/runtime/realm )
 include_directories( include )
 
+
+include (FindPkgConfig)
+if (NOT PKG_CONFIG_FOUND)
+    message (FATAL_ERROR "pkg-config not found")
+endif ()
+
+# check for libpng
+pkg_check_modules (LIBPNG libpng16 REQUIRED)
+if (NOT LIBPNG_FOUND)
+    message(FATAL_ERROR "You don't seem to have libpng16 development libraries installed")
+else ()
+    include_directories (${LIBPNG_INCLUDE_DIRS})
+    link_directories (${LIBPNG_LIBRARY_DIRS})
+    link_libraries (${LIBPNG_LIBRARIES})
+endif ()
+# add_executable (app_png ${_MYSOURCES} ${LIBPNG_LINK_FLAGS})
+
+# include_directories( deps/libpng/include )
+
 add_subdirectory(src)
 
+
+#------------------------------------------------------------------------------#
+# Compile OVR Visualization Library
+#------------------------------------------------------------------------------#
+option(BUILD_WITH_CUDA "Enable OptiX rendering" ON)
+
+# include rendering library
+set(OVR_BUILD_TORCH  OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_OSPRAY ON  CACHE BOOL "" FORCE)
+set(OVR_BUILD_OPENGL OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_VIDI3D OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_USD    OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_APPS    OFF CACHE BOOL "" FORCE)
+set(OVR_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+
+find_package(ospray 2.0 REQUIRED)
+find_package(TBB REQUIRED)
+# if(BUILD_WITH_CUDA)
+#   set(OVR_BUILD_DEVICE_OPTIX7 ON)
+# else()
+#   set(OVR_BUILD_DEVICE_OPTIX7 OFF)
+# endif()
+
+# TODO need to explain why
+include_directories(${TBB_DIR}/../../../include)
+
+add_subdirectory(deps/open-volume-renderer)

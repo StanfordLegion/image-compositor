@@ -14,15 +14,16 @@
 #include "legion_visualization.h"
 #include "legion.h"
 
-using namespace Legion::Visualization;
+// using namespace Legion::Visualization;
 
 namespace Legion{
   namespace Visualization{
 
 typedef struct {
-  Legion::Rect<image_region_dimensions> extent;
   Legion::Point<image_region_dimensions> color;
+  Legion::Rect<image_region_dimensions> extent;
   Legion::Rect<image_region_dimensions> extent2;
+  Legion::Rect<image_region_dimensions> world_space_bounds;
 } KDTreeValue;
 
 
@@ -119,8 +120,7 @@ private:
 
   }
 
-  KDNode<N, DataType>* buildKDTree(
-                                   KDTreeValue elements[],
+  KDNode<N, DataType>* buildKDTree(KDTreeValue elements[],
                                    unsigned numElements,
                                    unsigned level,
                                    KDNode<N, DataType>* parent = nullptr) {

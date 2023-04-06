@@ -99,12 +99,14 @@ It provides a logical partition of this domain to the ImageCompositor constructo
 
 The application invokes
 ```
-compositor->reduceImages(ctx, cameraDirection)
+compositor->reduceImagesOrthographic(ctx, cameraDirection)
+compositor->reduceImagesPerspective(ctx, cameraLocation)
 ```
 which index launches the image reduction operations in the address spaces that were recorded previously by the mapper.
-ctx is a Legion context.
-cameraDirection is the difference between the camera lookAt point and the camera from point.
-In other words it is the viewing direction of the camera.
+`ctx` is a Legion context.
+`cameraDirection` is the difference between the camera lookAt point and the camera from point.
+In other words it is the viewing direction of the camera. This works with orthographic projection.
+
 
 ### Regent application with rendering in C++/OpenGL
 This is the most common use case for applications that use OpenGL or similar C++ graphics APIs.
@@ -313,7 +315,7 @@ void cxx_reduce(legion_context_t ctx_, float cameraAt[image_region_dimensions]) 
   Visualization::ImageReduction* compositor = gImageCompositor;
   compositor->set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   compositor->set_blend_equation(GL_FUNC_ADD);
-  FutureMap futures = compositor->reduceImages(ctx, cameraAt);
+  FutureMap futures = compositor->reduceImagesOrthographic(ctx, cameraAt);
   futures.wait_all_results();
 }
 ```

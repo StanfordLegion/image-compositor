@@ -133,7 +133,7 @@ void top_level_task(const Legion::Task *task,
         &imageDescriptor, sizeof(imageDescriptor), true);
 
       float cameraDirection[3] = { 0, 0, 1 };
-      Legion::FutureMap reduceFutures = imageReduction.reduceImages(ctx, cameraDirection);
+      Legion::FutureMap reduceFutures = imageReduction.reduceImagesOrthographic(ctx, cameraDirection);
       reduceFutures.wait_all_results();
 
       displayFuture = imageReduction.display(t, ctx);

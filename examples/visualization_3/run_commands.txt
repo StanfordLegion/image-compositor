@@ -1,0 +1,8 @@
+GPU: make -j && mpirun -np 4 visualization_3 -pipeline volume.py -logfile run_%.logls -ll:gpu 1
+CPU: make -j && mpirun -np 4 visualization_3 -pipeline volume.py -logfile run_%.logls
+
+# build optix version
+# cmake .. -DBUILD_WITH_CUDA=ON  -DTBB_DIR=/home/qwu/ospray/build-release-2.9.x/install/lib/cmake/tbb
+
+# build ospray version
+# cmake .. -DBUILD_WITH_CUDA=OFF -DTBB_DIR=/home/qwu/ospray/build-release-2.9.x/install/lib/cmake/tbb -Dospray_DIR=/home/qwu/ospray/build-release-2.9.x/install/lib/cmake/ospray-2.9.0

@@ -503,14 +503,14 @@ void testAssociative(ImageReduction &imageReduction,
   
   prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
   float cameraDirection[] = { 0, 0, 1 };
-  FutureMap futureMap = imageReduction.reduceImages(context, cameraDirection);
+  FutureMap futureMap = imageReduction.reduceImagesOrthographic(context, cameraDirection);
   futureMap.wait_all_results();
   verifyAssociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
   
   return;//stop here
   
   testLabel = "associative,noncommutative";
-  futureMap = imageReduction.reduceImages(context, cameraDirection);
+  futureMap = imageReduction.reduceImagesOrthographic(context, cameraDirection);
   futureMap.wait_all_results();
   verifyAssociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
 }
@@ -527,12 +527,12 @@ void testNonassociative(ImageReduction &imageReduction,
   prepareTest(imageReduction, imageDescriptor, context, runtime, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, testLabel);
   FutureMap futureMap;
   float cameraDirection[] = { 0, 0, 1 };
-  futureMap = imageReduction.reduceImages(context, cameraDirection);
+  futureMap = imageReduction.reduceImagesOrthographic(context, cameraDirection);
   futureMap.wait_all_results();
   verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
   
   testLabel = "nonassociative,noncommutative";
-  futureMap = imageReduction.reduceImages(context, cameraDirection);
+  futureMap = imageReduction.reduceImagesOrthographic(context, cameraDirection);
   futureMap.wait_all_results();
   verifyNonassociativeTestResult(testLabel, imageReduction, imageDescriptor, depthFunc, blendFuncSource, blendFuncDestination, blendEquation, runtime, context);
 }
