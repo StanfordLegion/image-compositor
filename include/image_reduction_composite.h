@@ -70,6 +70,7 @@ namespace Legion {
       static CompositeFunction compositePixelsAlways;
       static CompositeFunction blendPixelsSlowly;
 
+      static CompositeFunction blendPixelsFast__ONE__ADD__ONE_MINUS_SRC_ALPHA;
 
       typedef void (*ScaleFunction)(
         ImageReduction::PixelField,

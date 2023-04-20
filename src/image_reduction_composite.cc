@@ -946,9 +946,149 @@ inline void ImageReductionComposite::blendPixelsSlowly(const FieldAccessor<READ_
 
 }
 
+typedef FieldAccessor<READ_WRITE, ImageReduction::PixelField, image_region_dimensions, coord_t, Realm::AffineAccessor<ImageReduction::PixelField, image_region_dimensions, coord_t> > field_accessor_t;
+
+inline void ImageReductionComposite::blendPixelsFast__ONE__ADD__ONE_MINUS_SRC_ALPHA(
+  const field_accessor_t r0, const field_accessor_t g0, const field_accessor_t b0, const field_accessor_t a0, const field_accessor_t z0,
+  const field_accessor_t userdata0,
+  const field_accessor_t r1, const field_accessor_t g1, const field_accessor_t b1, const field_accessor_t a1, const field_accessor_t z1,
+  const field_accessor_t userdata1,
+  int width, int height, int Z0, int Z1, bool flip) 
+{
+  assert(mGlBlendFunctionSource == GL_ONE);
+  assert(mGlBlendFunctionDestination == GL_ONE_MINUS_SRC_ALPHA);
+  assert(mBlendEquation == GL_FUNC_ADD);
+
+  if (flip) {
+
+    for(int y = 0; y < height; ++y) {
+      for(int x = 0; x < width; ++x) {
+        ImageReduction::PixelField sourceFactor[4];
+        ImageReduction::PixelField destinationFactor[4];
+
+        sourceFactor[ImageReduction::FID_FIELD_R] = 
+        sourceFactor[ImageReduction::FID_FIELD_G] =
+        sourceFactor[ImageReduction::FID_FIELD_B] = 
+        sourceFactor[ImageReduction::FID_FIELD_A] = 1;
+        // callScaleFunction(mGlBlendFunctionSource,
+        //                   r1[x][y][Z1],
+        //                   g1[x][y][Z1],
+        //                   b1[x][y][Z1],
+        //                   a1[x][y][Z1],
+        //                   r0[x][y][Z0],
+        //                   g0[x][y][Z0],
+        //                   b0[x][y][Z0],
+        //                   a0[x][y][Z0],
+        //                   sourceFactor);
+
+        destinationFactor[ImageReduction::FID_FIELD_R] = 
+        destinationFactor[ImageReduction::FID_FIELD_G] =
+        destinationFactor[ImageReduction::FID_FIELD_B] = 
+        destinationFactor[ImageReduction::FID_FIELD_A] = 1.0f - a1[x][y][Z1];
+        // callScaleFunction(mGlBlendFunctionDestination,
+        //                   r1[x][y][Z1],
+        //                   g1[x][y][Z1],
+        //                   b1[x][y][Z1],
+        //                   a1[x][y][Z1],
+        //                   r0[x][y][Z0],
+        //                   g0[x][y][Z0],
+        //                   b0[x][y][Z0],
+        //                   a0[x][y][Z0],
+        //                   destinationFactor);
+
+        ImageReduction::PixelField rSource = r1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_R];
+        ImageReduction::PixelField gSource = g1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_G];
+        ImageReduction::PixelField bSource = b1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_B];
+        ImageReduction::PixelField aSource = a1[x][y][Z1] * sourceFactor[ImageReduction::FID_FIELD_A];
+        ImageReduction::PixelField rDestination = r0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_R];
+        ImageReduction::PixelField gDestination = g0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_G];
+        ImageReduction::PixelField bDestination = b0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_B];
+        ImageReduction::PixelField aDestination = a0[x][y][Z0] * destinationFactor[ImageReduction::FID_FIELD_A];
+
+        r1[x][y][Z1] = rSource + rDestination;
+        g1[x][y][Z1] = gSource + gDestination;
+        b1[x][y][Z1] = bSource + bDestination;
+        a1[x][y][Z1] = aSource + aDestination;
+
+        // clamp the result
+        r1[x][y][Z1] = std::min(1.0f, std::max(0.0f, r1[x][y][Z1]));
+        g1[x][y][Z1] = std::min(1.0f, std::max(0.0f, g1[x][y][Z1]));
+        b1[x][y][Z1] = std::min(1.0f, std::max(0.0f, b1[x][y][Z1]));
+        a1[x][y][Z1] = std::min(1.0f, std::max(0.0f, a1[x][y][Z1]));
+
+        r0[x][y][Z0] = r1[x][y][Z1];
+        g0[x][y][Z0] = g1[x][y][Z1];
+        b0[x][y][Z0] = b1[x][y][Z1];
+        a0[x][y][Z0] = a1[x][y][Z1];
+      }
+    }
+
+  } else {
+
+    for(int y = 0; y < height; ++y) {
+      for(int x = 0; x < width; ++x) {
+        ImageReduction::PixelField sourceFactor[4];
+        ImageReduction::PixelField destinationFactor[4];
+
+        sourceFactor[ImageReduction::FID_FIELD_R] = 
+        sourceFactor[ImageReduction::FID_FIELD_G] =
+        sourceFactor[ImageReduction::FID_FIELD_B] = 
+        sourceFactor[ImageReduction::FID_FIELD_A] = 1;
+        // callScaleFunction(mGlBlendFunctionSource,
+        //                   r0[x][y][Z0],
+        //                   g0[x][y][Z0],
+        //                   b0[x][y][Z0],
+        //                   a0[x][y][Z0],
+        //                   r1[x][y][Z1],
+        //                   g1[x][y][Z1],
+        //                   b1[x][y][Z1],
+        //                   a1[x][y][Z1],
+        //                   sourceFactor);
+
+        destinationFactor[ImageReduction::FID_FIELD_R] = 
+        destinationFactor[ImageReduction::FID_FIELD_G] =
+        destinationFactor[ImageReduction::FID_FIELD_B] = 
+        destinationFactor[ImageReduction::FID_FIELD_A] = 1.0f - a0[x][y][Z0];
+        // callScaleFunction(mGlBlendFunctionDestination,
+        //                   r0[x][y][Z0],
+        //                   g0[x][y][Z0],
+        //                   b0[x][y][Z0],
+        //                   a0[x][y][Z0],
+        //                   r1[x][y][Z1],
+        //                   g1[x][y][Z1],
+        //                   b1[x][y][Z1],
+        //                   a1[x][y][Z1],
+        //                   destinationFactor);
+
+        ImageReduction::PixelField rSource = r0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_R];
+        ImageReduction::PixelField gSource = g0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_G];
+        ImageReduction::PixelField bSource = b0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_B];
+        ImageReduction::PixelField aSource = a0[x][y][Z0] * sourceFactor[ImageReduction::FID_FIELD_A];
+        ImageReduction::PixelField rDestination = r1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_R];
+        ImageReduction::PixelField gDestination = g1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_G];
+        ImageReduction::PixelField bDestination = b1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_B];
+        ImageReduction::PixelField aDestination = a1[x][y][Z1] * destinationFactor[ImageReduction::FID_FIELD_A];
+
+        r0[x][y][Z0] = rSource + rDestination;
+        g0[x][y][Z0] = gSource + gDestination;
+        b0[x][y][Z0] = bSource + bDestination;
+        a0[x][y][Z0] = aSource + aDestination;
+
+        // clamp the result
+        r0[x][y][Z0] = std::min(1.0f, std::max(0.0f, r0[x][y][Z0]));
+        g0[x][y][Z0] = std::min(1.0f, std::max(0.0f, g0[x][y][Z0]));
+        b0[x][y][Z0] = std::min(1.0f, std::max(0.0f, b0[x][y][Z0]));
+        a0[x][y][Z0] = std::min(1.0f, std::max(0.0f, a0[x][y][Z0]));
+
+      }
+    }
+  }
+
+}
 
 ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFunctionPointer(
-                                                                                              GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation) {
+  GLenum depthFunction, GLenum blendFunctionSource, GLenum blendFunctionDestination, GLenum blendEquation) 
+{
   if(depthFunction != 0) {
     switch(depthFunction) {
       case GL_NEVER: return compositePixelsNever;
@@ -960,11 +1100,23 @@ ImageReductionComposite::CompositeFunction* ImageReductionComposite::compositeFu
       case GL_GEQUAL: return compositePixelsGEqual;
       case GL_ALWAYS: return compositePixelsAlways;
     }
-  } else {
+  } 
+  else {
+
     mGlBlendFunctionSource = blendFunctionSource;
     mGlBlendFunctionDestination = blendFunctionDestination;
     mBlendEquation = blendEquation;
-    return blendPixelsSlowly;
+
+    if (mGlBlendFunctionSource == GL_ONE && mGlBlendFunctionDestination == GL_ONE_MINUS_SRC_ALPHA && mBlendEquation == GL_FUNC_ADD) {
+      return blendPixelsFast__ONE__ADD__ONE_MINUS_SRC_ALPHA;
+    }
+    else {
+      std::cout << "mGlBlendFunctionSource: " << blendFunctionSource << std::endl;
+      std::cout << "mGlBlendFunctionDestination: " << blendFunctionDestination << std::endl;
+      std::cout << "mBlendEquation: " << blendEquation << std::endl;
+      return blendPixelsSlowly;
+    }
+
   }
   return NULL;
 }
