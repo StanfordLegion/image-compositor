@@ -60,7 +60,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include)
 # add_library(imageCompositor STATIC IMPORTED)
 # SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor.a)
 add_library(imageCompositor SHARED IMPORTED)
-SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor_.so)
+SET_TARGET_PROPERTIES(imageCompositor PROPERTIES IMPORTED_LOCATION ${IMAGE_COMPOSITOR_DIR}/src/libImageCompositor.so)
 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../deps/open-volume-renderer/common/gdt/cmake")

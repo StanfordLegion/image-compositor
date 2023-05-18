@@ -7,6 +7,7 @@
 #include "image.h"
 #include "render.h"
 #include "legion_visualization.h"
+#include "image_reduction_mapper.h"
 
 #include <sstream>
 #include <cstdio>
@@ -25,8 +26,8 @@ using namespace Legion;
 
 // global data
 Legion::MapperID imageReductionMapperID = 1;
+int gRenderTaskID = 0;
 static ImageReduction* gImageCompositor = nullptr;
-static int gRenderTaskID = 0;
 static int gSaveImageTaskID = 0;
 static int gImageWidth  = 800;
 static int gImageHeight = 600;
@@ -172,12 +173,15 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
   boundsWithGhosts.hi[2] = /*IsRegionExists(gReqZp) ? bounds.hi[2] + 0 :*/ bounds.hi[2];
   const Vec3i dimsWithGhosts = GetDimensions(boundsWithGhosts);
 
-  const size_t totalNumVoxels = GetSize(boundsWithGhosts);
-  // printf("rank: %d, num Voxels: %zu\n", rank, totalNumVoxels);
+  const size_t totalNumVoxels = GetSize(boundsWithGhosts); // printf("rank: %d, num Voxels: %zu\n", rank, totalNumVoxels);
 
-  /* allocate new data for rendering */
-  assert(dataReq.privilege_fields.size() == 1);
-  std::shared_ptr<char[]> dataWithGhost(new char[sizeof(double) * totalNumVoxels]);
+  // allocate new data for rendering 
+  std::shared_ptr<char[]> volumeWithGhost(new char[sizeof(double) * totalNumVoxels]);
+#ifdef OVR_BUILD_OPTIX7
+  double* volumePtr = (double*)volumeWithGhost.get();
+#else
+  double* volumePtr = (double*)volumeWithGhost.get();
+#endif
 
   const auto CopyGhostLo = [GetRegionDomain, dimsWithGhosts, boundsWithGhosts] (std::set<FieldID>::iterator& it, double* dst, int axis, PhysicalRegion& ghost_data)
   {
@@ -258,6 +262,7 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     CopyData3D(rawptr, dst, src_ext, dst_ext, src_dim, dimsWithGhosts);
   };
 
+  assert(dataReq.privilege_fields.size() == 1);
   int index = 0;
   for (std::set<FieldID>::iterator it = dataReq.privilege_fields.begin(); it != dataReq.privilege_fields.end(); ++it, ++index)
   {
@@ -293,16 +298,16 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
       dstExt.lo[2] = bounds.lo[2] - boundsWithGhosts.lo[2];
       dstExt.hi[2] = bounds.hi[2] - boundsWithGhosts.lo[2];
 
-      CopyData3D(rawptr, (double*)dataWithGhost.get() + index * totalNumVoxels, srcExt, dstExt, srcDim, dimsWithGhosts);
+      CopyData3D(rawptr, volumePtr + index * totalNumVoxels, srcExt, dstExt, srcDim, dimsWithGhosts);
     }
 
-    if (IsRegionExists(gReqXm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 0, gDataXm);
-    if (IsRegionExists(gReqYm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 1, gDataYm);
-    if (IsRegionExists(gReqZm)) CopyGhostLo(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 2, gDataZm);
+    if (IsRegionExists(gReqXm)) CopyGhostLo(it, volumePtr + index * totalNumVoxels, 0, gDataXm);
+    if (IsRegionExists(gReqYm)) CopyGhostLo(it, volumePtr + index * totalNumVoxels, 1, gDataYm);
+    if (IsRegionExists(gReqZm)) CopyGhostLo(it, volumePtr + index * totalNumVoxels, 2, gDataZm);
     
-    if (IsRegionExists(gReqZ0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 2, gDataZ0);
-    if (IsRegionExists(gReqY0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 1, gDataY0);
-    if (IsRegionExists(gReqX0)) CopyGhostMiddle(it, (double*)dataWithGhost.get() + index * totalNumVoxels, 0, gDataX0);
+    if (IsRegionExists(gReqZ0)) CopyGhostMiddle(it, volumePtr + index * totalNumVoxels, 2, gDataZ0);
+    if (IsRegionExists(gReqY0)) CopyGhostMiddle(it, volumePtr + index * totalNumVoxels, 1, gDataY0);
+    if (IsRegionExists(gReqX0)) CopyGhostMiddle(it, volumePtr + index * totalNumVoxels, 0, gDataX0);
     
     if (IsRegionExists(gReqCm)) {
       const Domain ghost_domain = GetRegionDomain(gDataCm);
@@ -333,8 +338,7 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
       dst_ext.lo[1] = dst_ext.hi[1] = ghost_bounds.hi[1] - boundsWithGhosts.lo[1];
       dst_ext.lo[2] = dst_ext.hi[2] = ghost_bounds.hi[2] - boundsWithGhosts.lo[2];
     
-      double* dst = (double*)dataWithGhost.get() + index * totalNumVoxels;
-      CopyData3D(rawptr, (double*)dataWithGhost.get() + index * totalNumVoxels, src_ext, dst_ext, src_dim, dimsWithGhosts);
+      CopyData3D(rawptr, volumePtr + index * totalNumVoxels, src_ext, dst_ext, src_dim, dimsWithGhosts);
     }
   }
 
@@ -347,18 +351,17 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
     output->dims.z = dimsWithGhosts.z;
     output->type = ovr::VALUE_TYPE_DOUBLE;
 
-    std::ofstream fw("rank" + std::to_string(rank)+ "data.txt", std::ofstream::out);
-    double* d = (double*)dataWithGhost.get();
-    for (int z = 0; z < dimsWithGhosts.z; ++z) {
-      for (int y = 0; y < dimsWithGhosts.y; ++y) {
-        for (int x = 0; x < dimsWithGhosts.x; ++x) {
-          fw << d[x + dimsWithGhosts.x * y + dimsWithGhosts.x * dimsWithGhosts.y * z] << "\n";
-        }
-      }
-    }
-    fw.close();
+    // std::ofstream fw("rank" + std::to_string(rank)+ "data.txt", std::ofstream::out);
+    // for (int z = 0; z < dimsWithGhosts.z; ++z) {
+    //   for (int y = 0; y < dimsWithGhosts.y; ++y) {
+    //     for (int x = 0; x < dimsWithGhosts.x; ++x) {
+    //       fw << volumePtr[x + dimsWithGhosts.x * y + dimsWithGhosts.x * dimsWithGhosts.y * z] << "\n";
+    //     }
+    //   }
+    // }
+    // fw.close();
 
-    output->acquire_data(std::move(dataWithGhost));
+    output->acquire_data(std::move(volumeWithGhost));
 
     ovr::scene::Volume volume;
     volume.type = ovr::scene::Volume::STRUCTURED_REGULAR_VOLUME;
@@ -377,13 +380,13 @@ render_task_common(const Task *task, const std::vector<PhysicalRegion> &regions,
       alphas.push_back(i / 1024.f);
     }
 
-    // ovr::scene::TransferFunction tfn;
-    // tfn.value_range = ovr::vec2f(0.f, 1.f);
-    // tfn.color = ovr::CreateColorMap("diverging/RdBu");
-    // tfn.opacity = ovr::CreateArray1DScalar(alphas);
-
-    ovr::scene::TransferFunction tfn = create_scene_tfn_vidi3d("/lustre/scratch/vsyamaj/legion_s3d_viz/ptj_temp.json");
+    ovr::scene::TransferFunction tfn;
     tfn.value_range = ovr::vec2f(0.f, 1.f);
+    tfn.color = ovr::CreateColorMap("diverging/RdBu");
+    tfn.opacity = ovr::CreateArray1DScalar(alphas);
+
+    // ovr::scene::TransferFunction tfn = create_scene_tfn_vidi3d("/lustre/scratch/vsyamaj/legion_s3d_viz/ptj_temp.json");
+    // tfn.value_range = ovr::vec2f(0.f, 1.f);
 
     ovr::scene::Model model;
     model.type = ovr::scene::Model::VOLUMETRIC_MODEL;
