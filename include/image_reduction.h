@@ -101,7 +101,7 @@ namespace Legion {
        *
        * @param mapperID dynamically generated mapper ID (see runtime->generate_dynamic_mapper_id)
        */
-      static void preinitializeBeforeRuntimeStarts();
+      // static void preinitializeBeforeRuntimeStarts();
 
       /**
        * Preregister an array of simulation bounds in 3D.
@@ -410,7 +410,7 @@ namespace Legion {
       };
 
 
-      static void createProjectionFunctors(Runtime* runtime, int numImageLayers);
+      void createProjectionFunctors(Runtime* runtime, int numImageLayers);
 
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
@@ -425,9 +425,9 @@ namespace Legion {
 
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
 
-      static void buildKDTrees(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
+      void buildKDTrees(ImageDescriptor imageDescriptor, Context ctx, Runtime *runtime);
 
-      static void registerTasks();
+      void registerTasks();
 
       static void addImageFieldsToRequirement(RegionRequirement &req);
 
@@ -468,19 +468,34 @@ namespace Legion {
       MapperID mMapperID;
 
     public:
-      static int mNodeID;
-      static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
-      static std::vector<Domain> *mHierarchicalTreeDomain;
+      static ImageReduction *compositor;
+    //   static int mNodeID;
+    //   static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
+    //   static std::vector<Domain> *mHierarchicalTreeDomain;
       static const int numMatrixElements4x4 = 16;
       static GLfloat mGlViewTransform[numMatrixElements4x4];
-      static PixelField mGlConstantColor[numPixelFields];
-      static GLenum mGlBlendEquation;
-      static GLenum mGlBlendFunctionSource;
-      static GLenum mGlBlendFunctionDestination;
-      static TaskID mCompositeTaskID;
-      static TaskID mDisplayTaskID;
-      static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
-      static KDTree<image_region_dimensions, long long int>* mImageKDTree;
+    //   static PixelField mGlConstantColor[numPixelFields];
+    //   static GLenum mGlBlendEquation;
+    //   static GLenum mGlBlendFunctionSource;
+    //   static GLenum mGlBlendFunctionDestination;
+    //   static TaskID mCompositeTaskID;
+    //   static TaskID mDisplayTaskID;
+    //   static KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
+    //   static KDTree<image_region_dimensions, long long int>* mImageKDTree;
+    private:
+      std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
+      std::vector<Domain> *mHierarchicalTreeDomain;
+      // const int numMatrixElements4x4 = 16;
+      // GLfloat mGlViewTransform[numMatrixElements4x4];
+      PixelField mGlConstantColor[numPixelFields];
+      GLenum mGlBlendEquation;
+      GLenum mGlBlendFunctionSource;
+      GLenum mGlBlendFunctionDestination;
+      TaskID mInitialTaskID;
+      TaskID mCompositeTaskID;
+      TaskID mDisplayTaskID;
+      KDTree<image_region_dimensions, long long int>* mSimulationKDTree;
+      KDTree<image_region_dimensions, long long int>* mImageKDTree;
     };
 
   }
