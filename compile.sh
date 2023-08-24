@@ -47,4 +47,4 @@ PKG_CONFIG_PATH=$DEPS/libpng/lib/pkgconfig:$PKG_CONFIG_PATH VERBOSE=0 cmake ../ 
     -Dospray_DIR=${DEPS}/ospray-2.9.0.x86_64.linux/lib/cmake/ospray-2.9.0/ \
     -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb \
 
-VERBOSE=0 cmake --build . --config Release --parallel 16
+VERBOSE=0 cmake --build . --config ReleaseWithDebInfo --parallel 16

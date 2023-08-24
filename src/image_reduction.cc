@@ -89,8 +89,6 @@ namespace Visualization {
 
 // declare module static data
 
-std::vector<ImageReduction::CompositeProjectionFunctor*> *ImageReduction::mCompositeProjectionFunctor = nullptr;
-std::vector<Domain> *ImageReduction::mHierarchicalTreeDomain = nullptr;
 GLfloat ImageReduction::mGlViewTransform[numMatrixElements4x4];
 ImageReduction::PixelField ImageReduction::mGlConstantColor[numPixelFields];
 GLenum ImageReduction::mGlBlendEquation = 0;
@@ -186,14 +184,14 @@ ImageReduction::ImageReduction(ImageDescriptor imageDescriptor,
 }
 
 ImageReduction::~ImageReduction() {
-  if(mHierarchicalTreeDomain != NULL) {
-    delete mHierarchicalTreeDomain;
-    mHierarchicalTreeDomain = NULL;
-  }
-  if(mCompositeProjectionFunctor != NULL) {
-    delete mCompositeProjectionFunctor;
-    mCompositeProjectionFunctor = NULL;
-  }
+  // if(mHierarchicalTreeDomain != NULL) {
+  //   delete mHierarchicalTreeDomain;
+  //   mHierarchicalTreeDomain = NULL;
+  // }
+  // if(mCompositeProjectionFunctor != NULL) {
+  //   delete mCompositeProjectionFunctor;
+  //   mCompositeProjectionFunctor = NULL;
+  // }
 }
 
 
@@ -499,30 +497,26 @@ static int level2FunctorID(int level, int more) {
 
 
 void ImageReduction::createProjectionFunctors(Runtime* runtime, int numImageLayers) {
+  if (compositeProjectionFunctor.size() != 0) throw std::runtime_error("compositeProjectionFunctor non empty");
 
-  // really need a lock here on mCompositeProjectionFunctor when running multithreaded locally
-  // not a problem for multinode runs
-  if(mCompositeProjectionFunctor == NULL) {
-    mCompositeProjectionFunctor = new std::vector<CompositeProjectionFunctor*>();
+  int numLevels = numTreeLevels(numImageLayers);
+  int multiplier = numImageLayers;
 
-    int numLevels = numTreeLevels(numImageLayers);
-    int multiplier = numImageLayers;
-    for(int level = 0; level < numLevels; ++level) {
+  for(int level = 0; level < numLevels; ++level) {
 
-      ProjectionID id0 = level2FunctorID(level, 0);
-      int offset = 0;
-      CompositeProjectionFunctor* functor0 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id0);
-      runtime->register_projection_functor(id0, functor0);
-      mCompositeProjectionFunctor->push_back(functor0);
+    ProjectionID id0 = level2FunctorID(level, 0);
+    int offset = 0;
+    CompositeProjectionFunctor* functor0 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id0);
+    runtime->register_projection_functor(id0, functor0);
+    compositeProjectionFunctor.push_back(functor0->id());
 
-      ProjectionID id1 = level2FunctorID(level, 1);
-      offset = multiplier / 2;
-      CompositeProjectionFunctor* functor1 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id1);
-      runtime->register_projection_functor(id1, functor1);
-      mCompositeProjectionFunctor->push_back(functor1);
+    ProjectionID id1 = level2FunctorID(level, 1);
+    offset = multiplier / 2;
+    CompositeProjectionFunctor* functor1 = new CompositeProjectionFunctor(offset, multiplier, numImageLayers, id1);
+    runtime->register_projection_functor(id1, functor1);
+    compositeProjectionFunctor.push_back(functor1->id());
 
-      multiplier /= 2;
-    }
+    multiplier /= 2;
   }
 }
 
@@ -594,16 +588,16 @@ void ImageReduction::initial_task(const Task *task,
                                   const std::vector<PhysicalRegion> &regions,
                                   Context ctx, Runtime *runtime) {
 
-#ifdef TRACE_TASKS
-  std::cout << describe_task(task) << std::endl;
-#endif
-__TRACE
-  ImageDescriptor imageDescriptor = *((ImageDescriptor*)task->args);
-  createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
-  if(imageDescriptor.hasPartition) {
-__TRACE
-    buildKDTrees(imageDescriptor, ctx, runtime);
-  }
+// #ifdef TRACE_TASKS
+//   std::cout << describe_task(task) << std::endl;
+// #endif
+// __TRACE
+//   ImageDescriptor imageDescriptor = *((ImageDescriptor*)task->args);
+//   createProjectionFunctors(runtime, imageDescriptor.numImageLayers);
+//   if(imageDescriptor.hasPartition) {
+// __TRACE
+//     buildKDTrees(imageDescriptor, ctx, runtime);
+//   }
 }
 
 
@@ -615,19 +609,17 @@ void ImageReduction::initializeViewMatrix() {
 
 
 void ImageReduction::createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor imageDescriptor) {
-  if(mHierarchicalTreeDomain == NULL) {
-    mHierarchicalTreeDomain = new std::vector<Domain>();
-  }
+  if (hierarchicalTreeDomain.size() != 0) throw std::runtime_error("hierarchicalTreeDomain non-empty");
 
   Point<image_region_dimensions> numFragments = { 0, 0, mImageDescriptor.numImageLayers - 1 };
   int numLeaves = 1;
 
   for(int level = 0; level < numTreeLevels; ++level) {
-    if((unsigned)level >= mHierarchicalTreeDomain->size()) {
+    if((unsigned)level >= hierarchicalTreeDomain.size()) {
       numFragments[2] = numLeaves - 1;
       Rect<image_region_dimensions> launchBounds(Point<image_region_dimensions>::ZEROES(), numFragments);
       Domain domain = Domain(launchBounds);
-      mHierarchicalTreeDomain->push_back(domain);
+      hierarchicalTreeDomain.push_back(domain);
     }
     numLeaves *= 2;
   }
@@ -964,10 +956,10 @@ FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, i
                                               int maxTreeLevel,
                                               bool cameraIsOrthographic, float cameraData[image_region_dimensions])
 {
-  Domain launchDomain = (*mHierarchicalTreeDomain)[treeLevel - 1];
+  Domain launchDomain = hierarchicalTreeDomain[treeLevel - 1];
   int index = (treeLevel - 1) * 2;
-  CompositeProjectionFunctor* functor0 = (*mCompositeProjectionFunctor)[index];
-  CompositeProjectionFunctor* functor1 = (*mCompositeProjectionFunctor)[index + 1];
+  auto functor0_id = compositeProjectionFunctor[index];
+  auto functor1_id = compositeProjectionFunctor[index + 1];
 
   ArgumentMap argMap;
   CompositeArguments args;
@@ -979,16 +971,15 @@ FutureMap ImageReduction::launchTreeReduction(ImageDescriptor imageDescriptor, i
   args.cameraIsOrthographic = cameraIsOrthographic;
   memcpy(args.cameraData, cameraData, sizeof(args.cameraData));
   IndexTaskLauncher treeCompositeLauncher(compositeTaskID, launchDomain,
-                                          TaskArgument(&args, sizeof(args)), argMap, Predicate::TRUE_PRED, false,
+                                          args, // TaskArgument(&args, sizeof(args)), 
+                                          argMap, Predicate::TRUE_PRED, false,
                                           gMapperID);
 
-  RegionRequirement req0(sourcePartition, functor0->id(),
-                         READ_WRITE, EXCLUSIVE, image, gMapperID);
+  RegionRequirement req0(sourcePartition, functor0_id, READ_WRITE, EXCLUSIVE, image, gMapperID);
   addImageFieldsToRequirement(req0);
   treeCompositeLauncher.add_region_requirement(req0);
 
-  RegionRequirement req1(sourcePartition, functor1->id(),
-                         READ_WRITE, EXCLUSIVE, image, gMapperID);
+  RegionRequirement req1(sourcePartition, functor1_id, READ_WRITE, EXCLUSIVE, image, gMapperID);
   addImageFieldsToRequirement(req1);
   treeCompositeLauncher.add_region_requirement(req1);
 
