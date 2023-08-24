@@ -1,5 +1,11 @@
 #!/bin/bash
 
+GPU_ARCH=$1
+if [[ -z "$GPU_ARCH" ]]; then
+    echo "Usage: $0 GPU_ARCH"
+    exit 1
+fi
+
 export LEGION_DIR=$(pwd)/../legion
 mkdir -p deps
 cd deps
@@ -46,5 +52,6 @@ PKG_CONFIG_PATH=$DEPS/libpng/lib/pkgconfig:$PKG_CONFIG_PATH VERBOSE=0 cmake ../ 
     -DBUILD_WITH_CUDA=ON -DOVR_BUILD_DEVICE_OPTIX7=OFF \
     -Dospray_DIR=${DEPS}/ospray-2.9.0.x86_64.linux/lib/cmake/ospray-2.9.0/ \
     -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb \
+    -DGDT_CUDA_ARCHITECTURES=${GPU_ARCH} -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH} 
 
 VERBOSE=0 cmake --build . --config Release --parallel 16
