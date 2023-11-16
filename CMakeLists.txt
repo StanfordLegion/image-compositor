@@ -82,7 +82,7 @@ find_package(TBB REQUIRED)
 # endif()
 
 # TODO need to explain why
-include_directories(${TBB_DIR}/../../../include)
+# include_directories(${TBB_DIR}/../../../include)
 
 # add_subdirectory(deps/open-volume-renderer)
 add_subdirectory(renderer)
