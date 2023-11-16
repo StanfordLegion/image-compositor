@@ -32,12 +32,12 @@ if [ ! -d "oneapi-tbb-2021.4.0" ]; then
    tar xzvf oneapi-tbb-2021.4.0-lin.tgz
 fi
 
-if [ ! -d "open-volume-renderer" ]; then
-   mkdir open-volume-renderer
-   cd open-volume-renderer
-   tar xzvf ../../open-volume-renderer.tar.gz
-   cd ..
-fi
+# if [ ! -d "open-volume-renderer" ]; then
+#    mkdir open-volume-renderer
+#    cd open-volume-renderer
+#    tar xzvf ../../open-volume-renderer.tar.gz
+#    cd ..
+# fi
 
 cd ..
 
