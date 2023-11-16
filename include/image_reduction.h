@@ -61,7 +61,7 @@ namespace Legion {
         LogicalRegion image;
       } ScreenSpaceArguments;
 
-      struct CompositeArguments : TaskArgument {
+      typedef struct {
         ImageDescriptor imageDescriptor;
         GLenum depthFunction;
         GLenum blendFunctionSource;
@@ -70,21 +70,7 @@ namespace Legion {
         /* camera */
         bool cameraIsOrthographic;
         GLfloat cameraData[image_region_dimensions];
-
-        // size_t legion_buffer_size(void) const { return sizeof(CompositeArguments); }
-        // size_t legion_serialize(void *buffer) const 
-        // {  
-        //   char *target = (char*)buffer; 
-        //   *((CompositeArguments*)target) = *this;
-        //   return sizeof(CompositeArguments);
-        // }
-        // size_t legion_deserialize(const void *buffer)
-        // {  
-        //   const char *source = (const char*)buffer;
-        //   *this = *((CompositeArguments*)source);
-        //   return sizeof(CompositeArguments);
-        // }
-      };
+      } CompositeArguments;
 
       typedef struct {
         ImageDescriptor imageDescriptor;
@@ -316,23 +302,39 @@ namespace Legion {
       /**
        * Launcher utility over compositor domain.
        */
-      Legion::FutureMap launch_task_composite_domain(unsigned taskID, Runtime* runtime, Context context, void* argsBuffer, int totalArgLen, bool blocking);
+      Legion::FutureMap launch_task_composite_domain(
+      unsigned taskID,
+      Runtime* runtime,
+      Context context,
+      void* argsBuffer,
+      int totalArgLen,
+      bool blocking);
 
-      static void display_task(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime);
+
+      static void display_task(const Task *task,
+                               const std::vector<PhysicalRegion> &regions,
+                               Context ctx, Runtime *runtime);
 
       static int numTreeLevels(ImageDescriptor imageDescriptor);
-
       static int numTreeLevels(int numImageLayers);
 
-      static void initial_task(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime);
+      static void initial_task(const Task *task,
+                               const std::vector<PhysicalRegion> &regions,
+                               Context ctx, Runtime *runtime);
 
       static KDNode<image_region_dimensions, long long int>* findFragmentInKDTree(PhysicalRegion fragment);
 
       static bool flipRegions(PhysicalRegion fragment0, PhysicalRegion fragment1, bool cameraIsOrthographic, float cameraData[image_region_dimensions]);
 
-      static void composite_task(const Task *task, const std::vector<PhysicalRegion> &regions, Context ctx, Runtime *runtime);
+      static void composite_task(const Task *task,
+                                 const std::vector<PhysicalRegion> &regions,
+                                 Context ctx, Runtime *runtime);
 
-      void initializeRenderNodes(HighLevelRuntime* runtime, Context context, unsigned taskID, char* args, int totalArgLen);
+      void initializeRenderNodes(HighLevelRuntime* runtime,
+				Context context,
+				unsigned taskID,
+				char* args,
+				int totalArgLen);
 
       static FieldSpace imageFields(Context context);
 
@@ -348,7 +350,9 @@ namespace Legion {
           mID = id;
         }
 
-        virtual LogicalRegion project(const Mappable *mappable, unsigned index, LogicalPartition upperBound, const DomainPoint &point) {
+        virtual LogicalRegion project(const Mappable *mappable, unsigned index,
+                                      LogicalPartition upperBound,
+                                      const DomainPoint &point) {
           int launchDomainLayer = point[2];
           DomainPoint remappedPoint = point;
           int remappedLayer = launchDomainLayer * mMultiplier + mOffset;
@@ -406,7 +410,7 @@ namespace Legion {
       };
 
 
-      /*static*/ void createProjectionFunctors(Runtime* runtime, int numImageLayers);
+      static void createProjectionFunctors(Runtime* runtime, int numImageLayers);
 
       void initializeNodes(HighLevelRuntime* runtime, Context context);
       void initializeViewMatrix();
@@ -427,15 +431,23 @@ namespace Legion {
 
       static void addImageFieldsToRequirement(RegionRequirement &req);
 
+
       static void createImageRegionFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
-        int fieldID, PixelField *&field, Rect<image_region_dimensions> imageBounds, PhysicalRegion region, ByteOffset offset[image_region_dimensions]);
+                                          int fieldID,
+                                          PixelField *&field,
+                                          Rect<image_region_dimensions> imageBounds,
+                                          PhysicalRegion region,
+                                          ByteOffset offset[image_region_dimensions]);
 
       static int subtreeHeight(ImageDescriptor imageDescriptor);
 
-      FutureMap launchTreeReduction(ImageDescriptor imageDescriptor, int treeLevel,
-                                    GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
-                                    int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image, Runtime* runtime, 
-                                    Context context, int maxTreeLevel, bool cameraIsOrthographic, float cameraData[image_region_dimensions]);
+      static FutureMap launchTreeReduction(ImageDescriptor imageDescriptor, int treeLevel,
+                                           GLenum depthFunc, GLenum blendFuncSource, GLenum blendFuncDestination, GLenum blendEquation,
+                                           int compositeTaskID, LogicalPartition sourceFragmentPartition, LogicalRegion image,
+                                           Runtime* runtime, Context context,
+                                           int maxTreeLevel,
+                                           bool cameraIsOrthographic, float cameraData[image_region_dimensions]);
+
 
       ImageDescriptor mImageDescriptor;
       Runtime *mRuntime;
@@ -457,8 +469,8 @@ namespace Legion {
 
     public:
       static int mNodeID;
-      std::vector<ProjectionID> compositeProjectionFunctor;
-      std::vector<Domain> hierarchicalTreeDomain;
+      static std::vector<CompositeProjectionFunctor*> *mCompositeProjectionFunctor;
+      static std::vector<Domain> *mHierarchicalTreeDomain;
       static const int numMatrixElements4x4 = 16;
       static GLfloat mGlViewTransform[numMatrixElements4x4];
       static PixelField mGlConstantColor[numPixelFields];

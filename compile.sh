@@ -54,4 +54,4 @@ PKG_CONFIG_PATH=$DEPS/libpng/lib/pkgconfig:$PKG_CONFIG_PATH VERBOSE=0 cmake ../ 
     -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb \
     -DGDT_CUDA_ARCHITECTURES=${GPU_ARCH} -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH} 
 
-VERBOSE=0 cmake --build . --config ReleaseWithDebInfo --parallel 16
+VERBOSE=0 cmake --build . --config Release --parallel 16
