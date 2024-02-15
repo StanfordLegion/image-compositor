@@ -106,15 +106,15 @@ MapperID gMapperID = 0;
 /**
  * Use this constructor with your simulation partition.
  **/
-ImageReduction::ImageReduction(
-                               LogicalRegion region,
+ImageReduction::ImageReduction(LogicalRegion region,
                                LogicalPartition partition,
                                legion_field_id_t pFields[],
                                int numPFields,
                                ImageDescriptor imageDescriptor,
                                Context context,
                                Runtime *runtime,
-                               MapperID mapperID) {
+                               MapperID mapperID) 
+{
   Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
   imageDescriptor.simulationLogicalRegion = region;
   imageDescriptor.simulationLogicalPartition = partition;
@@ -536,7 +536,7 @@ __TRACE
   }
 
   Rect<image_region_dimensions> rect = imageDescriptor.simulationDomain;
-  std::cout << "simulationDomain " << rect << std::endl;
+  // std::cout << "simulationDomain " << rect << std::endl;
 
   KDTreeValue* simulationElements = new KDTreeValue[rect.volume()];
   unsigned index = 0;
@@ -845,14 +845,14 @@ bool ImageReduction::flipRegions(PhysicalRegion fragment0,
   KDNode<image_region_dimensions, long long int>* node0 = findFragmentInKDTree(fragment0);
   KDNode<image_region_dimensions, long long int>* node1 = findFragmentInKDTree(fragment1);
 
-  std::cout 
-          << std::endl << "frag 0 bbox " 
-          << node0->mValue.world_space_bounds.lo[0] << " " << node0->mValue.world_space_bounds.lo[1] << " " << node0->mValue.world_space_bounds.lo[2] << ", "
-          << node0->mValue.world_space_bounds.hi[0] << " " << node0->mValue.world_space_bounds.hi[1] << " " << node0->mValue.world_space_bounds.hi[2] << " "
-          << std::endl << "frag 1 bbox " 
-          << node1->mValue.world_space_bounds.lo[0] << " " << node1->mValue.world_space_bounds.lo[1] << " " << node1->mValue.world_space_bounds.lo[2] << ", "
-          << node1->mValue.world_space_bounds.hi[0] << " " << node1->mValue.world_space_bounds.hi[1] << " " << node1->mValue.world_space_bounds.hi[2] << " "
-          << std::endl;
+  // std::cout 
+  //         << std::endl << "frag 0 bbox " 
+  //         << node0->mValue.world_space_bounds.lo[0] << " " << node0->mValue.world_space_bounds.lo[1] << " " << node0->mValue.world_space_bounds.lo[2] << ", "
+  //         << node0->mValue.world_space_bounds.hi[0] << " " << node0->mValue.world_space_bounds.hi[1] << " " << node0->mValue.world_space_bounds.hi[2] << " "
+  //         << std::endl << "frag 1 bbox " 
+  //         << node1->mValue.world_space_bounds.lo[0] << " " << node1->mValue.world_space_bounds.lo[1] << " " << node1->mValue.world_space_bounds.lo[2] << ", "
+  //         << node1->mValue.world_space_bounds.hi[0] << " " << node1->mValue.world_space_bounds.hi[1] << " " << node1->mValue.world_space_bounds.hi[2] << " "
+  //         << std::endl;
 
   if (cameraIsOrthographic) {
     unsigned axis0 = node0->mLevel % image_region_dimensions; // image_region_dimensions === 3
@@ -894,9 +894,9 @@ bool ImageReduction::flipRegions(PhysicalRegion fragment0,
     for (int i = 0; i < image_region_dimensions; ++i) {
       camPos[i] = cameraData[i];
     }
-    std::cout << "center0 "; print(center0); std::cout << std::endl;
-    std::cout << "center1 "; print(center1); std::cout << std::endl;
-    std::cout << "camPos  "; print(camPos); std::cout << std::endl;
+    // std::cout << "center0 "; print(center0); std::cout << std::endl;
+    // std::cout << "center1 "; print(center1); std::cout << std::endl;
+    // std::cout << "camPos  "; print(camPos); std::cout << std::endl;
 
     return cal_distance2(center0, camPos) > cal_distance2(center1, camPos);
   }

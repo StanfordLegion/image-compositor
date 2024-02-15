@@ -526,7 +526,7 @@ static int save_image_task(const Task *task,
   AccessorRO<ImageReduction::PixelField, 3> a(image, imageFields[3]);
 
   int rank = runtime->find_local_MPI_rank();
-  printf("RANK: %d SAVE TIMESTEP: %d\n", rank, timestep);
+  // printf("RANK: %d SAVE TIMESTEP: %d\n", rank, timestep);
 
   char filename[1024];
   sprintf(filename, "%s/image_%d_%d_%d.%05d.png", outDir, (int)bounds.lo.x, (int)bounds.lo.y, (int)bounds.lo.z, timestep);
