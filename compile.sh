@@ -2,10 +2,10 @@
 
 GPU_ARCH=$1
 if [[ -z "$GPU_ARCH" ]]; then
-   echo "Usage: $0 GPU_ARCH"
-   exit 1
+   echo "No CUDA"
+   CMAKE_CUDA_ARGS="-DBUILD_WITH_CUDA=OFF "
 else
-   CMAKE_CUDA_ARGS="-DGDT_CUDA_ARCHITECTURES=${GPU_ARCH} -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH} "
+   CMAKE_CUDA_ARGS="-DGDT_CUDA_ARCHITECTURES=${GPU_ARCH} -DCMAKE_CUDA_ARCHITECTURES=${GPU_ARCH} -DBUILD_WITH_CUDA=ON "
 fi
 
 export LEGION_DIR=$(pwd)/../legion
@@ -51,7 +51,7 @@ pwd
 # note: BUILD_WITH_CUDA means whether Legion has CUDA with it or not
 #       OVR_BUILD_DEVICE_OPTIX7 means whether we want to enable the OptiX renderer
 PKG_CONFIG_PATH=$DEPS/libpng/lib/pkgconfig:$PKG_CONFIG_PATH \
-VERBOSE=0 cmake .. ${CMAKE_CUDA_ARGS} -DBUILD_WITH_CUDA=ON \
+VERBOSE=0 cmake .. ${CMAKE_CUDA_ARGS} \
    -Dospray_DIR=${DEPS}/ospray-2.9.0.x86_64.linux/lib/cmake/ospray-2.9.0/ \
    -DTBB_DIR=${DEPS}/oneapi-tbb-2021.4.0/lib/cmake/tbb
 
