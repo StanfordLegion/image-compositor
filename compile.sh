@@ -9,6 +9,8 @@ else
 fi
 
 export LEGION_DIR=$(pwd)/../legion
+export LG_RT_DIR=$(pwd)/../legion/runtime
+
 mkdir -p deps
 cd deps
 

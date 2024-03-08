@@ -14,17 +14,7 @@
 # limitations under the License.
 #------------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 3.1)
-project(Legion)
-
-if(BUILD_WITH_CUDA)
-  enable_language(CUDA)
-endif()
-
-set(Legion_DIR $ENV{LG_RT_DIR}/../language/build)
-if(NOT Legion_SOURCE_DIR)
-  find_package(Legion REQUIRED)
-endif()
+include(cuda_helpers)
 
 include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime/legion $ENV{LEGION_DIR}/runtime/realm)
 
@@ -34,11 +24,16 @@ list(APPEND FRAMEWORK_SRC
   image_reduction_composite.cc
   image_reduction_mapper.cc
 )
-if(BUILD_WITH_CUDA)
-  set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
-endif()
-
-
 
 add_library(ImageCompositor SHARED ${FRAMEWORK_SRC})
-# target_link_libraries(ImageCompositor PUBLIC ../deps/libpng/lib/libpng16.so)
+
+target_link_libraries(ImageCompositor PRIVATE Legion::Legion)
+# target_link_libraries(ImageCompositor PRIVATE ../deps/libpng/lib/libpng16.so)
+target_compile_options(ImageCompositor PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CXX_BUILD_WARNING_FLAGS}>)
+
+if(Legion_USE_CUDA)
+  set_source_files_properties(${FRAMEWORK_SRC} PROPERTIES LANGUAGE CUDA)
+  set_target_cuda_standard(ImageCompositor STANDARD ${Legion_CUDA_STANDARD})
+  set_target_cuda_architectures(ImageCompositor ARCHITECTURES ${Legion_CUDA_ARCH})
+endif()
+# set_target_cuda_warnings_and_errors(ImageCompositor WARN_AS_ERROR ${Legion_BUILD_WARN_AS_ERROR})

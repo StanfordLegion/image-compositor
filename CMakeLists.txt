@@ -14,16 +14,22 @@
 # limitations under the License.
 #------------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(Legion_ImageCompositor)
 
 set(BUILD_SHARED_LIBS ON   CACHE BOOL   "Whether or not to build shared libraries instead of static")
 
-option(BUILD_WITH_CUDA "Enable OptiX rendering" ON)
+option(BUILD_WITH_CUDA "Enable CUDA-based rendering" ON)
 
 #------------------------------------------------------------------------------#
 # Install into the CMake pacakge registry if explicitly selected to do so
 #------------------------------------------------------------------------------#
+
+set(Legion_DIR $ENV{LG_RT_DIR}/../language/build)
+if(NOT Legion_SOURCE_DIR)
+  find_package(Legion REQUIRED)
+endif()
+
 set(CMAKE_EXPORT_NO_PACKAGE_REGISTRY ON CACHE INTERNAL "Disable the export(PACKAGE) command.")
 option(Legion_USE_PACKAGE_REGISTRY "Register the build tree with the CMake package registry" OFF)
 mark_as_advanced(Legion_USE_PACKAGE_REGISTRY)
