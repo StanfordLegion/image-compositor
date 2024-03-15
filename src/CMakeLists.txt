@@ -14,7 +14,10 @@
 # limitations under the License.
 #------------------------------------------------------------------------------#
 
-include(cuda_helpers)
+if(Legion_USE_CUDA)
+  enable_language(CUDA)
+  include(cuda_helpers)
+endif()
 
 include_directories(../include $ENV{LEGION_DIR}/runtime $ENV{LEGION_DIR}/runtime/legion $ENV{LEGION_DIR}/runtime/realm)
 
