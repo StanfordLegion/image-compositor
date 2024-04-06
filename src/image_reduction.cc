@@ -26,7 +26,7 @@
 #include <stdlib.h>
 
 using namespace std;
-using namespace LegionRuntime::Accessor;
+// using namespace LegionRuntime::Accessor;
 
 
 /******************************************************************************
@@ -494,7 +494,8 @@ int ImageReduction::subtreeHeight(ImageDescriptor imageDescriptor) {
 
 
 static int level2FunctorID(int level, int more) {
-  return 100 + level * 2 + more; //TODO assign ids dynamically
+  // return 100 + level * 2 + more; //TODO assign ids dynamically
+  return 100 + level * 2 + more + 2000; //TODO assign ids dynamically
 }
 
 

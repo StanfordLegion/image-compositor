@@ -361,6 +361,11 @@ namespace Legion {
             remappedPoint[2] = remappedLayer;
           }
 
+          // printf("[CompositeProjectionFunctor0] point (%d, %d, %d) -> p (%d, %d, %d)\n", 
+          //   (int)point[0], (int)point[1], (int)point[2], 
+          //   (int)remappedPoint[0], (int)remappedPoint[1], (int)remappedPoint[2]
+          // );
+
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upperBound, remappedPoint);
           return result;
         }
@@ -373,6 +378,11 @@ namespace Legion {
           if(mNumBounds == 0 || remappedLayer < mNumBounds) {
             remappedPoint[2] = remappedLayer;
           }
+
+          // printf("[CompositeProjectionFunctor1] point (%d, %d, %d) -> p (%d, %d, %d)\n", 
+          //   (int)point[0], (int)point[1], (int)point[2], 
+          //   (int)remappedPoint[0], (int)remappedPoint[1], (int)remappedPoint[2]
+          // );
 
           LogicalRegion result = Legion::Runtime::get_runtime()->get_logical_subregion_by_color(upper_bound, remappedPoint);
           return result;
@@ -432,12 +442,12 @@ namespace Legion {
       static void addImageFieldsToRequirement(RegionRequirement &req);
 
 
-      static void createImageRegionFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
-                                          int fieldID,
-                                          PixelField *&field,
-                                          Rect<image_region_dimensions> imageBounds,
-                                          PhysicalRegion region,
-                                          ByteOffset offset[image_region_dimensions]);
+      // static void createImageRegionFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
+      //                                     int fieldID,
+      //                                     PixelField *&field,
+      //                                     Rect<image_region_dimensions> imageBounds,
+      //                                     PhysicalRegion region,
+      //                                     ByteOffset offset[image_region_dimensions]);
 
       static int subtreeHeight(ImageDescriptor imageDescriptor);
 

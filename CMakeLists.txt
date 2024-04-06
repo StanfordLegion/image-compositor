@@ -30,6 +30,16 @@ if(NOT Legion_SOURCE_DIR)
   find_package(Legion REQUIRED)
 endif()
 
+# Thrust is required for complex reductions; let cmake find it.
+# By including Thrust before the CUDA headers we make sure the Thrust installation
+# we pass to cmake will take priority against whatever version is bundled with CUDA.
+find_package(Thrust CONFIG)
+# If we can't find a standalone Thrust then don't do anything and just let the build
+# pick up the version that comes bundled with CUDA.
+if(Thrust_FOUND)
+  thrust_create_target(Thrust)
+endif()
+
 set(CMAKE_EXPORT_NO_PACKAGE_REGISTRY ON CACHE INTERNAL "Disable the export(PACKAGE) command.")
 option(Legion_USE_PACKAGE_REGISTRY "Register the build tree with the CMake package registry" OFF)
 mark_as_advanced(Legion_USE_PACKAGE_REGISTRY)
