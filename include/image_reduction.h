@@ -135,6 +135,7 @@ namespace Legion {
        */
        ImageReduction(LogicalRegion region,
        LogicalPartition partition,
+       IndexSpace launch_space,
        legion_field_id_t pFields[],
        int numPFields,
        ImageDescriptor imageDescriptor,

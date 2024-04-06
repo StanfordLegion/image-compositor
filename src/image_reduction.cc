@@ -108,6 +108,7 @@ MapperID gMapperID = 0;
  **/
 ImageReduction::ImageReduction(LogicalRegion region,
                                LogicalPartition partition,
+                               IndexSpace launch_space,
                                legion_field_id_t pFields[],
                                int numPFields,
                                ImageDescriptor imageDescriptor,
@@ -115,14 +116,16 @@ ImageReduction::ImageReduction(LogicalRegion region,
                                Runtime *runtime,
                                MapperID mapperID) 
 {
-  Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
+  //Domain domain = runtime->get_index_partition_color_space(context, partition.get_index_partition());
+  Domain domain = runtime->get_index_space_domain(context, launch_space);
   imageDescriptor.simulationLogicalRegion = region;
   imageDescriptor.simulationLogicalPartition = partition;
   imageDescriptor.numPFields = numPFields;
   assert(numPFields <= Legion::Visualization::max_pFields);
   memcpy(imageDescriptor.pFields, pFields, numPFields * sizeof(legion_field_id_t));
-  imageDescriptor.simulationColorSpace =
-  runtime->get_index_partition_color_space(context, partition.get_index_partition());
+  // imageDescriptor.simulationColorSpace =
+  // runtime->get_index_partition_color_space(context, partition.get_index_partition());
+  imageDescriptor.simulationColorSpace = domain;
   imageDescriptor.simulationDomain = domain;
   imageDescriptor.hasPartition = true;
   imageDescriptor.numImageLayers = domain.get_volume();
