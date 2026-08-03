@@ -40,7 +40,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "legion/legion_c_util.h"
 #include "KDTree.hpp"
 
 
@@ -123,7 +122,7 @@ namespace Legion {
        */
       ImageReduction(ImageDescriptor imageDescriptor,
         Context ctx,
-        HighLevelRuntime *runtime,
+        Runtime *runtime,
         MapperID mapperID);
       /**
        * Construct an image reduction framework based on an existing partition.
@@ -139,7 +138,7 @@ namespace Legion {
        int numPFields,
        ImageDescriptor imageDescriptor,
        Context context,
-       HighLevelRuntime *runtime,
+       Runtime *runtime,
        MapperID mapperID);
 
       /**
@@ -330,7 +329,7 @@ namespace Legion {
                                  const std::vector<PhysicalRegion> &regions,
                                  Context ctx, Runtime *runtime);
 
-      void initializeRenderNodes(HighLevelRuntime* runtime,
+      void initializeRenderNodes(Runtime* runtime,
 				Context context,
 				unsigned taskID,
 				char* args,
@@ -412,33 +411,27 @@ namespace Legion {
 
       static void createProjectionFunctors(Runtime* runtime, int numImageLayers);
 
-      void initializeNodes(HighLevelRuntime* runtime, Context context);
+      void initializeNodes(Runtime* runtime, Context context);
       void initializeViewMatrix();
       void createTreeDomains(int numTreeLevels, Runtime* runtime, ImageDescriptor mImageDescriptor);
       void createImageRegion(IndexSpace& indexSpace, LogicalRegion &region, Domain &domain, FieldSpace& fields, legion_field_id_t fieldID[], Context context);
       void createImagePartition(legion_field_id_t fieldID[], Context context);
       void partitionImageByDepth(LogicalRegion image, Domain &domain, LogicalPartition &partition, Context context);
-      void partitionImageByImageDescriptor(LogicalRegion image, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
-      void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, HighLevelRuntime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageByImageDescriptor(LogicalRegion image, Context ctx, Runtime* runtime, ImageDescriptor imageDescriptor);
+      void partitionImageByKDTree(LogicalRegion image, LogicalPartition sourcePartition, Context ctx, Runtime* runtime, ImageDescriptor imageDescriptor);
 
       void addCompositeArgumentsToArgmap(CompositeArguments *&argsPtr, int taskZ, ArgumentMap &argMap, int layer0, int layer1);
 
       void addRegionRequirementToCompositeLauncher(IndexTaskLauncher &launcher, int projectionFunctorID, PrivilegeMode privilege, CoherenceProperty coherence);
 
-      static void buildKDTrees(ImageDescriptor imageDescriptor, Context ctx, HighLevelRuntime *runtime);
+      static void buildKDTrees(ImageDescriptor imageDescriptor, Context ctx, Runtime *runtime);
 
       static void registerTasks();
 
       static void addImageFieldsToRequirement(RegionRequirement &req);
 
 
-      static void createImageRegionFieldPointer(LegionRuntime::Accessor::RegionAccessor<LegionRuntime::Accessor::AccessorType::Generic, PixelField> &acc,
-                                          int fieldID,
-                                          PixelField *&field,
-                                          Rect<image_region_dimensions> imageBounds,
-                                          PhysicalRegion region,
-                                          ByteOffset offset[image_region_dimensions]);
-
+      // Removed an unused declaration based on Legion's legacy accessor API.
       static int subtreeHeight(ImageDescriptor imageDescriptor);
 
       static FutureMap launchTreeReduction(ImageDescriptor imageDescriptor, int treeLevel,

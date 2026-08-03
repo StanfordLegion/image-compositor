@@ -26,9 +26,7 @@
 #include <stdlib.h>
 
 using namespace std;
-using namespace LegionRuntime::Accessor;
-
-
+// LegionRuntime::Accessor was removed from newer Legion releases.
 /******************************************************************************
 
  Theory of operation.
@@ -423,7 +421,7 @@ __TRACE
 
 __TRACE
   for(unsigned i = 0; i < mSimulationKDTree->size(); ++i) {
-    rect.lo.z = rect.hi.z = i;
+    rect.lo[2] = rect.hi[2] = i;
     acc_extent[coloring[i]] = rect;
     acc_color[coloring[i]] = coloring[i];
 #if 1
@@ -450,7 +448,7 @@ std::cout << "coloring[" << i << "] extent " << rect << " color " << coloring[i]
   for(Domain::DomainPointIterator it(runtime->get_index_space_domain(ctx, coloringIndexSpace)); it; it++) {
     DomainPoint color(it.p);
     Rect<3> base = imageBounds;
-    base.lo.z = base.hi.z = count++;
+    base.lo[2] = base.hi[2] = count++;
     domains[color] = Domain(base);
     // std::cout << count << " point: " << color << " domains[color]: " << domains[color] << std::endl;
   }
@@ -494,7 +492,7 @@ int ImageReduction::subtreeHeight(ImageDescriptor imageDescriptor) {
 
 
 static int level2FunctorID(int level, int more) {
-  return 100 + level * 2 + more; //TODO assign ids dynamically
+  return 100 + level * 2 + more + 2000; //TODO assign ids dynamically
 }
 
 
